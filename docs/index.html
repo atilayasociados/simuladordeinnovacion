@@ -129,7 +129,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = 'b5d07ab23681';
+  var V0 = '3fef87861e43';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -2295,6 +2295,13 @@ var MANUAL = [
   ['h', 'Todo se mide en litros'],
   ['p', 'El mercado se cuenta en <b>litros</b> (unos 2 millones por trimestre). Los precios y costos del simulador están en <b>Bs por litro</b>, salvo cuando la pantalla dice "por unidad" (una botella o envase de un tamaño dado).'],
   ['ej', 'La leche saborizada de 1 litro se vende a <b>Bs 9 por litro</b>. Una botella de 330 ml (0,33 litros) que se vende a Bs 6,60 equivale a Bs 6,60 ÷ 0,33 = <b>Bs 20 por litro</b>.'],
+  ['h', 'Litros y unidades (envases)'],
+  ['p', 'En el negocio actual y en las decisiones de <b>5. Productos</b> todo va por litro. En los proyectos, desde Especificar, el precio y las ventas se escriben <b>por unidad</b> (un envase), porque así se vende; la pantalla muestra al lado a cuánto equivale por litro.'],
+  ['tabla', ['Envase', 'Litros por unidad', 'Unidades por litro', 'De precio por unidad a precio por litro'], [
+    ['200 ml', '0,2', '5', 'Precio por unidad × 5'],
+    ['330 ml', '0,33', 'casi 3', 'Precio por unidad ÷ 0,33'],
+    ['1 litro', '1', '1', 'Es el mismo']]],
+  ['ej', 'Hoy la empresa vende unos <b>245.000 litros por trimestre</b> a Bs 9: cerca de Bs 2,2 millones. Si un proyecto vende 12.000 botellas de 330 ml, son 12.000 × 0,33 = <b>3.960 litros</b>.'],
   ['h', 'Los cinco segmentos'],
   ['tabla', ['Segmento', 'Tamaño', 'Suelen pagar por litro', 'Hoy'], [
     ['S1 Familias con niños', '45 %', 'Bs 10', 'Cliente tradicional, decrece'],
@@ -2490,6 +2497,7 @@ var MANUAL = [
   ['p', 'Especificar es definir cómo se fabricará el producto y cuánto costará. La Puerta es el comité que, con esa información, decide si se autoriza el piloto. Lo que viene del prototipo (tamaño y forma de abrir) queda fijo.'],
   ['h', '1. Ficha técnica'],
   ['p', 'Elijan envase, base líquida, azúcar, conservación (pasteurizada, 12 días; UHT, 90 días), etiqueta y producción (línea actual, máquina nueva con inversión de Bs 60.000 o maquila). La pantalla calcula el <b>costo por unidad</b> y por litro, la vida útil y cuántas unidades pueden producir por trimestre.'],
+  ['tabla', ['Producción', 'Capacidad por trimestre', 'En botellas de 330 ml'], [['Línea actual', '30.000 litros', 'unas 90.900'], ['Máquina nueva (Bs 60.000)', '75.000 litros', 'unas 227.000'], ['Maquila tercerizada', '50.000 litros', 'unas 151.500']]],
   ['h', '2. Caso de negocio'],
   ['p', 'Escriban el <b>precio al público por unidad</b>, las <b>unidades que esperan vender por trimestre</b> y la <b>publicidad</b>. La pantalla calcula el margen por unidad, la utilidad por trimestre, la inversión que falta y en cuántos trimestres se recupera.'],
   ['p', 'La <b>clase de referencia</b> muestra cuánto vendieron otros lanzamientos en su primer trimestre (la mediana y el rango donde caen 8 de cada 10). Si su pronóstico supera a 9 de cada 10, el simulador se los advierte: es un pronóstico optimista.'],
@@ -2550,6 +2558,7 @@ var MANUAL = [
     ['5. Canales', 'Tiendas y supermercados están incluidos; los demás cuestan por trimestre.', 'Cada canal llega mejor a ciertos segmentos.'],
     ['6. Pronóstico de ventas', 'Litros del trimestre.', 'Se compara con lo que vendan.'],
     ['7. Retirar', 'No se puede retirar el producto original.', 'Deja de venderse y de costar gestión.']]],
+  ['ej', 'Si el trimestre pasado vendieron 245.000 litros y bajan el precio de Bs 9 a Bs 8,50 con una promoción, un pronóstico razonable podría ser 255.000 litros. Al trimestre siguiente verán cuánto se equivocaron.'],
   ['tabla', ['Canal', 'Costo por trimestre'], [['Tiendas de barrio', 'Incluido'], ['Supermercados', 'Incluido'], ['Kioscos universitarios', 'Bs 6.000'], ['Máquinas expendedoras', 'Bs 9.000'], ['App propia con entrega', 'Bs 15.000'], ['App de delivery (terceros)', 'Bs 12.000']]],
   ['p', 'La publicidad y la promoción son gastos comerciales: salen de la caja, no del presupuesto de innovación.'],
   ['ir', [['Ir a 5. Productos', 'productos']]]
@@ -2622,6 +2631,7 @@ var MANUAL = [
     ['No veo las ideas de mis compañeros', 'Es a propósito: se ven al abrir la votación. Guarden y presionen Actualizar.'],
     ['¿Por qué no se creó mi proyecto?', 'Revisen "Qué pasó y por qué": suele ser el máximo de proyectos o menos de 20 % en adyacente + transformacional para un segmento nuevo.'],
     ['¿Los precios son por litro?', 'Sí. Precios, costos y cantidades se expresan por litro, salvo donde la pantalla dice "por unidad" (un envase de un tamaño dado).'],
+    ['¿Cómo paso de unidades a litros?', 'Multipliquen las unidades por el tamaño del envase en litros: 1.000 botellas de 330 ml son 330 litros; 1.000 envases de 200 ml son 200 litros.'],
     ['¿Cómo sabemos cómo les va a los otros equipos?', 'Con el Estudio de la industria (participación) y el Análisis de competidores (lo que ofrecen).'],
     ['¿Qué es la empresa gemela?', 'Su misma empresa, pero sin innovar. Sirve para medir el valor que crean.'],
     ['¿Quién ve nuestras contraseñas?', 'Nadie. Se guardan cifradas; el docente solo puede asignar una temporal.']]]
