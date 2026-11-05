@@ -87,8 +87,10 @@ export function crearNucleo({ codigo, adaptador, entorno }) {
   // Se compila una sola vez por instancia; cada petición crea su propio entorno limpio.
   const fabrica = new Function(PARAMS.join(','), codigo + '\n;return function (n) { return eval(n); };');
 
-  async function ejecutar(fn, args) {
-    if (typeof fn !== 'string' || !/^api[A-Za-z0-9]+$/.test(fn)) throw new Error('Función no permitida.');
+  // opciones.interno: solo para herramientas locales (tools/semilla.mjs); la Edge Function nunca lo pasa.
+  async function ejecutar(fn, args, opciones) {
+    const interno = !!(opciones && opciones.interno);
+    if (typeof fn !== 'string' || !(/^api[A-Za-z0-9]+$/.test(fn) || (interno && /^[A-Za-z_][A-Za-z0-9_]*$/.test(fn)))) throw new Error('Función no permitida.');
     args = Array.isArray(args) ? args : [];
     const t0 = Date.now(), medidas = { cargas: 0, pasadas: 0 };
     const tok = esToken(args[0]) ? args[0] : null;
@@ -120,7 +122,7 @@ export function crearNucleo({ codigo, adaptador, entorno }) {
       if (extra.length) { Object.assign(datos, await cargar(extra)); medidas.cargas++; }
       spec.push(...extra);
       // 5) ejecución con reintentos si faltan datos
-      for (let pasada = 1; pasada <= 6; pasada++) {
+      for (let pasada = 1; pasada <= 8; pasada++) {
         medidas.pasadas = pasada;
         const ctx = crearEntorno(datos, spec, tok);
         let resultado, error = null;
@@ -182,7 +184,15 @@ export function crearNucleo({ codigo, adaptador, entorno }) {
       hojas[nombre] = h;
       return h;
     }
-    const need = (h, ids) => { throw new NecesitaDatos(ids ? { hoja: h.nombre, ids } : { hoja: h.nombre }); };
+    const need = (h, ids) => {
+      if (ids) {
+        // Al pedir un estado completo se traen también los de las demás empresas del mismo trimestre
+        // (al procesar se leen todos), para no repetir la petición una vez por empresa.
+        const tri = new Set(h.filas.filter((x) => ids.includes(x.id)).map((x) => String(x.f[1])));
+        ids = h.filas.filter((x) => x.parcial && x.id != null && (ids.includes(x.id) || tri.has(String(x.f[1])))).map((x) => x.id);
+      }
+      throw new NecesitaDatos(ids ? { hoja: h.nombre, ids } : { hoja: h.nombre });
+    };
     function chequearLectura(h) { if (h.modo === 'unloaded') need(h); }
     function sheetObj(h) {
       const s = {
