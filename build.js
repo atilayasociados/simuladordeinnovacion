@@ -13,7 +13,22 @@ fs.writeFileSync(path.join(__dirname, 'supabase/functions/api/gas_codigo.js'),
   '// Archivo generado por build.js a partir de fuente/*.gs. No editar a mano.\nexport const CODIGO = ' + JSON.stringify(codigo) + ';\n');
 
 // ---------- pantalla ----------
-const puente = `<script src="config.js"></script>
+const puente = `<script>
+// Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
+(function () {
+  var V0 = '__VERSION__';
+  try {
+    fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+      var v = String(t || '').trim().split(/\\s+/)[0];
+      if (!v || v === V0) return;
+      var q = new URLSearchParams(location.search);
+      if (q.get('v') === v) return;
+      q.set('v', v); location.replace(location.pathname + '?' + q.toString() + location.hash);
+    }).catch(function () { });
+  } catch (e) { }
+})();
+</script>
+<script src="config.js"></script>
 <script>
 // Puente: reemplaza google.script.run por llamadas a la Edge Function de Supabase.
 (function () {
@@ -68,6 +83,9 @@ let html = F('Index.html')
   .replace('<base target="_top">', '');
 if (/<\?/.test(html)) throw new Error('Quedó una plantilla de Apps Script sin reemplazar en index.html');
 fs.mkdirSync(path.join(__dirname, 'docs'), { recursive: true });
+const VERSION = require('crypto').createHash('sha256').update(html).digest('hex').slice(0, 12);
+html = html.replace('__VERSION__', VERSION);
 fs.writeFileSync(path.join(__dirname, 'docs/index.html'), html);
+fs.writeFileSync(path.join(__dirname, 'docs/version.txt'), VERSION + '\n');
 if (!fs.existsSync(path.join(__dirname, 'docs/.nojekyll'))) fs.writeFileSync(path.join(__dirname, 'docs/.nojekyll'), '');
 console.log('Listo: gas_codigo.js (' + Math.round(codigo.length / 1024) + ' KB) y docs/index.html (' + Math.round(html.length / 1024) + ' KB)');

@@ -126,7 +126,22 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
   <nav id="nav" style="display:none"></nav>
   <main id="app"></main>
   <footer class="acciones" id="pie" style="display:none"></footer>
-  <script src="config.js"></script>
+  <script>
+// Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
+(function () {
+  var V0 = '191f525a0c4c';
+  try {
+    fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+      var v = String(t || '').trim().split(/\s+/)[0];
+      if (!v || v === V0) return;
+      var q = new URLSearchParams(location.search);
+      if (q.get('v') === v) return;
+      q.set('v', v); location.replace(location.pathname + '?' + q.toString() + location.hash);
+    }).catch(function () { });
+  } catch (e) { }
+})();
+</script>
+<script src="config.js"></script>
 <script>
 // Puente: reemplaza google.script.run por llamadas a la Edge Function de Supabase.
 (function () {
