@@ -147,7 +147,7 @@ function AX_mostrar(modo, msg) {
       '<button class="ax-btn" id="axGo" onclick="AX_ingresar()">Ingresar →</button><div id="axErr" class="ax-err"></div>' +
       '<p class="ax-center"><button class="ax-link" onclick="AX_mostrar(\'recuperar\')">¿Olvidaste tu contraseña?</button></p>' +
       '<div class="ax-div">¿Primera vez?</div><button class="ax-ghost" onclick="AX_mostrar(\'registro\')">Registrar mi equipo</button>' +
-      (AXS.manual ? '<a class="ax-ghost" href="' + esc(AXS.manual) + '" target="_blank" rel="noopener">📘 Ver Manual del Estudiante</a>' : '');
+      (AXS.manual ? '<a class="ax-ghost" href="' + esc(AXS.manual) + '" target="_blank" rel="noopener">📘 Ver Manual del Estudiante</a>' : (typeof abrirManualPublico === 'function' ? '<button class="ax-ghost" onclick="abrirManualPublico()">📘 Ver Manual del Estudiante</button>' : ''));
   } else if (modo === 'registro') {
     ancho = true; AXS.reg = { ok: false, max: 5 };
     h = '<h2>Registrar mi equipo</h2><label for="axRn">Nombre del equipo o empresa</label><input class="ax-in" id="axRn" maxlength="40" placeholder="Ejemplo: Lácteos Andinos">' +

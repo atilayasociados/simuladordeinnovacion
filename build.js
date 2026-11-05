@@ -63,6 +63,7 @@ let html = F('Index.html')
   .replace("<?!= include('ProyectosUI'); ?>", F('ProyectosUI.html'))
   .replace("<?!= include('EvaluacionUI'); ?>", F('EvaluacionUI.html'))
   .replace("<?!= include('Aprender'); ?>", F('Aprender.html'))
+  .replace("<?!= include('Manual'); ?>", F('Manual.html'))
   .replace('<head>', '<head>\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n  <title>Simulador de Innovación</title>')
   .replace('<base target="_top">', '');
 if (/<\?/.test(html)) throw new Error('Quedó una plantilla de Apps Script sin reemplazar en index.html');

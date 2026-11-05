@@ -1,0 +1,483 @@
+<script>
+// ===================== Simulador de Innovación — Manual del estudiante =====================
+// Contenido propio. Bloques: ['p', html] párrafo · ['h', texto] subtítulo · ['pasos', [..]] lista numerada ·
+// ['lista', [..]] viñetas · ['tabla', [cabecera], [[fila], ..]] · ['ojo', html] advertencia · ['idea', html] consejo ·
+// ['ej', html] ejemplo · ['ir', [[texto, pestaña], ..]] botones a pantallas (solo con sesión iniciada).
+var MANUAL = [
+{ id: 'inicio', t: 'Qué es el simulador', r: 'Para qué sirve, qué decide su equipo y cómo se gana.', b: [
+  ['p', 'Su equipo dirige la <b>innovación</b> de una empresa láctea de Santa Cruz durante <b>5 años</b> (20 trimestres). La empresa vende una leche saborizada de 1 litro que se está quedando atrás: las familias compran cada vez menos y crecen los clientes que la empresa casi no atiende. Su encargo es <b>renovar el portafolio de productos sin poner en riesgo la caja</b>.'],
+  ['p', 'Compiten contra los equipos de su curso (cada equipo es una empresa) y contra cuatro competidores que maneja el simulador. Lo que gana una empresa en el mercado lo pierden las demás.'],
+  ['h', 'Qué deciden'],
+  ['lista', ['Cómo leen el entorno (noticias que pueden ser oportunidad, amenaza o simple ruido).',
+    'La estrategia de innovación del año y el clima creativo de la organización.',
+    'Qué investigan sobre los clientes y la competencia.',
+    'Sus proyectos de innovación, de la idea al lanzamiento: definir, idear, evaluar, prototipar, especificar, pasar la puerta, pilotear y lanzar.',
+    'El precio, la publicidad y los canales de los productos que ya venden.']],
+  ['h', 'Cómo se mide su desempeño'],
+  ['p', 'Sus resultados se comparan siempre con una <b>empresa gemela que no innova</b>: parte igual que ustedes y sigue vendiendo lo mismo. La diferencia entre ustedes y la gemela es el valor que su innovación creó. Al final se comparan todas las empresas del curso con seis indicadores:'],
+  ['tabla', ['Indicador', 'Peso'], [['Valor de la empresa al final (utilidades descontadas y valor terminal)', '30 %'], ['Índice de vitalidad (ventas de productos nuevos) en los años 3 a 5', '20 %'], ['Participación en los segmentos que crecen', '15 %'], ['Resiliencia ante cambios fuertes del mercado', '15 %'], ['Madurez en gestión de la innovación', '10 %'], ['Clima creativo promedio', '10 %']]],
+  ['idea', 'No gana quien más gasta ni quien lanza más productos. Gana quien aprende antes qué valora el cliente, apuesta con criterio y llega al mercado con productos que se venden y dejan margen.'],
+  ['p', 'Además de la competencia, su docente califica lo que escriben: hipótesis, decisiones tomadas con cada informe, fichas de concepto, aprendizajes del prototipo y bitácora.']
+]},
+{ id: 'ingreso', t: 'Registrarse e ingresar', r: 'Crear el equipo, entrar cada semana y recuperar la contraseña.', b: [
+  ['h', 'Registrar el equipo (una sola vez)'],
+  ['pasos', ['En la pantalla de ingreso presionen <b>Registrar mi equipo</b>.',
+    'Escriban el <b>nombre de la empresa</b>. Con ese nombre ingresarán y competirán.',
+    'Elijan una <b>contraseña</b> (mínimo 4 caracteres) y confírmenla.',
+    'Escriban el <b>código de simulación</b> que les dio su docente (tiene la forma INN-XXXX). Si el código es correcto, la pantalla lo confirma.',
+    'Agreguen a <b>cada integrante</b>: apellidos, nombres y número de registro universitario (obligatorio). El teléfono es opcional.',
+    'Presionen <b>Registrar equipo</b>.']],
+  ['ojo', 'Una sola persona registra al equipo. Si otro integrante registra el mismo equipo otra vez, tendrán dos empresas distintas y se dividirá el trabajo. Antes de registrar, pónganse de acuerdo.'],
+  ['h', 'Ingresar en cada clase'],
+  ['pasos', ['Escriban el <b>nombre del equipo</b>, la <b>contraseña</b> y el <b>código de simulación</b>.',
+    'En <b>¿Quién eres?</b> cada uno elige su propio nombre. Así sus ideas, votos y bitácoras quedan registrados a su nombre y el docente puede ver quién aportó.',
+    'Al terminar, presionen <b>Salir</b> (arriba a la derecha), sobre todo en computadoras compartidas.']],
+  ['p', 'La sesión dura 6 horas. Después de 5 intentos fallidos, el ingreso se bloquea por 15 minutos.'],
+  ['h', 'Si olvidan la contraseña'],
+  ['p', 'Pidan a su docente una <b>contraseña temporal</b>. Al ingresar con ella, el simulador les pedirá crear una nueva. El docente no puede ver su contraseña: solo puede reemplazarla.'],
+  ['h', 'Mi equipo'],
+  ['p', 'En <b>Situación → Mi equipo</b> ven a los integrantes, pueden agregar a uno que faltó en el registro y cambiar la contraseña del equipo.'],
+  ['ir', [['Ir a Mi equipo', 'equipo']]]
+]},
+{ id: 'pantalla', t: 'Cómo se usa la pantalla', r: 'Menús, barra superior, pie con costos, guardar y enviar.', b: [
+  ['h', 'Barra superior'],
+  ['p', 'Muestra su nombre y su equipo, el trimestre en curso (por ejemplo, <i>Trimestre 3 de 20, año 1</i>), si el trimestre está <b>Abierto</b> o <b>Cerrado</b>, el <b>presupuesto de innovación</b> que les queda y el botón Salir.'],
+  ['h', 'Los cuatro menús'],
+  ['tabla', ['Menú', 'Para qué sirve'], [
+    ['Situación', 'Dónde está su empresa: el caso, los indicadores actuales, el mercado y la competencia, y su equipo.'],
+    ['Decidir', 'La hoja de decisiones del trimestre, en seis pasos y la evaluación de conceptos de otros equipos.'],
+    ['Resultados', 'Qué pasó al procesar el trimestre: resumen, informes de investigación, evaluación de sus conceptos y estados financieros.'],
+    ['Aprender', 'Este manual, los temas de innovación, el glosario y la bitácora del equipo.']]],
+  ['h', 'El pie de la pantalla'],
+  ['p', 'Mientras están en Decidir, abajo aparece una barra con el <b>costo estimado de innovación</b> de lo que van eligiendo, las <b>semanas-persona</b> que consumen (tienen 12 por trimestre) y avisos en amarillo si algo falta o se pasan. Revísenla antes de enviar.'],
+  ['h', 'Guardar y enviar'],
+  ['lista', ['<b>Guardar borrador</b>: guarda lo que llevan. Cualquier integrante puede seguir desde otra computadora.',
+    '<b>Enviar decisiones</b>: entrega las decisiones del trimestre. Pueden volver a enviar cuantas veces quieran mientras el trimestre esté abierto: <b>vale el último envío</b>.',
+    '<b>Actualizar</b>: trae lo último que guardaron sus compañeros (por ejemplo, sus ideas o votos).']],
+  ['ojo', 'Si dos integrantes editan la misma pantalla a la vez, cada uno guarda lo suyo y puede pisar al otro. Repártanse las pantallas o guarden y actualicen seguido.'],
+  ['h', 'Ayudas dentro de cada pantalla'],
+  ['p', 'Los recuadros celestes explican cada decisión. Sus enlaces <b>Aprender: unidad N</b> y <b>Glosario</b> llevan a la teoría. Arriba de cada pantalla hay un enlace a la sección de este manual que la explica.']
+]},
+{ id: 'caso', t: 'El caso y sus unidades', r: 'Producto, precios por porción, segmentos, competidores y finanzas.', b: [
+  ['h', 'La empresa'],
+  ['p', 'Todas las empresas del curso parten iguales: el mismo producto, el mismo presupuesto y la misma participación. Venden alrededor de Bs 2 millones por trimestre, tienen gastos fijos de Bs 500.000 por trimestre y ganan dinero, pero si no cambian nada sus ventas irán cayendo.'],
+  ['h', 'Todo se mide en porciones de 250 ml'],
+  ['p', 'El mercado se cuenta en <b>porciones de 250 ml</b> (unos 8 millones por trimestre). Los precios y costos del simulador están en <b>Bs por porción</b>, salvo cuando la pantalla dice "por unidad".'],
+  ['ej', 'La leche saborizada de 1 litro se vende a Bs 9. Un litro son 4 porciones: Bs 9 ÷ 4 = <b>Bs 2,25 por porción</b>. Una botella de 330 ml a Bs 6,60 equivale a 1,32 porciones: Bs 6,60 ÷ 1,32 = Bs 5,00 por porción.'],
+  ['h', 'Los cinco segmentos'],
+  ['tabla', ['Segmento', 'Tamaño', 'Suelen pagar por porción', 'Equivale por litro', 'Hoy'], [
+    ['S1 Familias con niños', '45 %', 'Bs 2,50', 'Bs 10', 'Cliente tradicional, decrece'],
+    ['S2 Universitarios', '15 %', 'Bs 6,00', 'Bs 24', 'Casi no lo atienden, crece'],
+    ['S3 Oficinistas', '15 %', 'Bs 7,00', 'Bs 28', 'Casi no lo atienden'],
+    ['S4 Deportistas y saludables', '10 %', 'Bs 8,00', 'Bs 32', 'Casi no lo atienden, crece rápido'],
+    ['S5 Adultos mayores', '15 %', 'Bs 3,00', 'Bs 12', 'Cliente tradicional']]],
+  ['p', 'Lo que cada segmento <b>valora</b> (sabor, nutrición, conveniencia, salud, sostenibilidad y precio) no se dice: descubrirlo con investigación es su primera tarea. El precio de la tabla es una referencia, no un tope: un producto que entrega lo que el segmento valora puede cobrar más.'],
+  ['h', 'Los competidores del simulador'],
+  ['lista', ['<b>Líder nacional</b>: la marca más grande, fuerte en familias y adultos mayores, con precio parecido al suyo. Si pierde clientes, baja su precio.',
+    '<b>Marca regional</b>: precio bajo; copia lo que funciona.',
+    '<b>Importados premium</b>: caros, saludables y prácticos; fuertes en oficinistas y deportistas.',
+    '<b>Nuevos entrantes</b>: emprendimientos de bebidas vegetales que venden por aplicaciones. Vigílenlos.']],
+  ['h', 'Dos bolsillos de dinero'],
+  ['tabla', ['Bolsillo', 'Qué paga', 'Cuánto'], [
+    ['Presupuesto de innovación', 'Investigación, proyectos, capacitación, tiempo libre, revisiones, respuestas al entorno', 'Bs 400.000 el primer año; después depende de sus resultados (entre Bs 250.000 y Bs 600.000)'],
+    ['Caja de la empresa', 'Gastos comerciales (publicidad y promoción de productos), lanzamientos, inversiones, gastos fijos', 'Bs 400.000 al inicio; sube o baja con las utilidades']]],
+  ['p', 'Al cierre de cada año el directorio fija el presupuesto siguiente según su índice de vitalidad y cuánto superaron a la empresa gemela. La mitad del presupuesto que no gastaron pasa al año siguiente.'],
+  ['ojo', 'Si la caja se vuelve negativa, el banco da un préstamo de emergencia con interés alto (4 % por trimestre). Cuiden la caja.'],
+  ['h', 'Semanas-persona'],
+  ['p', 'Su equipo de innovación tiene <b>12 semanas-persona por trimestre</b>. Cada método de investigación, técnica de ideación, prueba o piloto consume semanas. Si se pasan, el pie de la pantalla les avisa: no pueden hacer todo a la vez.']
+]},
+{ id: 'ronda', t: 'Una ronda paso a paso', r: 'La rutina de cada trimestre, de la lectura a la bitácora.', b: [
+  ['p', 'Cada trimestre se juega igual. El docente <b>abre</b> el trimestre, ustedes deciden y envían, el docente <b>procesa</b> y ustedes reciben los resultados.'],
+  ['pasos', ['<b>Leer la situación</b> (Situación → Situación actual): indicadores, avisos del trimestre y estado de sus proyectos.',
+    '<b>Revisar lo que pasó</b> (Resultados → Resumen del trimestre) y <b>escribir qué decisión toman con cada informe</b> recibido (Resultados → Informes de investigación).',
+    '<b>Abrir Decidir → Qué decidir en esta ronda</b>: es la lista de control del trimestre, con lo obligatorio y lo pendiente.',
+    'Completar los pasos <b>1. Entorno</b>, <b>2. Estrategia anual</b> (solo al inicio de cada año), <b>3. Investigación</b>, <b>4. Proyectos</b> y <b>5. Productos</b>.',
+    '<b>Evaluar a otros equipos</b> cuando haya conceptos asignados.',
+    'Escribir la <b>6. Hipótesis</b> y <b>Enviar decisiones</b>.',
+    'Cuando el docente procese el trimestre, leer los resultados y escribir la <b>bitácora</b> (Aprender → Mi bitácora).']],
+  ['h', 'Lo que impide enviar'],
+  ['lista', ['La hipótesis del trimestre con menos de 20 caracteres.',
+    'Un informe de investigación del trimestre anterior sin la decisión que toman con él (al menos 10 caracteres).']],
+  ['p', 'Lo demás no impide enviar, pero si falta (por ejemplo, la hipótesis anual o la justificación de un concepto), esa parte no se ejecuta y lo verán en "Qué pasó y por qué".'],
+  ['idea', 'Repartan el trabajo: una persona en entorno e investigación, otra en proyectos, otra en productos y finanzas. Antes de enviar, revisen juntos la hipótesis y el pie de la pantalla.'],
+  ['ir', [['Qué decidir en esta ronda', 'ronda']]]
+]},
+{ id: 'entorno', t: 'Paso 1. Entorno', r: 'Clasificar noticias y elegir cómo responder.', b: [
+  ['p', 'Cada trimestre llegan noticias del entorno (económicas, tecnológicas, legales, culturales…). Algunas son señales reales; otras son <b>ruido</b> (rumores sin consecuencias).'],
+  ['pasos', ['<b>Clasifiquen</b> cada noticia: oportunidad, amenaza o ruido. Algunas noticias son a la vez oportunidad y amenaza.',
+    '<b>Elijan una respuesta</b>: <b>Ignorar</b> (sin costo; si era real, la enfrentan sin preparación), <b>Vigilar</b> (sin costo; el trimestre siguiente reciben un dato adicional) o <b>Preparar</b> (Bs 8.000; si era real, reduce el golpe de una amenaza o adelanta el beneficio de una oportunidad; si era ruido, el dinero se pierde).']],
+  ['p', 'Al trimestre siguiente verán qué era cada noticia y si acertaron. El porcentaje de aciertos aparece en los indicadores.'],
+  ['h', 'Decisiones especiales'],
+  ['lista', ['<b>Respuesta a la startup de bebidas vegetales</b>: cuando aparezca, pueden responder una sola vez con una <b>alianza</b> (Bs 60.000 de caja: presencia en apps de delivery) o una <b>adquisición</b> (Bs 450.000 de caja: su producto pasa a su portafolio). También pueden competirle con sus propios productos.',
+    '<b>Licitación de alimentación escolar y universitaria</b>: cuando se abra, pueden postular si tienen un producto con atributo saludable 6 o más y nutrición 6 o más.']],
+  ['idea', 'No paguen "Preparar" en todo. Prepárense para las señales que afectan a sus segmentos y vigilen las dudosas. La vigilancia del entorno (paso 3) les trae las noticias un trimestre antes.'],
+  ['ir', [['Ir a 1. Entorno', 'entorno']]]
+]},
+{ id: 'anual', t: 'Paso 2. Estrategia anual', r: 'Cómo repartir el esfuerzo y gestionar el clima creativo.', b: [
+  ['p', 'Se decide <b>al inicio de cada año</b> (T1, T5, T9, T13 y T17) y vale para los cuatro trimestres. Los demás trimestres la pantalla muestra la estrategia vigente.'],
+  ['h', 'Bloque A. Estrategia y portafolio'],
+  ['tabla', ['Decisión', 'Qué significa', 'Efecto'], [
+    ['4P (suman 100 %)', 'Cuánto esfuerzo ponen en innovar el producto, el proceso, la posición (a quién y con qué mensaje) y el paradigma (modelo de negocio).', 'Orienta qué tipo de ideas aparecen.'],
+    ['Portafolio (suman 100 %)', 'Núcleo: mejorar lo actual para clientes actuales. Adyacente: llevar lo que saben a clientes nuevos. Transformacional: crear mercados nuevos.', 'Con menos de 20 % en adyacente + transformacional no se pueden crear proyectos para S2, S3 o S4. En la Puerta, un proyecto puntúa mejor si su lugar en el portafolio recibe esfuerzo.'],
+    ['Postura', 'Ofensiva, defensiva, imitativa, dependiente, tradicional u oportunista.', 'El informe de coherencia revisa si actúan de acuerdo con ella.'],
+    ['Estructura', 'Integrada o unidad autónoma (Bs 40.000 por año).', 'La unidad autónoma protege los proyectos radicales y ayuda a responder a un disruptor.']]],
+  ['h', 'Bloque B. Organización y clima creativo'],
+  ['tabla', ['Decisión', 'Opciones', 'Efecto'], [
+    ['Tiempo libre para proyectos propios', '0, 10, 15 o 20 % (Bs 750 por punto y trimestre)', 'Sube la motivación intrínseca y la calidad de las ideas.'],
+    ['Incentivo', 'Reconocimiento (Bs 5.000/año), monetario bajo (Bs 15.000) o alto (Bs 40.000)', 'El reconocimiento refuerza la motivación; los premios altos pueden reducirla.'],
+    ['Política ante el fracaso', 'Sanción, neutral o aprendizaje celebrado', 'El aprendizaje celebrado sube la autoeficacia y la seguridad psicológica.'],
+    ['Composición de equipos', 'Homogénea, multifuncional o con externos', 'Más diversidad: ideas más variadas, malas y excepcionales.'],
+    ['Umbral de la puerta', 'Estricto (7,0), moderado (6,0) o laxo (5,0)', 'Puntaje mínimo para que un proyecto pase al piloto.'],
+    ['Capacitación en Design Thinking', 'Sí o no (Bs 25.000 y 2 semanas)', 'Sube la autoeficacia y la calidad de las ideas durante el año.']]],
+  ['h', 'Hipótesis anual (obligatoria)'],
+  ['p', 'Escriban qué esperan lograr en el año y por qué esta estrategia los llevará ahí. Al cierre del año la contrastarán en la bitácora.'],
+  ['ej', 'Con 30 % en adyacente y capacitación en Design Thinking lanzaremos un producto para universitarios antes de T8 y llegaremos a 5 % de cuota en S2.'],
+  ['ir', [['Ir a 2. Estrategia anual', 'anual']]]
+]},
+{ id: 'investigacion', t: 'Paso 3. Investigación', r: 'Qué método elegir, cuánto cuesta y cómo usar el informe.', b: [
+  ['p', 'Al inicio no saben qué valora cada segmento. Investigar es la forma barata de averiguarlo antes de gastar en proyectos. Marquen los métodos y hasta <b>2 segmentos</b> a estudiar. Cada estudio llega como <b>informe</b> cuando el docente procesa el trimestre.'],
+  ['tabla', ['Método', 'Qué reciben', 'Costo', 'Semanas'], [
+    ['Encuesta', 'La importancia que declaran los clientes, con margen de error. Subestima lo que no dicen.', 'Bs 12.000', '2'],
+    ['Observación etnográfica', 'Persona, citas, recorrido del cliente, mapa de empatía y la necesidad latente.', 'Bs 30.000', '6'],
+    ['Usuarios extremos', 'Una tendencia que puede volverse común.', 'Bs 15.000', '3'],
+    ['Usuarios líderes', '2 conceptos de alta calidad para un proyecto activo.', 'Bs 20.000', '4'],
+    ['Estudio de la industria', 'Participación de cada empresa del curso y tamaño de cada segmento (un trimestre de retraso).', 'Bs 18.000', '1'],
+    ['Análisis de competidores', 'Precio, envase, mensaje, canales y presencia de cada rival.', 'Bs 14.000', '1'],
+    ['Vigilancia del entorno', 'Boletín de señales durante 4 trimestres; las noticias llegan un trimestre antes.', 'Bs 22.000', '2'],
+    ['Percepción de marcas', 'Mapa perceptual y curva de valor frente al valor real de su producto.', 'Bs 16.000', '2']]],
+  ['p', 'Repetir un método en el trimestre siguiente cuesta <b>50 % más</b>.'],
+  ['h', 'Cómo leer un informe'],
+  ['p', 'Todos los informes tienen la misma estructura: <b>pregunta</b>, <b>método y muestra</b>, <b>hallazgos</b>, <b>limitaciones</b> y <b>¿qué decisión tomamos con este dato?</b>. Ese último campo es obligatorio para enviar el trimestre siguiente.'],
+  ['ej', 'Hallazgo: S2 dice valorar el precio, pero la observación muestra que no compra lácteos porque no los puede tomar con una mano en el micro. Decisión: creamos un proyecto para S2 centrado en conveniencia y fijamos un precio objetivo de Bs 5 por porción.'],
+  ['idea', 'Comparen métodos sobre el mismo segmento (triangulación). Si la encuesta y la observación no coinciden, pesa más lo que el cliente hace que lo que dice. Repartan los estudios en el año: investigar todo en un trimestre no alcanza ni en dinero ni en semanas.'],
+  ['ir', [['Ir a 3. Investigación', 'investigacion'], ['Ver mis informes', 'informes']]]
+]},
+{ id: 'proyectos', t: 'Paso 4. Proyectos: cómo funcionan', r: 'Las ocho fases, una tarea por trimestre, acelerar y detener.', b: [
+  ['p', 'Un proyecto lleva una idea desde la necesidad del cliente hasta el mercado. Recorre ocho fases y cada trimestre les pide <b>una sola tarea</b>, la de la fase en la que está:'],
+  ['tabla', ['Fase', 'Tarea del equipo', 'Lo que devuelve el simulador'], [
+    ['1. Definir', 'Escribir el brief al crear el proyecto.', 'Revisión del brief y tipo de innovación.'],
+    ['2. Idear', 'Generar ideas con una técnica, votar y armar hasta 3 fichas de concepto.', 'Devolución de cada ficha y propuestas externas.'],
+    ['3. Evaluar', 'Leer el test de concepto, llenar la matriz de Pugh y elegir un concepto.', 'Tipo real de innovación y versiones de prototipo exigidas.'],
+    ['4. Prototipar', 'Diseñar el prototipo y probarlo con clientes simulados.', 'Informe de prueba con lo que hizo y dijo cada persona.'],
+    ['5. Especificar', 'Ficha técnica, caso de negocio, lienzo y pre-mortem.', 'Costo real de la planta piloto.'],
+    ['6. Puerta', '(La decide el comité con lo que entregaron en Especificar.)', 'Acta con cinco criterios y un veredicto.'],
+    ['7. Piloto', 'Vender en pocos puntos de venta durante un trimestre.', 'Ventas, recompra y proyección al mercado.'],
+    ['8. Lanzar', 'Nombre, mensaje, precio, publicidad y canales.', 'Resultados en el mercado y revisión final.']]],
+  ['p', 'Sin acelerar, un proyecto tarda <b>unos 6 trimestres</b> desde que lo crean hasta que lo lanzan (menos si aceleran; más si necesitan varias versiones de prototipo o reiterar en la Puerta). Pueden tener hasta <b>2 proyectos activos el primer año</b> y hasta <b>3 desde el segundo</b>.'],
+  ['h', 'Acelerar una fase'],
+  ['p', 'Cuesta 50 % más en dinero y semanas y permite avanzar más rápido, pero se aprende menos (menos propuestas externas, test menos preciso, prototipo que rinde menos). Úsenlo cuando el tiempo importe más que la precisión.'],
+  ['h', 'Detener un proyecto'],
+  ['p', 'Detenerlo libera semanas. Lo ya invertido <b>no se recupera</b> y el comité no lo toma en cuenta: decidan mirando lo que falta invertir y lo que se espera ganar, no lo que ya gastaron.'],
+  ['h', 'La ficha del proyecto'],
+  ['p', 'En cada tarjeta, <b>Ver ficha completa</b> muestra todo el recorrido: brief, ideas, fichas, elección, informes de prueba, acta y piloto. Es la memoria del proyecto y les servirá para la bitácora.'],
+  ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
+]},
+{ id: 'definir', t: 'Fase 1. Definir (el brief)', r: 'Crear un proyecto con un reto bien escrito.', b: [
+  ['p', 'Se crea en <b>Decidir → 4. Proyectos → Nuevo proyecto</b>. El proyecto existe desde que el docente procesa el trimestre; sus tareas empiezan el trimestre siguiente.'],
+  ['tabla', ['Campo', 'Qué escribir'], [
+    ['Nombre y segmento', 'Un nombre de trabajo y el segmento al que sirve.'],
+    ['Trabajo por hacer', '<i>Cuando…</i> (la situación del cliente), <i>quiero…</i> (lo que busca), <i>para…</i> (el resultado que espera). Desde su vida, no desde el producto.'],
+    ['Evidencia', 'El informe que respalda el insight y una frase copiada de él.'],
+    ['Reto', 'Una pregunta que empiece con <b>¿Cómo podríamos…?</b>, que nombre al cliente y que no traiga la solución.'],
+    ['Criterio de éxito', 'Una cifra y un plazo.'],
+    ['Tecnología y modelo', '¿Necesita tecnología que hoy no tienen? ¿Cambia cómo venden o cobran?'],
+    ['Portafolio', 'Núcleo, adyacente o transformacional.']]],
+  ['ej', 'Cuando salgo a las 6:30 y no alcanzo a desayunar, quiero algo que me quite el hambre, para rendir en las clases de la mañana. Reto: ¿Cómo podríamos ofrecer a los universitarios un desayuno que se tome con una mano en el micro? Criterio: 8 % de S2 dos trimestres después del lanzamiento.'],
+  ['p', 'Presionen <b>Revisar el brief</b>: el simulador marca qué está bien y qué mejorar, y les dice el <b>tipo de innovación</b> según sus respuestas: <b>rutinaria</b> (no cambia tecnología ni modelo), <b>disruptiva</b> (cambia el modelo), <b>radical</b> (cambia la tecnología) o <b>arquitectónica</b> (cambian ambos).'],
+  ['ojo', 'Un reto que ya trae la solución ("¿Cómo podríamos vender una botella…?") cierra la búsqueda antes de empezar. Describan la necesidad.'],
+  ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
+]},
+{ id: 'idear', t: 'Fase 2. Idear', r: 'Ideas individuales, votación, fichas de concepto e ideas de afuera.', b: [
+  ['p', 'La tarea tiene cuatro pestañas dentro de la tarjeta del proyecto.'],
+  ['h', '1. Mis ideas (individual)'],
+  ['p', 'El equipo elige una técnica y <b>cada integrante</b> escribe sus ideas en su propio formulario. Nadie ve las ideas de los demás hasta que se abre la votación. Las ideas propias no cuestan dinero, solo semanas.'],
+  ['tabla', ['Técnica', 'Cómo se usa', 'Semanas', 'Mínimo por persona', 'Conviene para'], [
+    ['SCAMPER', 'Siete preguntas sobre su producto actual: sustituir, combinar, adaptar, modificar, poner otro uso, eliminar, reordenar.', '1', '4 ideas', 'Proyectos rutinarios'],
+    ['Flor de loto', 'El reto al centro, ocho temas alrededor y varias ideas por tema.', '2', '6 ideas', 'Cualquier reto bien escrito'],
+    ['Análisis morfológico', 'Seis parámetros (envase, base, sabor, lugar de venta, forma de pago, momento de consumo) con tres opciones cada uno; armar combinaciones.', '2', '2 combinaciones', 'Proyectos radicales o arquitectónicos']]],
+  ['p', 'Guarden el borrador para que sus ideas queden registradas.'],
+  ['h', '2. Votar en equipo'],
+  ['p', 'Cuando todos escribieron, alguien presiona <b>Abrir la votación</b>. Las ideas aparecen mezcladas y sin autor. Cada integrante reparte <b>3 votos</b> (puede dar varios a una misma idea). Guarden y actualicen para ver los totales.'],
+  ['h', '3. Fichas de concepto (hasta 3)'],
+  ['lista', ['<b>Nombre</b> y <b>precio objetivo</b> en Bs por porción.',
+    '<b>Concepto en una frase</b>: <i>Para [quién] que [necesidad], [producto] es [qué] que [beneficio], a diferencia de [alternativa].</i>',
+    '<b>Qué mejora</b>: repartan exactamente <b>10 puntos</b> entre sabor, nutrición, conveniencia, salud, sostenibilidad y precio. Más puntos en un atributo lo hacen mejor, pero más difícil y caro de lograr.',
+    '¿Tecnología nueva?, ¿cambia cómo venden o cobran?, y su tipo en las 4P.',
+    '<b>Enviar al test de concepto</b> (Bs 5.000 por ficha): recomendable; sin test, la fase Evaluar decide casi a ciegas.']],
+  ['h', 'Ideas de afuera (innovación abierta)'],
+  ['tabla', ['Fuente', 'Costo', 'Semanas', 'Qué traen'], [
+    ['Concurso abierto de ideas', 'Bs 8.000 + premio (bajo, medio o alto)', '2', 'Muchas propuestas variadas; varias poco viables. El premio medio suele rendir más.'],
+    ['Intraemprendimiento', 'Bs 10.000', '3', 'Pocas propuestas de su personal, viables y a menudo de proceso.'],
+    ['Reto con startups', 'Bs 20.000', '2', 'Pocas propuestas, a menudo con tecnología o modelo nuevos.']]],
+  ['p', 'Las propuestas llegan al procesar el trimestre. Si una les sirve, usen <b>Pasar a ficha</b>.'],
+  ['p', 'El proyecto pasa a Evaluar con las fichas enviadas al test. Si no quieren testear, marquen <b>Pasar a Evaluar aunque no hagan el test</b>.'],
+  ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
+]},
+{ id: 'evaluar', t: 'Fase 3. Evaluar', r: 'Leer el test de concepto, llenar la matriz de Pugh y elegir.', b: [
+  ['h', 'Lo que trae el test de concepto (por ficha)'],
+  ['tabla', ['Dato', 'Cómo leerlo'], [
+    ['Intención de compra declarada', 'Porcentaje que dice que seguro o probablemente la compraría. Está inflada: la compra real suele ser menor. Sirve para comparar conceptos entre sí.'],
+    ['Rango de precio aceptable', 'Medidor de Van Westendorp: la zona verde va del precio en que empiezan a dudar de la calidad al precio en que les parece caro. La línea punteada es su precio objetivo.'],
+    ['Clasificación de Kano', 'Básico (si falta, rechazan), de desempeño (más es mejor) o de entusiasmo (sorprende). Un concepto que no atiende un atributo básico del segmento tiene un problema.'],
+    ['Lo que dijeron los clientes', 'Frases que explican el resultado.'],
+    ['Calidad corregida', 'La calidad estimada con el test, de 1 a 9, con su margen de error.']]],
+  ['h', 'Matriz de Pugh'],
+  ['p', 'Comparen cada concepto con su <b>producto actual</b> (la referencia vale 0) en cinco criterios: ajuste con el cliente, viabilidad técnica, costo por unidad, novedad y ajuste estratégico. Pongan <b>+1</b> si es mejor, <b>0</b> si es igual y <b>−1</b> si es peor. La suma ordena los conceptos.'],
+  ['ej', 'Concepto 1: ajuste +1 (64 % de intención, la más alta), viabilidad 0, costo −1 (botella más cara), novedad +1, estrategia +1. Suma +2.'],
+  ['p', 'Si una marca contradice el test, el simulador les avisa con <b>revisar</b> (por ejemplo, +1 en ajuste a la ficha con menor intención, o +1 en costo con un precio fuera del rango aceptable). La matriz se llena con datos, no con gustos.'],
+  ['h', 'Elegir'],
+  ['lista', ['Escriban <b>por qué</b> eligen el concepto citando un dato del test (al menos 20 caracteres; sin esto la elección no se ejecuta).',
+    'Pueden elegir un concepto, <b>combinar dos</b> (suma sus puntos fuertes y exige una versión más de prototipo), todavía no elegir, o <b>volver a Idear</b>.']],
+  ['p', 'Al elegir, el simulador compara el tipo que declararon con el <b>tipo real</b> del concepto y les dice cuántas <b>versiones de prototipo</b> necesitarán antes de la Puerta: 1 para rutinarios y disruptivos, 2 o 3 para radicales y 3 para arquitectónicos (más si combinan o si concentran muchos puntos en un atributo).'],
+  ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
+]},
+{ id: 'prototipar', t: 'Fase 4. Prototipar', r: 'Diseñar el prototipo y aprender de la prueba con clientes simulados.', b: [
+  ['p', 'Prototipar es dar forma a la idea para <b>aprender cómo la usa el cliente</b>. Ustedes diseñan el prototipo (pueden construirlo en clase); el simulador lo pone en manos de clientes simulados del segmento y les devuelve lo que hicieron y dijeron.'],
+  ['h', '1. Qué queremos aprender'],
+  ['p', 'Elijan el <b>supuesto más riesgoso</b>: que puedan abrirlo y tomarlo solos (uso), que entiendan cómo se usa sin explicación (comprensión) o que encaje en su rutina diaria (rutina). Escriban la <b>pregunta</b> que el prototipo debe responder.'],
+  ['ej', '¿Pueden abrirlo con una mano y sin explicación, en menos de 30 segundos?'],
+  ['h', '2. Diseñar el prototipo'],
+  ['tabla', ['Formato', 'Qué puede comprobar'], [
+    ['Maqueta física', 'Uso, comprensión y rutina (los clientes la tocan y la usan).'],
+    ['Envase falso', 'Solo comprensión (se mira pero no se abre).'],
+    ['Guion gráfico', 'Solo rutina (viñetas del día del cliente).']]],
+  ['ojo', 'Si el formato no puede comprobar el supuesto elegido, la versión solo trae opiniones y no mejora el producto. El simulador se los advierte en rojo.'],
+  ['p', 'Elijan las características: cómo se abre, cómo se ve la forma de abrir, tamaño de la porción (200 ml, 330 ml o 1 litro) y si se puede volver a cerrar. Describan el prototipo en dos líneas y, si quieren, peguen el enlace a una foto del que construyeron.'],
+  ['h', '3. Prueba con clientes simulados'],
+  ['tabla', ['Personas', 'Costo', 'Semanas'], [['5', 'Bs 6.000', '1'], ['8', 'Bs 8.000', '1'], ['12', 'Bs 11.000', '2']]],
+  ['p', 'Elijan también dónde se prueba (en casa, en el lugar de consumo o en la tienda). Con pocas personas aparecen la mayoría de los problemas, pero el resultado varía más.'],
+  ['h', 'El informe de prueba'],
+  ['p', 'Muestra a cada persona: quién es, si lo logró sola, con ayuda o no pudo, cuántos segundos tardó y qué hizo o dijo. Debajo, la <b>malla receptora de información</b> ordena lo observado en cuatro cuadrantes: lo que gustó, críticas, preguntas e ideas nuevas. Al final, una conclusión sobre el supuesto.'],
+  ['h', 'Siguiente paso'],
+  ['lista', ['<b>Iterar</b>: escriban qué aprendieron con la versión anterior y qué cambian, y prueben una nueva versión.',
+    '<b>Avanzar a Especificar y Puerta</b>: cuando el supuesto quedó confirmado y tienen las versiones exigidas.',
+    '<b>Volver a Evaluar</b>: si la idea no funciona.']],
+  ['idea', 'Cambien una o dos características por versión, guiándose por la malla. Si cambian todo a la vez, no sabrán qué funcionó.'],
+  ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
+]},
+{ id: 'especificar', t: 'Fases 5 y 6. Especificar y la Puerta', r: 'Ficha técnica, caso de negocio, lienzo, pre-mortem y acta del comité.', b: [
+  ['p', 'Especificar es definir cómo se fabricará el producto y cuánto costará. La Puerta es el comité que, con esa información, decide si se autoriza el piloto. Lo que viene del prototipo (tamaño y forma de abrir) queda fijo.'],
+  ['h', '1. Ficha técnica'],
+  ['p', 'Elijan envase, base líquida, azúcar, conservación (pasteurizada, 12 días; UHT, 90 días), etiqueta y producción (línea actual, máquina nueva con inversión de Bs 60.000 o maquila). La pantalla calcula el <b>costo por unidad</b> y por porción, la vida útil y cuántas unidades pueden producir por trimestre.'],
+  ['h', '2. Caso de negocio'],
+  ['p', 'Escriban el <b>precio al público por unidad</b>, las <b>unidades que esperan vender por trimestre</b> y la <b>publicidad</b>. La pantalla calcula el margen por unidad, la utilidad por trimestre, la inversión que falta y en cuántos trimestres se recupera.'],
+  ['p', 'La <b>clase de referencia</b> muestra cuánto vendieron otros lanzamientos en su primer trimestre (la mediana y el rango donde caen 8 de cada 10). Si su pronóstico supera a 9 de cada 10, el simulador se los advierte: es un pronóstico optimista.'],
+  ['h', '3. Lienzo del modelo de negocio'],
+  ['p', 'El segmento, la propuesta de valor, los costos y los ingresos se llenan solos. Ustedes eligen socios clave, actividades clave, recursos clave, relación con el cliente y canales. Si venden por app propia o por suscripción, <b>cambia el modelo de negocio</b> y con él el tipo de innovación.'],
+  ['h', '4. Pre-mortem'],
+  ['p', 'Imaginen que dentro de un año el producto fracasó. Elijan las <b>2 causas más probables</b> y escriban cómo las evitarían.'],
+  ['h', 'Lo que pasa al procesar'],
+  ['p', 'La planta piloto produce un lote y revela el <b>costo real</b> (Bs 8.000 y 2 semanas). El comité emite un <b>acta</b> con cinco criterios de 1 a 9:'],
+  ['tabla', ['Criterio', 'Qué mira el comité'], [
+    ['Atractivo para el cliente', 'El ajuste del prototipo al segmento y la calidad del concepto (mejor si pasó por el test).'],
+    ['Ajuste estratégico', 'Cuánto esfuerzo da su Estrategia anual al lugar del portafolio de este proyecto.'],
+    ['Viabilidad técnica', 'Costo real hasta 60 % del precio, capacidad suficiente y vida útil adecuada al canal.'],
+    ['Rentabilidad estimada', 'En cuántos trimestres recupera lo que falta invertir; baja si el volumen es demasiado optimista.'],
+    ['Riesgo (9 = bajo)', 'Si su pre-mortem identificó los riesgos principales y propone cómo evitarlos.']]],
+  ['tabla', ['Veredicto', 'Cuándo', 'Qué hacer'], [
+    ['Pasa al piloto', 'Promedio igual o mayor al umbral y ningún criterio bajo 4.', 'Preparar el piloto.'],
+    ['Reiterar', 'Promedio hasta un punto bajo el umbral, o faltan versiones de prototipo.', 'Corregir lo que dice el acta y volver a presentarse, o volver a prototipar.'],
+    ['Detener', 'Promedio más de un punto bajo el umbral.', 'Es una recomendación: pueden detener o corregir a fondo.']]],
+  ['p', 'El umbral es el que eligieron en la Estrategia anual. Si la estructura es integrada, el proyecto es un producto nuevo y la empresa es muy radical, el comité exige un punto más.'],
+  ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
+]},
+{ id: 'piloto', t: 'Fase 7. Piloto', r: 'Vender en pocos puntos para medir ventas y recompra.', b: [
+  ['p', 'El piloto es una prueba de mercado: venden en pocos puntos durante un trimestre para medir con clientes cuánto se vende y, sobre todo, <b>si vuelven a comprar</b>.'],
+  ['pasos', ['<b>Dónde</b>: número de puntos de venta en cada canal de su lienzo. Cada punto tiene costo (tienda Bs 300, supermercado Bs 800, kiosco Bs 400, máquina Bs 1.200, app propia Bs 2.000, delivery Bs 1.000).',
+    '<b>Precio de prueba</b> por unidad y <b>apoyo</b> en el punto de venta (ninguno, afiche y exhibidor Bs 3.000, degustación los sábados Bs 8.000).',
+    '<b>Unidades a producir</b> (con el costo real y la vida útil a la vista).',
+    '<b>Su pronóstico de ventas</b>: se guarda antes de procesar y se compara con lo real.',
+    '<b>Límite de recompra</b>: el porcentaje mínimo para decidir lanzar.']],
+  ['p', 'El <b>informe del piloto</b> trae unidades vendidas, compradores nuevos, porcentaje que volvió a comprar, la diferencia con su pronóstico, ventas por canal, si sobró o faltó producto, frases de clientes y una proyección al mercado completo.'],
+  ['p', 'Pueden <b>lanzar sin piloto</b>: es más rápido, pero el riesgo de fracaso es mayor.'],
+  ['idea', 'Produzcan cerca de su pronóstico: si sobra, el producto vence; si falta, pierden ventas y no miden bien la demanda.'],
+  ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
+]},
+{ id: 'lanzar', t: 'Fase 8. Lanzar y revisar', r: 'Salir al mercado y cerrar el proyecto con una revisión.', b: [
+  ['h', 'Lanzar'],
+  ['lista', ['<b>Nombre comercial</b> y <b>mensaje publicitario</b> en una frase. El mensaje debería decir, con palabras del cliente, el beneficio principal del concepto; si no, el simulador lo marca.',
+    '<b>Precio por unidad</b>: la pantalla lo convierte a Bs por porción.',
+    '<b>Publicidad</b> por trimestre y el <b>segmento</b> al que va dirigida.',
+    '<b>Canales</b>.',
+    '<b>Reemplaza a la leche saborizada</b>: solo si el proyecto mejora el producto actual; si no, conviven.',
+    'Marquen <b>Confirmar el lanzamiento este trimestre</b>.']],
+  ['p', 'El lanzamiento cuesta Bs 50.000 más la implementación del concepto (y la máquina, si la eligieron). Cada producto nuevo activo tiene además un costo de gestión de <b>Bs 40.000 por trimestre</b>.'],
+  ['h', 'Después del lanzamiento'],
+  ['p', 'Al procesar el trimestre siguiente verán unidades vendidas, participación en el segmento, utilidad y <b>canibalización</b> (ventas que salieron de su propia leche saborizada). Los rivales reaccionan: alguno puede bajar su precio y, si su producto tiene éxito, otro puede copiarlo más barato.'],
+  ['h', 'Revisión después de la acción'],
+  ['p', 'Cierren el proyecto comparando lo esperado con lo real (Bs 8.000). La tabla ya trae sus pronósticos y los resultados. Ustedes eligen hasta 3 causas de la diferencia, las explican con datos, clasifican el resultado (por ejemplo, un fracaso inteligente o evitable) y escriben qué harán distinto en este producto y en los próximos proyectos.'],
+  ['p', 'La revisión sube la <b>madurez en gestión de la innovación</b>, como máximo un nivel por año.'],
+  ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
+]},
+{ id: 'productos', t: 'Paso 5. Productos', r: 'El negocio actual sigue vendiendo mientras innovan.', b: [
+  ['p', 'Para cada producto en el mercado deciden siete variables:'],
+  ['tabla', ['Variable', 'Regla', 'Efecto'], [
+    ['1. Precio', 'Bs por porción; cambio máximo ±30 % por trimestre.', 'Cada segmento lo compara con lo que suele pagar.'],
+    ['2. Publicidad', 'Bs por trimestre (hasta Bs 80.000).', 'Mantiene el conocimiento de marca. Con menos de Bs 10.000, la gente empieza a olvidarla.'],
+    ['3. Publicidad dirigida a', 'Todo el mercado o un segmento.', 'Atrae más a ese segmento y un poco menos a los demás.'],
+    ['4. Promoción', 'Entre Bs 0 y Bs 60.000.', 'Sube las ventas solo en este trimestre.'],
+    ['5. Canales', 'Tiendas y supermercados están incluidos; los demás cuestan por trimestre.', 'Cada canal llega mejor a ciertos segmentos.'],
+    ['6. Pronóstico de ventas', 'Porciones del trimestre.', 'Se compara con lo que vendan.'],
+    ['7. Retirar', 'No se puede retirar el producto original.', 'Deja de venderse y de costar gestión.']]],
+  ['tabla', ['Canal', 'Costo por trimestre'], [['Tiendas de barrio', 'Incluido'], ['Supermercados', 'Incluido'], ['Kioscos universitarios', 'Bs 6.000'], ['Máquinas expendedoras', 'Bs 9.000'], ['App propia con entrega', 'Bs 15.000'], ['App de delivery (terceros)', 'Bs 12.000']]],
+  ['p', 'La publicidad y la promoción son gastos comerciales: salen de la caja, no del presupuesto de innovación.'],
+  ['ir', [['Ir a 5. Productos', 'productos']]]
+]},
+{ id: 'pares', t: 'Evaluar a otros equipos', r: 'Calificar sin saber de quién son los conceptos de otros equipos.', b: [
+  ['p', 'Cada trimestre su equipo recibe, sin saber de qué empresa son, las fichas de concepto que crearon otros equipos en el trimestre anterior. Califiquen de <b>1 (muy bajo) a 9 (muy alto)</b>:'],
+  ['lista', ['<b>Novedad</b>: qué tan distinta es de lo que ya existe.', '<b>Viabilidad</b>: qué tan posible es producirla y venderla.', '<b>Claridad del concepto</b>: si se entiende para quién es y qué ofrece.']],
+  ['p', 'Pueden dejar un comentario breve. Presionen <b>Guardar mis evaluaciones</b>.'],
+  ['p', 'El promedio de varios evaluadores (otros equipos y el docente) ajusta la calidad de cada concepto en hasta medio punto, hacia arriba o hacia abajo, al procesar el trimestre siguiente. Lo que recibieron ustedes está en <b>Resultados → Evaluación de sus conceptos</b>.'],
+  ['ojo', 'Juzguen el concepto, no a la empresa. Calificar a todos con 1 o con 9 no ayuda a nadie y el docente lo ve.'],
+  ['ir', [['Evaluar a otros equipos', 'pares'], ['Evaluación de sus conceptos', 'evaluaciones']]]
+]},
+{ id: 'hipotesis', t: 'Paso 6. Hipótesis y envío', r: 'Escribir qué esperan y por qué, y enviar.', b: [
+  ['p', 'La hipótesis es obligatoria para enviar (al menos 20 caracteres). Escríbanla <b>antes</b> de ver resultados: luego la contrastarán en la bitácora.'],
+  ['lista', ['<b>¿Qué esperamos que pase y por qué?</b> Una relación causa-efecto entre su decisión y un resultado.', '<b>Resultado esperado (medible)</b>: una cifra que puedan comprobar.']],
+  ['ej', 'Si observamos a los universitarios descubriremos necesidades que la encuesta no muestra y nuestras fichas de concepto tendrán una calidad corregida mayor a 6. Resultado esperado: intención de compra sobre 50 % en S2.'],
+  ['ojo', '"Esperamos que nos vaya bien" no es una hipótesis: no dice por qué ni cómo comprobarlo.'],
+  ['ir', [['Ir a 6. Hipótesis y envío', 'hipotesis']]]
+]},
+{ id: 'resultados', t: 'Leer los resultados', r: 'Resumen, informes, estados financieros e indicadores.', b: [
+  ['h', 'Resumen del trimestre'],
+  ['p', 'Ventas, utilidad, caja, participación, vitalidad y clima, cada uno junto a la <b>empresa gemela que no innova</b>. Debajo: cómo quedaron las empresas, <b>Qué pasó y por qué</b> (la explicación de cada resultado), el <b>informe de coherencia</b> (si sus decisiones corresponden a su estrategia), un gráfico frente a la gemela y su lectura del entorno.'],
+  ['idea', 'Lean primero "Qué pasó y por qué". Ahí se explica por qué un proyecto no avanzó, por qué una elección no se ejecutó o qué hizo un competidor.'],
+  ['h', 'Estados financieros e indicadores'],
+  ['p', 'Estado de resultados, flujo de efectivo y balance general por trimestre (en miles de Bs), y las ventas por producto y segmento.'],
+  ['tabla', ['Indicador', 'Qué mide'], [
+    ['Índice de vitalidad', 'Porcentaje de las ventas que viene de productos nuevos.'],
+    ['Intensidad de innovación', 'Gasto en innovación respecto de las ventas.'],
+    ['Motivación intrínseca y autoeficacia creativa', 'De 0 a 1: cuánto disfruta el personal el trabajo creativo y cuánto confía en su capacidad. Mejoran la calidad de las ideas.'],
+    ['Clima creativo', 'Resumen de las condiciones que favorecen la creatividad en la organización.'],
+    ['Madurez en innovación', 'De 1 a 5: qué tan bien gestiona la empresa la innovación. Sube con las revisiones de proyectos.'],
+    ['Acierto en noticias', 'Porcentaje de noticias que clasificaron bien.']]],
+  ['ir', [['Resumen del trimestre', 'resumen'], ['Estados financieros', 'resultados']]]
+]},
+{ id: 'bitacora', t: 'Aprender y la bitácora', r: 'Relacionar lo que pasó con la teoría.', b: [
+  ['p', 'En <b>Aprender → Temas de innovación</b> hay nueve unidades con la teoría que se aplica en cada decisión, con sus fuentes. El <b>Glosario</b> define los términos.'],
+  ['p', 'La <b>bitácora</b> se escribe después de recibir los resultados de cada trimestre. Responde cuatro preguntas:'],
+  ['pasos', ['¿Qué decidimos?', '¿Qué pasó?', '¿Por qué pasó? (contrastado con su hipótesis)', '¿Qué principio de innovación lo explica?']],
+  ['p', 'El docente puede calificarla y dejarles un comentario, que verán debajo, en Bitácoras anteriores.'],
+  ['ej', 'Decidimos observar a S2 en lugar de encuestar. La calidad de nuestras fichas subió a 6,8. Se cumplió la hipótesis: la observación reveló que S2 valora la conveniencia aunque declare el precio. Lo explica la diferencia entre necesidades declaradas y latentes.'],
+  ['ir', [['Mi bitácora', 'bitacora'], ['Temas de innovación', 'temas']]]
+]},
+{ id: 'calendario', t: 'Los cinco años', r: 'Qué suele estar en juego cada año.', b: [
+  ['tabla', ['Año', 'Trimestres', 'Lo que suele estar en juego'], [
+    ['1', 'T1–T4', 'Diagnóstico: conocer a los clientes, definir el problema y lograr una primera mejora rápida.'],
+    ['2', 'T5–T8', 'Exploración: apuestas hacia segmentos nuevos; los importados empiezan a mejorar.'],
+    ['3', 'T9–T12', 'Lanzamiento: los competidores reaccionan, copian lo que funciona y puede entrar un rival nuevo.'],
+    ['4', 'T13–T16', 'Turbulencia: cambian los costos y aparecen oportunidades públicas.'],
+    ['5', 'T17–T20', 'Renovación: los clientes cambian lo que valoran; ganan las empresas que renovaron su portafolio.']]],
+  ['p', 'La Estrategia anual se decide en T1, T5, T9, T13 y T17. Además pueden ocurrir sucesos que no se anuncian, como una sequía o bloqueos de carreteras.'],
+  ['idea', 'Un proyecto tarda varios trimestres. Si quieren tener productos nuevos vendiendo en el año 3 (cuando empieza a contar la vitalidad), sus primeros proyectos deben nacer en el año 1.']
+]},
+{ id: 'consejos', t: 'Errores frecuentes y consejos', r: 'Lo que más cuesta caro y cómo evitarlo.', b: [
+  ['tabla', ['Error', 'Por qué cuesta', 'Mejor'], [
+    ['Crear proyectos sin investigar', 'Las ideas salen de suposiciones y el test de concepto las castiga.', 'Investigar primero el segmento del proyecto y usar la frase del informe como evidencia.'],
+    ['Gastar todo el presupuesto en T1', 'No queda dinero para prototipos y pilotos.', 'Repartir: investigar en T1–T2, idear y evaluar en T2–T4.'],
+    ['Olvidar las semanas-persona', 'Lo que excede las 12 semanas no se ejecuta.', 'Mirar el pie de la pantalla antes de enviar.'],
+    ['Elegir el concepto que más gusta', 'El comité y el mercado miran datos.', 'Justificar con el test y la matriz de Pugh.'],
+    ['Pronósticos optimistas', 'Baja el puntaje de rentabilidad y sobra producto.', 'Partir de la clase de referencia y del piloto.'],
+    ['Seguir con un proyecto porque ya gastaron mucho', 'Lo gastado no vuelve.', 'Decidir con lo que falta invertir.'],
+    ['Bajar la publicidad del producto original a cero', 'La marca se olvida y caen las ventas que financian todo.', 'Mantener al menos Bs 10.000 por trimestre.'],
+    ['No escribir la decisión de cada informe', 'No pueden enviar.', 'Escribirla al leer el informe.']]],
+  ['idea', 'Guarden el borrador seguido, escriban la hipótesis antes de decidir y lean "Qué pasó y por qué" cada trimestre.']
+]},
+{ id: 'faq', t: 'Preguntas frecuentes', r: 'Respuestas rápidas.', b: [
+  ['tabla', ['Pregunta', 'Respuesta'], [
+    ['¿Qué pasa si no enviamos?', 'Al procesar, el simulador usa lo último que guardaron aunque no lo hayan enviado; si no guardaron nada, la empresa sigue igual y sus proyectos no avanzan. El docente ve qué equipos no enviaron: envíen siempre.'],
+    ['¿Podemos cambiar lo enviado?', 'Sí, mientras el trimestre esté abierto. Vale el último envío.'],
+    ['El trimestre dice "Cerrado"', 'El docente aún no lo abre o ya lo cerró. Mientras tanto, lean resultados y estudien en Aprender.'],
+    ['No veo las ideas de mis compañeros', 'Es a propósito: se ven al abrir la votación. Guarden y presionen Actualizar.'],
+    ['¿Por qué no se creó mi proyecto?', 'Revisen "Qué pasó y por qué": suele ser el máximo de proyectos o menos de 20 % en adyacente + transformacional para un segmento nuevo.'],
+    ['¿Los precios son por litro?', 'No. Son por porción de 250 ml, salvo donde la pantalla dice "por unidad".'],
+    ['¿Cómo sabemos cómo les va a los otros equipos?', 'Con el Estudio de la industria (participación) y el Análisis de competidores (lo que ofrecen).'],
+    ['¿Qué es la empresa gemela?', 'Su misma empresa, pero sin innovar. Sirve para medir el valor que crean.'],
+    ['¿Quién ve nuestras contraseñas?', 'Nadie. Se guardan cifradas; el docente solo puede asignar una temporal.']]]
+]}
+];
+
+// --------- mapa pantalla → sección del manual ---------
+var MANUAL_DE = { caso: 'caso', panel: 'pantalla', mercado: 'caso', equipo: 'ingreso', ronda: 'ronda', entorno: 'entorno', anual: 'anual', investigacion: 'investigacion', proyectos: 'proyectos', productos: 'productos', pares: 'pares', hipotesis: 'hipotesis', resumen: 'resultados', informes: 'investigacion', evaluaciones: 'pares', resultados: 'resultados', temas: 'bitacora', glosario: 'bitacora', bitacora: 'bitacora' };
+var MSEC = 'inicio', MBUS = '', MTODO = false, MPUB = false;
+
+function manSec(id) { for (var i = 0; i < MANUAL.length; i++) if (MANUAL[i].id === id) return MANUAL[i]; return MANUAL[0]; }
+function manTexto(s) { return (s.t + ' ' + s.r + ' ' + JSON.stringify(s.b)).replace(/<[^>]+>/g, ' ').toLowerCase(); }
+function manNorm(x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+function manBloque(k) {
+  var tipo = k[0], v = k[1];
+  if (tipo === 'p') return '<p>' + v + '</p>';
+  if (tipo === 'h') return '<h3>' + v + '</h3>';
+  if (tipo === 'pasos') return '<ol class="man-pasos">' + v.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ol>';
+  if (tipo === 'lista') return '<ul class="fb">' + v.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>';
+  if (tipo === 'tabla') return '<div class="scroll"><table><tr>' + v.map(function (c) { return '<th>' + c + '</th>'; }).join('') + '</tr>' + k[2].map(function (f) { return '<tr>' + f.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>';
+  if (tipo === 'ojo') return '<div class="man-box man-ojo"><span class="man-lbl">Atención</span>' + v + '</div>';
+  if (tipo === 'idea') return '<div class="man-box man-idea"><span class="man-lbl">Consejo</span>' + v + '</div>';
+  if (tipo === 'ej') return '<div class="man-box man-ej"><span class="man-lbl">Ejemplo</span>' + v + '</div>';
+  if (tipo === 'ir') return MPUB ? '' : '<div class="inline">' + v.map(function (x) { return '<button class="btn sec" onclick="irTab(\'' + x[1] + '\')">' + esc(x[0]) + ' →</button>'; }).join('') + '</div>';
+  return '';
+}
+function manSeccionHTML(s, n) {
+  return '<div class="card man-sec" id="man_' + s.id + '"><h2><span class="man-n">' + n + '</span> ' + esc(s.t) + '</h2><p class="muted">' + esc(s.r) + '</p>' + s.b.map(manBloque).join('') + '</div>';
+}
+function manualHTML() {
+  var idx = MANUAL.map(function (s) { return s.id; }).indexOf(MSEC); if (idx < 0) idx = 0;
+  var html = '<div class="card man-cab"><h2>Manual del estudiante</h2><p>Todo lo que necesitan para jugar: cómo ingresar, qué se decide en cada paso, qué devuelve el simulador y cómo leerlo. Los montos son los valores por defecto; el pie de la pantalla siempre muestra el costo real de lo que eligen.</p>' +
+    '<div class="man-herr"><input type="text" id="manBus" value="' + esc(MBUS) + '" placeholder="Buscar en el manual: precio, Pugh, piloto, contraseña…" oninput="MBUS=this.value;var p=this.selectionStart;pintarManual();var e=$(\'manBus\');if(e){e.focus();e.setSelectionRange(p,p)}">' +
+    '<button class="btn sec" onclick="MTODO=!MTODO;MBUS=\'\';pintarManual()">' + (MTODO ? 'Ver por secciones' : 'Ver todo') + '</button><button class="btn sec" onclick="MTODO=true;MBUS=\'\';pintarManual();setTimeout(function(){window.print()},300)">Imprimir o guardar PDF</button></div></div>';
+  var q = manNorm(MBUS).trim();
+  if (q) {
+    var pal = q.split(/\s+/), hits = MANUAL.filter(function (s) { var tx = manNorm(manTexto(s)); return pal.every(function (w) { return tx.indexOf(w) >= 0; }); });
+    html += '<div class="card"><h2>Resultados de la búsqueda</h2>' + (hits.length ? '<ul class="fb">' + hits.map(function (s) { return '<li><a href="#" onclick="MBUS=\'\';MTODO=false;MSEC=\'' + s.id + '\';pintarManual();return false"><b>' + esc(s.t) + '</b></a> · <span class="muted">' + esc(s.r) + '</span></li>'; }).join('') + '</ul>' : '<p class="muted">No se encontró. Prueben con otra palabra o revisen el Glosario.</p>') + '</div>';
+    return html;
+  }
+  html += '<div class="man-wrap"><nav class="man-idx" aria-label="Índice del manual">' + MANUAL.map(function (s, i) { return '<button class="' + (!MTODO && i === idx ? 'on' : '') + '" onclick="MTODO=false;MSEC=\'' + s.id + '\';pintarManual();manArriba()"><span class="man-n">' + (i + 1) + '</span> ' + esc(s.t) + '</button>'; }).join('') + '</nav><div class="man-cuerpo"><select class="man-sel" aria-label="Sección del manual" onchange="MTODO=false;MSEC=this.value;pintarManual();manArriba()">' + MANUAL.map(function (s, i) { return '<option value="' + s.id + '"' + (!MTODO && i === idx ? ' selected' : '') + '>' + (i + 1) + '. ' + esc(s.t) + '</option>'; }).join('') + '</select>';
+  if (MTODO) html += MANUAL.map(function (s, i) { return manSeccionHTML(s, i + 1); }).join('');
+  else {
+    html += manSeccionHTML(MANUAL[idx], idx + 1);
+    html += '<div class="inline" style="justify-content:space-between">' + (idx > 0 ? '<button class="btn sec" onclick="MSEC=\'' + MANUAL[idx - 1].id + '\';pintarManual();manArriba()">← ' + esc(MANUAL[idx - 1].t) + '</button>' : '<span></span>') + (idx < MANUAL.length - 1 ? '<button class="btn sec" onclick="MSEC=\'' + MANUAL[idx + 1].id + '\';pintarManual();manArriba()">' + esc(MANUAL[idx + 1].t) + ' →</button>' : '') + '</div>';
+  }
+  return html + '</div></div>';
+}
+function vManual() { MPUB = false; return manualHTML(); }
+function pintarManual() {
+  var o = document.getElementById('manPub');
+  if (o) { MPUB = true; o.querySelector('.man-pub-in').innerHTML = manualHTML(); return; }
+  render();
+}
+function manArriba() { var o = document.getElementById('manPub'); if (o) o.scrollTop = 0; else window.scrollTo(0, 0); }
+function irManual(id) { MSEC = id || 'inicio'; MBUS = ''; MTODO = false; TAB = 'manual'; render(); window.scrollTo(0, 0); }
+function enlaceManual(tab) {
+  var id = MANUAL_DE[tab]; if (!id) return '';
+  return '<p class="man-ctx"><a href="#" onclick="irManual(\'' + id + '\');return false">📘 Manual: ' + esc(manSec(id).t) + '</a></p>';
+}
+// Manual sin iniciar sesión (botón de la pantalla de ingreso)
+function abrirManualPublico() {
+  var o = document.getElementById('manPub');
+  if (!o) { o = document.createElement('div'); o.id = 'manPub'; o.innerHTML = '<div class="man-pub-bar"><b>Simulador de Innovación · Manual del estudiante</b><button class="btn sec" onclick="cerrarManualPublico()">Cerrar ✕</button></div><div class="man-pub-in"></div>'; document.body.appendChild(o); }
+  document.body.classList.add('man-pub-on');
+  MSEC = 'inicio'; MBUS = ''; MTODO = false; pintarManual(); o.scrollTop = 0;
+}
+function cerrarManualPublico() { var o = document.getElementById('manPub'); if (o) o.remove(); document.body.classList.remove('man-pub-on'); MPUB = false; }
+</script>
+<style>
+.man-herr{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.man-herr input{flex:1 1 260px}
+.man-wrap{display:grid;grid-template-columns:240px minmax(0,1fr);gap:14px;align-items:start}
+.man-idx{position:sticky;top:8px;display:grid;gap:2px;background:#fff;border:1px solid var(--borde);border-radius:8px;padding:6px;max-height:calc(100vh - 30px);overflow:auto}
+.man-idx button{text-align:left;background:none;border:none;border-radius:6px;padding:6px 8px;font-size:13px;color:var(--azul);cursor:pointer;display:flex;gap:6px;align-items:baseline}
+.man-idx button:hover{background:var(--claro)}.man-idx button.on{background:var(--azul2);color:#fff}
+.man-n{display:inline-block;min-width:20px;font:600 11px monospace;opacity:.75}
+.man-sec h3{margin-top:16px}.man-sec td,.man-sec th{vertical-align:top}
+.man-pasos li{margin:5px 0}
+.man-sel{display:none;margin-bottom:10px}
+.man-box{border-radius:6px;padding:8px 12px;margin:10px 0;font-size:14px}.man-box>.man-lbl{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.man-ojo{background:#FFF4D6;border-left:4px solid #B4531E}.man-ojo>.man-lbl{color:#B4531E}
+.man-idea{background:#E3F3EA;border-left:4px solid #1E7B46}.man-idea>.man-lbl{color:#1E7B46}
+.man-ej{background:#E6EDF8;border-left:4px solid var(--azul2)}.man-ej>.man-lbl{color:var(--azul2)}
+.man-ctx{margin:0 0 8px;font-size:13px;text-align:right}
+#manPub{position:fixed;inset:0;z-index:1000;background:#f4f6f9;overflow-y:auto;color:#1d2433;font-family:inherit}
+.man-pub-bar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--azul,#1F3864);color:#fff;padding:10px 16px}
+.man-pub-in{max-width:1100px;margin:0 auto;padding:14px 16px 40px}
+@media (max-width:760px){.man-wrap{grid-template-columns:minmax(0,1fr)}.man-idx{display:none}.man-sel{display:block;width:100%}}
+@media print{body>header,body>nav,body>footer,.man-idx,.man-sel,.man-herr,.man-ctx,.man-pub-bar,.man-sec .inline,#ax{display:none!important}.man-wrap{display:block}.card{break-inside:avoid-page;box-shadow:none}body.man-pub-on>*:not(#manPub){display:none!important}#manPub{position:static;overflow:visible}}
+</style>
