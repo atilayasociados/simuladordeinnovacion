@@ -14,9 +14,9 @@ var DEF = {
     presupuestoMax: 600000,
     semanasTrimestre: 12,
     beta: 6,
-    mercadoTotal: 8000000,        // porciones por trimestre
-    costoUnitBase: 1.46,          // Bs por porción
-    precioP0: 2.25,               // Bs por porción (Bs 9 por litro)
+    mercadoTotal: 2000000,        // litros por trimestre
+    costoUnitBase: 5.84,          // Bs por litro
+    precioP0: 9,                  // Bs por litro
     gastosFijos: 500000,          // incluye depreciación
     depreciacion: 60000,
     tasaDeuda: 0.0175,            // trimestral
@@ -24,7 +24,7 @@ var DEF = {
     tasaIUE: 0.25,
     cxcPct: 0.30,
     rAnual: 0.14,
-    costoUnitNuevo: 3.00,         // costo base por porción de un producto nuevo (formato individual y cadena de frío)
+    costoUnitNuevo: 12.00,        // costo base por litro de un producto nuevo (formato individual y cadena de frío)
     costoValidacion: 4000,
     semValidacion: 2,
     costoPiloto: 30000,
@@ -56,11 +56,11 @@ var DEF = {
   },
 
   segmentos: [
-    { id: 'S1', nombre: 'Familias con niños', part: 0.45, g: -0.01, w: { sab: 30, nut: 20, conv: 10, salud: 0, sost: 0, precio: 40 }, pref: 2.5, elas: 1.5, cuota0: 0.18, est: [1.05, 1.00, 0.90, 1.05], nuevo: false, noCompra: 0.5, latentes: [] },
-    { id: 'S2', nombre: 'Universitarios (18–25 años)', part: 0.15, g: 0.04, w: { sab: 0, nut: 30, conv: 35, salud: 0, sost: 10, precio: 25 }, pref: 6.0, elas: 1.2, cuota0: 0.03, est: [0.75, 1.15, 0.95, 1.15], nuevo: true, noCompra: 2.0, latentes: ['conv', 'nut'] },
-    { id: 'S3', nombre: 'Oficinistas', part: 0.15, g: 0.01, w: { sab: 20, nut: 30, conv: 40, salud: 0, sost: 0, precio: 10 }, pref: 7.0, elas: 0.8, cuota0: 0.06, est: [1.00, 1.00, 0.95, 1.05], nuevo: true, noCompra: 2.0, latentes: ['conv'] },
-    { id: 'S4', nombre: 'Deportistas y consumidores saludables', part: 0.10, g: 0.05, w: { sab: 0, nut: 40, conv: 0, salud: 50, sost: 0, precio: 10 }, pref: 8.0, elas: 0.8, cuota0: 0.02, est: [1.10, 0.95, 0.90, 1.05], nuevo: true, noCompra: 1.5, latentes: [] },
-    { id: 'S5', nombre: 'Adultos mayores', part: 0.15, g: 0.02, w: { sab: 25, nut: 40, conv: 0, salud: 0, sost: 0, precio: 35 }, pref: 3.0, elas: 1.4, cuota0: 0.10, est: [1.00, 1.00, 1.00, 1.00], nuevo: false, noCompra: 0.5, latentes: ['nut'] }
+    { id: 'S1', nombre: 'Familias con niños', part: 0.45, g: -0.01, w: { sab: 30, nut: 20, conv: 10, salud: 0, sost: 0, precio: 40 }, pref: 10, elas: 1.5, cuota0: 0.18, est: [1.05, 1.00, 0.90, 1.05], nuevo: false, noCompra: 0.5, latentes: [] },
+    { id: 'S2', nombre: 'Universitarios (18–25 años)', part: 0.15, g: 0.04, w: { sab: 0, nut: 30, conv: 35, salud: 0, sost: 10, precio: 25 }, pref: 24, elas: 1.2, cuota0: 0.03, est: [0.75, 1.15, 0.95, 1.15], nuevo: true, noCompra: 2.0, latentes: ['conv', 'nut'] },
+    { id: 'S3', nombre: 'Oficinistas', part: 0.15, g: 0.01, w: { sab: 20, nut: 30, conv: 40, salud: 0, sost: 0, precio: 10 }, pref: 28, elas: 0.8, cuota0: 0.06, est: [1.00, 1.00, 0.95, 1.05], nuevo: true, noCompra: 2.0, latentes: ['conv'] },
+    { id: 'S4', nombre: 'Deportistas y consumidores saludables', part: 0.10, g: 0.05, w: { sab: 0, nut: 40, conv: 0, salud: 50, sost: 0, precio: 10 }, pref: 32, elas: 0.8, cuota0: 0.02, est: [1.10, 0.95, 0.90, 1.05], nuevo: true, noCompra: 1.5, latentes: [] },
+    { id: 'S5', nombre: 'Adultos mayores', part: 0.15, g: 0.02, w: { sab: 25, nut: 40, conv: 0, salud: 0, sost: 0, precio: 35 }, pref: 12, elas: 1.4, cuota0: 0.10, est: [1.00, 1.00, 1.00, 1.00], nuevo: false, noCompra: 0.5, latentes: ['nut'] }
   ],
 
   canales: [
@@ -73,10 +73,10 @@ var DEF = {
   ],
 
   competidores: [
-    { id: 'C1', nombre: 'Líder nacional', attrs: { sab: 7, nut: 6, conv: 5, salud: 3, sost: 3 }, precio: 2.30, pres: { S1: 1.0, S2: 0.4, S3: 0.6, S4: 0.5, S5: 1.0 } },
-    { id: 'C2', nombre: 'Marca regional', attrs: { sab: 6, nut: 5, conv: 5, salud: 3, sost: 2 }, precio: 2.00, pres: { S1: 0.9, S2: 0.3, S3: 0.4, S4: 0.3, S5: 0.8 } },
-    { id: 'C3', nombre: 'Importados premium', attrs: { sab: 7, nut: 7, conv: 6, salud: 7, sost: 5 }, precio: 7.50, pres: { S1: 0.3, S2: 0.4, S3: 0.9, S4: 0.9, S5: 0.3 } },
-    { id: 'C4', nombre: 'Startup de bebidas vegetales por app', attrs: { sab: 5, nut: 5, conv: 8, salud: 7, sost: 7 }, precio: 4.80, pres: { S2: 1.0 }, entrada: 10 }
+    { id: 'C1', nombre: 'Líder nacional', attrs: { sab: 7, nut: 6, conv: 5, salud: 3, sost: 3 }, precio: 9.2, pres: { S1: 1.0, S2: 0.4, S3: 0.6, S4: 0.5, S5: 1.0 } },
+    { id: 'C2', nombre: 'Marca regional', attrs: { sab: 6, nut: 5, conv: 5, salud: 3, sost: 2 }, precio: 8, pres: { S1: 0.9, S2: 0.3, S3: 0.4, S4: 0.3, S5: 0.8 } },
+    { id: 'C3', nombre: 'Importados premium', attrs: { sab: 7, nut: 7, conv: 6, salud: 7, sost: 5 }, precio: 30, pres: { S1: 0.3, S2: 0.4, S3: 0.9, S4: 0.9, S5: 0.3 } },
+    { id: 'C4', nombre: 'Startup de bebidas vegetales por app', attrs: { sab: 5, nut: 5, conv: 8, salud: 7, sost: 7 }, precio: 19.2, pres: { S2: 1.0 }, entrada: 10 }
   ],
 
   producto0: { id: 'P0', nombre: 'Leche saborizada 1 L', attrs: { sab: 7, nut: 5, conv: 3, salud: 2, sost: 2 }, canales: ['tienda', 'super'] },
@@ -156,33 +156,33 @@ var DEF = {
       texto: 'Necesitamos mejorar procesos y canales con victorias rápidas y de bajo riesgo.' }
   },
 
-  // Catálogo propio de ideas. efectos: deltas de atributos (sab, nut, conv, salud, sost), cu = delta de costo unitario (Bs por porción),
+  // Catálogo propio de ideas. efectos: deltas de atributos (sab, nut, conv, salud, sost), cu = delta de costo unitario (Bs por litro),
   // canal = canal que habilita, modelo = 'suscripcion', flags = indicadores especiales. trim = trimestres de desarrollo (1–3).
   ideas: [
-    { id: 'I01', nombre: 'Desayuno líquido de avena en botella de 330 ml', tipo: 'Producto', nov: 3, riesgo: 3, costo: 40000, trim: 2, ef: { nut: 3, conv: 3, cu: 0.35 }, seg: ['S2', 'S3'], desc: 'Bebida láctea con avena, saciante, en formato individual con tapa deportiva.' },
-    { id: 'I02', nombre: 'Bebida proteica sin azúcar añadida', tipo: 'Producto', nov: 3, riesgo: 3, costo: 35000, trim: 2, ef: { salud: 4, nut: 2, sab: -1, cu: 0.40 }, seg: ['S4', 'S5'], desc: 'Alta en proteína, endulzada con stevia.' },
-    { id: 'I03', nombre: 'Línea mixta láctea y vegetal', tipo: 'Producto', nov: 4, riesgo: 6, costo: 60000, trim: 2, ef: { salud: 2, sost: 3, nut: 1, cu: 0.30 }, seg: ['S2', 'S4'], desc: 'Mezcla de leche con bebida de almendra o soya.' },
-    { id: 'I04', nombre: 'Fórmula digestiva con probióticos', tipo: 'Producto', nov: 3, riesgo: 4, costo: 45000, trim: 2, ef: { nut: 3, salud: 2, cu: 0.30 }, seg: ['S5'], desc: 'Bebida fermentada suave pensada para adultos mayores.' },
-    { id: 'I05', nombre: 'Mini botella escolar de 200 ml antiderrame', tipo: 'Producto', nov: 2, riesgo: 2, costo: 20000, trim: 1, ef: { conv: 2, cu: 0.10 }, seg: ['S1'], desc: 'Formato para la lonchera escolar.' },
+    { id: 'I01', nombre: 'Desayuno líquido de avena en botella de 330 ml', tipo: 'Producto', nov: 3, riesgo: 3, costo: 40000, trim: 2, ef: { nut: 3, conv: 3, cu: 1.4 }, seg: ['S2', 'S3'], desc: 'Bebida láctea con avena, saciante, en formato individual con tapa deportiva.' },
+    { id: 'I02', nombre: 'Bebida proteica sin azúcar añadida', tipo: 'Producto', nov: 3, riesgo: 3, costo: 35000, trim: 2, ef: { salud: 4, nut: 2, sab: -1, cu: 1.6 }, seg: ['S4', 'S5'], desc: 'Alta en proteína, endulzada con stevia.' },
+    { id: 'I03', nombre: 'Línea mixta láctea y vegetal', tipo: 'Producto', nov: 4, riesgo: 6, costo: 60000, trim: 2, ef: { salud: 2, sost: 3, nut: 1, cu: 1.2 }, seg: ['S2', 'S4'], desc: 'Mezcla de leche con bebida de almendra o soya.' },
+    { id: 'I04', nombre: 'Fórmula digestiva con probióticos', tipo: 'Producto', nov: 3, riesgo: 4, costo: 45000, trim: 2, ef: { nut: 3, salud: 2, cu: 1.2 }, seg: ['S5'], desc: 'Bebida fermentada suave pensada para adultos mayores.' },
+    { id: 'I05', nombre: 'Mini botella escolar de 200 ml antiderrame', tipo: 'Producto', nov: 2, riesgo: 2, costo: 20000, trim: 1, ef: { conv: 2, cu: 0.4 }, seg: ['S1'], desc: 'Formato para la lonchera escolar.' },
     { id: 'I06', nombre: 'Sabores de frutas locales (copoazú, achachairú)', tipo: 'Producto', nov: 2, riesgo: 2, costo: 15000, trim: 1, ef: { sab: 2 }, seg: ['S1', 'S2'], desc: 'Ediciones con frutas del oriente boliviano.' },
     { id: 'I07', nombre: 'Versión reducida en azúcar del producto actual', tipo: 'Producto', nov: 2, riesgo: 3, costo: 25000, trim: 1, ef: { salud: 3, sab: -1 }, seg: ['S1', 'S5'], desc: 'Reformulación con 30 % menos azúcar.' },
-    { id: 'I08', nombre: 'Bebida láctea con café para la mañana', tipo: 'Producto', nov: 4, riesgo: 6, costo: 50000, trim: 2, ef: { conv: 2, nut: 1, sab: 1, cu: 0.25 }, seg: ['S2', 'S3'], desc: 'Café con leche listo para beber.' },
-    { id: 'I09', nombre: 'Yogur bebible con granola en vaso doble', tipo: 'Producto', nov: 4, riesgo: 5, costo: 70000, trim: 2, ef: { nut: 3, conv: 2, sab: 1, cu: 0.45 }, seg: ['S3', 'S2'], desc: 'Vaso con compartimento separado para la granola.' },
-    { id: 'I10', nombre: 'Pack familiar económico de 2 litros', tipo: 'Producto', nov: 1, riesgo: 2, costo: 15000, trim: 1, ef: { cu: -0.10 }, seg: ['S1'], desc: 'Menor costo por porción para familias.' },
-    { id: 'I11', nombre: 'Leche con colágeno para adultos', tipo: 'Producto', nov: 4, riesgo: 7, costo: 60000, trim: 2, ef: { salud: 2, nut: 2, cu: 0.50 }, seg: ['S5', 'S4'], desc: 'Bebida funcional para articulaciones y piel.' },
-    { id: 'I12', nombre: 'Bebida con superalimentos amazónicos', tipo: 'Producto', nov: 5, riesgo: 7, costo: 90000, trim: 3, ef: { salud: 3, sost: 2, sab: 1, cu: 0.55 }, seg: ['S4', 'S2'], desc: 'Con asaí, cacao silvestre y castaña.' },
-    { id: 'I13', nombre: 'Botella con forma de personaje infantil propio', tipo: 'Producto', nov: 2, riesgo: 4, costo: 40000, trim: 1, ef: { sab: 1, cu: 0.10 }, seg: ['S1'], desc: 'Envase coleccionable con un personaje creado por la marca.' },
-    { id: 'I14', nombre: 'Bebida láctea sin lactosa', tipo: 'Producto', nov: 3, riesgo: 4, costo: 45000, trim: 2, ef: { salud: 2, nut: 2, cu: 0.25 }, seg: ['S5', 'S4'], desc: 'Para personas con intolerancia a la lactosa.' },
-    { id: 'I15', nombre: 'Envase producido en la región', tipo: 'Proceso', nov: 2, riesgo: 3, costo: 30000, trim: 1, ef: { cu: -0.15, flags: { envaseLocal: true } }, seg: ['S1', 'S2', 'S3', 'S4', 'S5'], desc: 'Proveedor local de botellas; elimina la dependencia de importaciones.' },
-    { id: 'I16', nombre: 'Envase retornable con depósito', tipo: 'Proceso', nov: 3, riesgo: 5, costo: 50000, trim: 2, ef: { sost: 4, cu: -0.05 }, seg: ['S1', 'S2'], desc: 'El cliente devuelve la botella y recibe un descuento.' },
-    { id: 'I17', nombre: 'Pasteurización de alta presión', tipo: 'Proceso', nov: 4, riesgo: 6, costo: 120000, trim: 3, ef: { sab: 1, nut: 1, cu: 0.05 }, seg: ['S3', 'S4'], desc: 'Mayor vida útil y sabor más fresco sin conservantes.' },
-    { id: 'I18', nombre: 'Automatizar la línea de llenado', tipo: 'Proceso', nov: 2, riesgo: 3, costo: 90000, trim: 2, ef: { cu: -0.20 }, seg: ['S1', 'S5'], desc: 'Reduce mermas y costo de mano de obra.' },
-    { id: 'I19', nombre: 'Contratos de largo plazo con productores lecheros', tipo: 'Proceso', nov: 2, riesgo: 2, costo: 20000, trim: 1, ef: { cu: -0.05, flags: { contratoLeche: true } }, seg: ['S1', 'S5'], desc: 'Precio estable de leche cruda ante sequías.' },
-    { id: 'I20', nombre: 'Energía solar en la planta', tipo: 'Proceso', nov: 3, riesgo: 4, costo: 80000, trim: 2, ef: { sost: 2, cu: -0.05 }, seg: ['S2', 'S4'], desc: 'Paneles solares para la operación de frío.' },
-    { id: 'I21', nombre: 'Botella de material reciclado', tipo: 'Proceso', nov: 2, riesgo: 3, costo: 25000, trim: 1, ef: { sost: 2, cu: 0.03 }, seg: ['S2', 'S4'], desc: 'PET reciclado en el envase.' },
+    { id: 'I08', nombre: 'Bebida láctea con café para la mañana', tipo: 'Producto', nov: 4, riesgo: 6, costo: 50000, trim: 2, ef: { conv: 2, nut: 1, sab: 1, cu: 1 }, seg: ['S2', 'S3'], desc: 'Café con leche listo para beber.' },
+    { id: 'I09', nombre: 'Yogur bebible con granola en vaso doble', tipo: 'Producto', nov: 4, riesgo: 5, costo: 70000, trim: 2, ef: { nut: 3, conv: 2, sab: 1, cu: 1.8 }, seg: ['S3', 'S2'], desc: 'Vaso con compartimento separado para la granola.' },
+    { id: 'I10', nombre: 'Pack familiar económico de 2 litros', tipo: 'Producto', nov: 1, riesgo: 2, costo: 15000, trim: 1, ef: { cu: -0.4 }, seg: ['S1'], desc: 'Menor costo por litro para familias.' },
+    { id: 'I11', nombre: 'Leche con colágeno para adultos', tipo: 'Producto', nov: 4, riesgo: 7, costo: 60000, trim: 2, ef: { salud: 2, nut: 2, cu: 2 }, seg: ['S5', 'S4'], desc: 'Bebida funcional para articulaciones y piel.' },
+    { id: 'I12', nombre: 'Bebida con superalimentos amazónicos', tipo: 'Producto', nov: 5, riesgo: 7, costo: 90000, trim: 3, ef: { salud: 3, sost: 2, sab: 1, cu: 2.2 }, seg: ['S4', 'S2'], desc: 'Con asaí, cacao silvestre y castaña.' },
+    { id: 'I13', nombre: 'Botella con forma de personaje infantil propio', tipo: 'Producto', nov: 2, riesgo: 4, costo: 40000, trim: 1, ef: { sab: 1, cu: 0.4 }, seg: ['S1'], desc: 'Envase coleccionable con un personaje creado por la marca.' },
+    { id: 'I14', nombre: 'Bebida láctea sin lactosa', tipo: 'Producto', nov: 3, riesgo: 4, costo: 45000, trim: 2, ef: { salud: 2, nut: 2, cu: 1 }, seg: ['S5', 'S4'], desc: 'Para personas con intolerancia a la lactosa.' },
+    { id: 'I15', nombre: 'Envase producido en la región', tipo: 'Proceso', nov: 2, riesgo: 3, costo: 30000, trim: 1, ef: { cu: -0.6, flags: { envaseLocal: true } }, seg: ['S1', 'S2', 'S3', 'S4', 'S5'], desc: 'Proveedor local de botellas; elimina la dependencia de importaciones.' },
+    { id: 'I16', nombre: 'Envase retornable con depósito', tipo: 'Proceso', nov: 3, riesgo: 5, costo: 50000, trim: 2, ef: { sost: 4, cu: -0.2 }, seg: ['S1', 'S2'], desc: 'El cliente devuelve la botella y recibe un descuento.' },
+    { id: 'I17', nombre: 'Pasteurización de alta presión', tipo: 'Proceso', nov: 4, riesgo: 6, costo: 120000, trim: 3, ef: { sab: 1, nut: 1, cu: 0.2 }, seg: ['S3', 'S4'], desc: 'Mayor vida útil y sabor más fresco sin conservantes.' },
+    { id: 'I18', nombre: 'Automatizar la línea de llenado', tipo: 'Proceso', nov: 2, riesgo: 3, costo: 90000, trim: 2, ef: { cu: -0.8 }, seg: ['S1', 'S5'], desc: 'Reduce mermas y costo de mano de obra.' },
+    { id: 'I19', nombre: 'Contratos de largo plazo con productores lecheros', tipo: 'Proceso', nov: 2, riesgo: 2, costo: 20000, trim: 1, ef: { cu: -0.2, flags: { contratoLeche: true } }, seg: ['S1', 'S5'], desc: 'Precio estable de leche cruda ante sequías.' },
+    { id: 'I20', nombre: 'Energía solar en la planta', tipo: 'Proceso', nov: 3, riesgo: 4, costo: 80000, trim: 2, ef: { sost: 2, cu: -0.2 }, seg: ['S2', 'S4'], desc: 'Paneles solares para la operación de frío.' },
+    { id: 'I21', nombre: 'Botella de material reciclado', tipo: 'Proceso', nov: 2, riesgo: 3, costo: 25000, trim: 1, ef: { sost: 2, cu: 0.12 }, seg: ['S2', 'S4'], desc: 'PET reciclado en el envase.' },
     { id: 'I22', nombre: 'Control de calidad con sensores', tipo: 'Proceso', nov: 2, riesgo: 2, costo: 40000, trim: 1, ef: { sab: 1 }, seg: ['S1', 'S3', 'S5'], desc: 'Sabor más consistente entre lotes.' },
-    { id: 'I23', nombre: 'Reducir el tamaño de la etiqueta', tipo: 'Proceso', nov: 1, riesgo: 2, costo: 5000, trim: 1, ef: { cu: -0.01 }, seg: ['S1'], desc: 'Ahorro menor de material.' },
-    { id: 'I24', nombre: 'Cambiar al formato de lata', tipo: 'Proceso', nov: 2, riesgo: 6, costo: 60000, trim: 2, ef: { conv: 1, cu: 0.25, sost: -1 }, seg: ['S3'], desc: 'Lata de 250 ml; más cara y menos sostenible.' },
+    { id: 'I23', nombre: 'Reducir el tamaño de la etiqueta', tipo: 'Proceso', nov: 1, riesgo: 2, costo: 5000, trim: 1, ef: { cu: -0.04 }, seg: ['S1'], desc: 'Ahorro menor de material.' },
+    { id: 'I24', nombre: 'Cambiar al formato de lata', tipo: 'Proceso', nov: 2, riesgo: 6, costo: 60000, trim: 2, ef: { conv: 1, cu: 1, sost: -1 }, seg: ['S3'], desc: 'Lata de 250 ml; más cara y menos sostenible.' },
     { id: 'I25', nombre: 'Kioscos en universidades', tipo: 'Posición', nov: 2, riesgo: 3, costo: 15000, trim: 1, ef: { conv: 1, canal: 'kiosco' }, seg: ['S2'], desc: 'Puntos de venta propios en campus.' },
     { id: 'I26', nombre: 'Máquinas expendedoras refrigeradas en oficinas', tipo: 'Posición', nov: 3, riesgo: 4, costo: 40000, trim: 1, ef: { conv: 2, canal: 'maquina' }, seg: ['S3'], desc: 'Disponible donde trabaja el cliente.' },
     { id: 'I27', nombre: 'Venta por apps de delivery', tipo: 'Posición', nov: 3, riesgo: 3, costo: 15000, trim: 1, ef: { conv: 2, canal: 'delivery' }, seg: ['S2', 'S3'], desc: 'Presencia en plataformas de terceros.' },
@@ -197,9 +197,9 @@ var DEF = {
     { id: 'I36', nombre: 'App propia de pedidos con recompensas', tipo: 'Paradigma', nov: 4, riesgo: 6, costo: 70000, trim: 2, ef: { conv: 2, canal: 'app' }, seg: ['S2', 'S3'], desc: 'Pedidos, puntos y promociones personalizadas.' },
     { id: 'I37', nombre: 'Planes corporativos de desayuno para empresas', tipo: 'Paradigma', nov: 3, riesgo: 4, costo: 35000, trim: 1, ef: { conv: 2, canal: 'maquina', modelo: 'suscripcion' }, seg: ['S3'], desc: 'Contrato mensual con empresas para sus empleados.' },
     { id: 'I38', nombre: 'Franquicia de kioscos saludables', tipo: 'Paradigma', nov: 5, riesgo: 8, costo: 150000, trim: 3, ef: { conv: 2, salud: 1, canal: 'kiosco' }, seg: ['S2'], desc: 'Red de kioscos operados por terceros con la marca.' },
-    { id: 'I39', nombre: 'Bebidas personalizadas por app', tipo: 'Paradigma', nov: 5, riesgo: 8, costo: 140000, trim: 3, ef: { nut: 2, sab: 2, cu: 0.40, canal: 'app' }, seg: ['S4', 'S2'], desc: 'El cliente elige sabor y nutrientes; producción a pedido.' },
+    { id: 'I39', nombre: 'Bebidas personalizadas por app', tipo: 'Paradigma', nov: 5, riesgo: 8, costo: 140000, trim: 3, ef: { nut: 2, sab: 2, cu: 1.6, canal: 'app' }, seg: ['S4', 'S2'], desc: 'El cliente elige sabor y nutrientes; producción a pedido.' },
     { id: 'I40', nombre: 'Reciclaje de envases con puntos canjeables', tipo: 'Paradigma', nov: 3, riesgo: 5, costo: 40000, trim: 1, ef: { sost: 3 }, seg: ['S2', 'S4'], desc: 'Puntos por devolver envases.' },
-    { id: 'I41', nombre: 'Plataforma de venta directa a tiendas de barrio', tipo: 'Paradigma', nov: 3, riesgo: 4, costo: 50000, trim: 2, ef: { cu: -0.05, conv: 1 }, seg: ['S1', 'S5'], desc: 'Pedidos digitales de los tenderos sin intermediarios.' },
+    { id: 'I41', nombre: 'Plataforma de venta directa a tiendas de barrio', tipo: 'Paradigma', nov: 3, riesgo: 4, costo: 50000, trim: 2, ef: { cu: -0.2, conv: 1 }, seg: ['S1', 'S5'], desc: 'Pedidos digitales de los tenderos sin intermediarios.' },
     { id: 'I42', nombre: 'Venta a cafeterías universitarias como insumo', tipo: 'Paradigma', nov: 2, riesgo: 3, costo: 20000, trim: 1, ef: { canal: 'kiosco' }, seg: ['S2'], desc: 'Las cafeterías preparan bebidas con el producto.' },
     { id: 'I43', nombre: 'Regalar el producto durante un mes', tipo: 'Paradigma', nov: 1, riesgo: 9, costo: 80000, trim: 1, ef: {}, seg: ['S1'], desc: 'Promoción masiva sin estrategia de retención.' },
     { id: 'I44', nombre: 'Cambiar el color de la etiqueta', tipo: 'Posición', nov: 1, riesgo: 1, costo: 5000, trim: 1, ef: {}, seg: ['S1'], desc: 'Rediseño cosmético.' }

@@ -2,7 +2,7 @@
 const BEST = { S1: '1000', S2: '330', S3: '330', S4: '330', S5: '200' };
 const CAN = { S1: ['tienda', 'super'], S2: ['kiosco', 'tienda'], S3: ['maquina', 'super'], S4: ['super', 'maquina'], S5: ['tienda', 'super'] };
 function decidir3(p, a, perfil, n) {
-  const seg = p.segmento, porc = { '200': 0.8, '330': 1.32, '1000': 4 }[(p.protoCar || {}).tamano || BEST[seg]] || 1.32;
+  const seg = p.segmento, porc = (process.env.UNIDAD === 'litro' ? { '200': 0.2, '330': 0.33, '1000': 1 } : { '200': 0.8, '330': 1.32, '1000': 4 })[(p.protoCar || {}).tamano || BEST[seg]] || (process.env.UNIDAD === 'litro' ? 0.33 : 1.32);
   if (perfil === 'acelera' || perfil === 'gastador') a.acelerar = true;
   if (p.etapa === 'prototipar') {
     const V = (p.proto && p.proto.versiones) || [], ult = V[V.length - 1];

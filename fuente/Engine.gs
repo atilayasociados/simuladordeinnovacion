@@ -573,7 +573,7 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
     if (dec.respuestaC4 === 'adquisicion') {
       var c4 = W.comps.filter(function (c) { return c.id === 'C4'; })[0];
       S.c4resp = 'adquisicion'; W.c4Adquirido = true; c4.activo = false;
-      W.productos.push({ id: 'N' + (S.nextProd++), nombre: 'Línea vegetal (ex startup)', attrs: copy_(c4.attrs), costUnit: 2.2, precio: c4.precio, canales: ['delivery', 'app'], modelo: 'venta', proteccion: 'activos', desde: t + 1, relanz: -99, AW: 0.5, activo: true, legado: false, comunicacion: 0, flags: {}, cuotaHist: [], penalHasta: O.estructura === 'autonoma' ? 0 : t + 2, lanz: t + 1 });
+      W.productos.push({ id: 'N' + (S.nextProd++), nombre: 'Línea vegetal (ex startup)', attrs: copy_(c4.attrs), costUnit: 8.8, precio: c4.precio, canales: ['delivery', 'app'], modelo: 'venta', proteccion: 'activos', desde: t + 1, relanz: -99, AW: 0.5, activo: true, legado: false, comunicacion: 0, flags: {}, cuotaHist: [], penalHasta: O.estructura === 'autonoma' ? 0 : t + 2, lanz: t + 1 });
       W.fin.intang.push({ concepto: 'Adquisición de la startup', monto: g.costoAdquisicionC4, restante: g.costoAdquisicionC4, desde: t + 1 });
       capexExtra += 0; S._adquisicionCaja = g.costoAdquisicionC4;
       fb.push('Adquiriste la startup: su producto pasa a tu portafolio' + (O.estructura === 'autonoma' ? '.' : ' (sin unidad autónoma, la integración reducirá su atractivo durante 2 trimestres).'));
@@ -586,7 +586,7 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   W.productos.forEach(function (p) {
     var d = decP[p.id]; if (!d || !p.activo) return;
     if (d.retirar && !p.legado) { p.activo = false; fb.push('Retiraste "' + p.nombre + '" del mercado.'); return; }
-    if (d.precio !== undefined && d.precio !== '') p.precio = r2_(clamp_(Number(d.precio), Math.max(0.5, p.precio * 0.7), p.precio * 1.3));
+    if (d.precio !== undefined && d.precio !== '') p.precio = r2_(clamp_(Number(d.precio), Math.max(2, p.precio * 0.7), p.precio * 1.3));
     if (d.comunicacion !== undefined) p.comunicacion = clamp_(Number(d.comunicacion) || 0, 0, 80000);
     if (d.segPub !== undefined) p.segPub = segById_(P, d.segPub) ? d.segPub : 'todos';
     p.promo = clamp_(Number(d.promo) || 0, 0, g.promoMax);
@@ -626,7 +626,7 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   W.productos.forEach(function (p) {
     if (!p.activo || !p.pronostico) return;
     var real = Math.round(p.unidades || 0), d = real ? Math.round(100 * (real - p.pronostico) / p.pronostico) : -100;
-    fb.push('Pronóstico de "' + p.nombre + '": ' + p.pronostico.toLocaleString('es-BO') + ' porciones; vendieron ' + real.toLocaleString('es-BO') + ' (' + (d >= 0 ? '+' : '') + d + ' %).' + (Math.abs(d) > 15 ? ' Revisen qué supuesto falló.' : ''));
+    fb.push('Pronóstico de "' + p.nombre + '": ' + p.pronostico.toLocaleString('es-BO') + ' litros; vendieron ' + real.toLocaleString('es-BO') + ' (' + (d >= 0 ? '+' : '') + d + ' %).' + (Math.abs(d) > 15 ? ' Revisen qué supuesto falló.' : ''));
     p.pronHist = (p.pronHist || []).concat([{ t: t, pron: p.pronostico, real: real }]).slice(-8);
   });
   S.coherencia = coherencia_(P, S, t);
@@ -655,7 +655,7 @@ function productoProspectivo_(P, W, pj, L, falla) {
   var precio = Number(L.precio) || (pj.base === 'P0' ? base.precio : ((pj.concepto && pj.concepto.precioObj) || segById_(P, pj.segmento).pref * 0.95));
   return {
     id: 'TMP', nombre: L.nombre ? String(L.nombre).slice(0, 60) : idea.nombre, attrs: attrs,
-    costUnit: r2_(Math.max(0.5, (pj.base === 'P0' ? base.costUnit : P.general.costoUnitNuevo) + (ef.cu || 0))), precio: r2_(clamp_(precio, 0.5, 20)),
+    costUnit: r2_(Math.max(2, (pj.base === 'P0' ? base.costUnit : P.general.costoUnitNuevo) + (ef.cu || 0))), precio: r2_(clamp_(precio, 2, 80)),
     canales: canales, modelo: ef.modelo === 'suscripcion' || L.modelo === 'suscripcion' ? 'suscripcion' : 'venta',
     proteccion: L.proteccion || 'ninguna', desde: 99, relanz: -99, AW: 0.05, activo: true, legado: false,
     comunicacion: clamp_(Number(L.comunicacion) || 0, 0, 80000), flags: flags, cuotaHist: [], ideaId: idea.id, lanz: 0
@@ -752,11 +752,11 @@ function stepWorld_(P, W, S, t, sched, X) {
   function costoEf(p) {
     var c = p.costUnit;
     if (sequia && !(p.flags && p.flags.contratoLeche)) c *= (W.prep && W.prep.sequia) ? 1.04 : 1.08;
-    if (t >= 12 && t <= 15 && !(p.flags && p.flags.envaseLocal)) c += (W.prep && W.prep.divisas) ? 0.05 : 0.10;
+    if (t >= 12 && t <= 15 && !(p.flags && p.flags.envaseLocal)) c += (W.prep && W.prep.divisas) ? 0.20 : 0.40;
     return c;
   }
   if (esReal && sequia && t === sched.sequia) X.fb.push('La sequía elevó el costo de la leche cruda 8 % durante dos trimestres' + '.');
-  if (esReal && t === 12) X.fb.push('Escasez de divisas: los envases importados suben Bs 0,10 por porción hasta T15 (salvo productos con envase local).');
+  if (esReal && t === 12) X.fb.push('Escasez de divisas: los envases importados suben Bs 0,40 por litro hasta T15 (salvo productos con envase local).');
   if (esReal && sched.bloqueos.indexOf(t) >= 0) X.fb.push('Los bloqueos de carreteras redujeron 15 % la demanda atendida en el trimestre.');
   if (esReal && t === 9) X.fb.push('Entró en vigor el etiquetado frontal: los productos con atributo saludable menor a 6 pierden 20 % de atractivo en S1, S4 y S5.');
 
@@ -816,7 +816,7 @@ function stepWorld_(P, W, S, t, sched, X) {
   // licitación
   if (X.licitacion) {
     var apto = W.productos.filter(function (p) { return p.activo && p.desde <= t && p.attrs.salud >= 6 && p.attrs.nut >= 6; })[0];
-    if (apto) { var vl = 300000 * 2.2; ventas += vl; costoVentas += 300000 * costoEf(apto); unidades += 300000; X.fb.push('Ganaste la licitación con "' + apto.nombre + '": 300.000 porciones adicionales.'); }
+    if (apto) { var vl = 75000 * 8.8; ventas += vl; costoVentas += 75000 * costoEf(apto); unidades += 75000; X.fb.push('Ganaste la licitación con "' + apto.nombre + '": 75.000 litros adicionales.'); }
     else X.fb.push('Tu postulación a la licitación fue rechazada: ningún producto cumple saludable ≥ 6 y nutrición ≥ 6.');
   }
 

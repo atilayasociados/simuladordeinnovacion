@@ -16,7 +16,7 @@ function P4_lienzoActual() {
     blk('Relación con el cliente', '<p>' + esc(rel[c.rel] || 'Autoservicio en la tienda') + '</p>', 'rel') + blk('Canales', lst(can), 'can') +
     blk('Segmentos de clientes', '<p>S1 Familias con niños y S5 Adultos mayores (clientes tradicionales).</p>', 'seg') +
     blk('Estructura de costos', '<p>Leche cruda, envase de cartón, planta y línea de envasado, distribución, publicidad masiva y gastos fijos de Bs 500.000 por trimestre.</p>', 'cos') +
-    blk('Fuentes de ingresos', '<p>Venta por unidad a Bs 9 el litro (Bs 2,25 por porción) a través de tiendas y supermercados.</p>', 'ing') + '</div></div>';
+    blk('Fuentes de ingresos', '<p>Venta a Bs 9 el litro a través de tiendas y supermercados.</p>', 'ing') + '</div></div>';
 }
 
 // ---------- estudiante: Decidir → Evaluar conceptos de otros ----------
@@ -33,7 +33,7 @@ function P4_cargarPares() {
     r.asignadas.forEach(function (a, i) {
       var m = r.mias[a.key] || {};
       h += '<div class="card proj"><h3>' + esc(a.alias) + ' · ' + esc(a.nombre) + ' <span class="tag">' + esc(a.seg) + '</span>' + (a.tipo4p ? ' <span class="tag">' + esc(a.tipo4p) + '</span>' : '') + '</h3>' +
-        (a.reto ? '<p class="muted">Reto del proyecto: ' + esc(a.reto) + '</p>' : '') + '<p>' + esc(a.frase || '(sin frase de posicionamiento)') + '</p><p class="muted">Apuesta: ' + esc(P4_ptsTxt(a.pts)) + (a.precioObj ? ' · Precio objetivo Bs ' + esc(a.precioObj) + ' por porción' : '') + '</p>' +
+        (a.reto ? '<p class="muted">Reto del proyecto: ' + esc(a.reto) + '</p>' : '') + '<p>' + esc(a.frase || '(sin frase de posicionamiento)') + '</p><p class="muted">Apuesta: ' + esc(P4_ptsTxt(a.pts)) + (a.precioObj ? ' · Precio objetivo Bs ' + esc(a.precioObj) + ' por litro' : '') + '</p>' +
         '<div class="grid g4">' + r.criterios.map(function (c) { return '<div><label for="p4n_' + i + '_' + c[0] + '">' + esc(c[1]) + '</label><select id="p4n_' + i + '_' + c[0] + '">' + P4_opts(m[c[0]]) + '</select></div>'; }).join('') +
         '<div><label for="p4n_' + i + '_com">Comentario breve (opcional)</label><input type="text" id="p4n_' + i + '_com" maxlength="300" value="' + esc(m.com || '') + '"></div></div></div>';
     });

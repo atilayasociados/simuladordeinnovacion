@@ -146,7 +146,7 @@ function vistaEquipo_(P, S) {
 function conceptoPublico_(P, c) {
   var txt = [];
   ATTRS.forEach(function (k) { if (c.ef[k]) txt.push(ATTR_NOMBRES[k] + ' +' + c.ef[k]); });
-  if (c.ef.cu) txt.push('Costo por porción ' + (c.ef.cu > 0 ? '+' : '') + c.ef.cu.toFixed(2));
+  if (c.ef.cu) txt.push('Costo por litro ' + (c.ef.cu > 0 ? '+' : '') + c.ef.cu.toFixed(2));
   return { ideaId: c.id, nombre: c.nombre, desc: c.desc, tipo: c.tipo, novedad: c.nov, riesgo: c.riesgo, costo: c.costo, efectos: txt.join(' · ') };
 }
 /** Borrador que ve un integrante: sus propias ideas; las de los demás solo sin autor y después de abrir la votación. */
@@ -191,7 +191,7 @@ function ideaPublica_(P, id, conEfectos) {
   if (conEfectos) {
     var ef = i.ef || {}, txt = [];
     ATTRS.forEach(function (k) { if (ef[k]) txt.push(ATTR_NOMBRES[k] + ' ' + (ef[k] > 0 ? '+' : '') + ef[k]); });
-    if (ef.cu) txt.push('Costo por porción ' + (ef.cu > 0 ? '+' : '') + ef.cu.toFixed(2));
+    if (ef.cu) txt.push('Costo por litro ' + (ef.cu > 0 ? '+' : '') + ef.cu.toFixed(2));
     if (ef.canal) txt.push('Canal: ' + canalById_(P, ef.canal).nombre);
     if (ef.modelo) txt.push('Modelo: suscripción');
     if (ef.flags && ef.flags.envaseLocal) txt.push('Envase local');

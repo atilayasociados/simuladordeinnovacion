@@ -129,7 +129,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = '191f525a0c4c';
+  var V0 = 'b5d07ab23681';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -361,7 +361,7 @@ function vPanel() {
 function tablaProductos() {
   var ps = V.estado.productos, A = V.cat.attrs;
   return '<div class="scroll"><table><tr><th>Producto</th>' + Object.keys(A).map(function (k) { return '<th class="n">' + A[k] + '</th>'; }).join('') + '<th class="n">Precio</th><th class="n">Costo</th><th>Canales</th><th>Modelo</th><th class="n">Conocimiento de marca</th></tr>' +
-    ps.map(function (p) { return '<tr><td>' + esc(p.nombre) + (p.desde > V.partida.t - 1 && !p.legado ? ' <span class="tag">nuevo</span>' : '') + '</td>' + Object.keys(A).map(function (k) { return '<td class="n">' + Number(p.attrs[k]).toFixed(1) + '</td>'; }).join('') + '<td class="n">' + Number(p.precio).toFixed(2) + '</td><td class="n">' + Number(p.costUnit).toFixed(2) + '</td><td>' + p.canales.map(canNom).join(', ') + '</td><td>' + (p.modelo === 'suscripcion' ? 'Suscripción' : 'Venta') + '</td><td class="n">' + Math.round(p.AW * 100) + ' %</td></tr>'; }).join('') + '</table></div><p class="muted">Atributos en escala 0–10. Precio y costo en Bs por porción.</p>';
+    ps.map(function (p) { return '<tr><td>' + esc(p.nombre) + (p.desde > V.partida.t - 1 && !p.legado ? ' <span class="tag">nuevo</span>' : '') + '</td>' + Object.keys(A).map(function (k) { return '<td class="n">' + Number(p.attrs[k]).toFixed(1) + '</td>'; }).join('') + '<td class="n">' + Number(p.precio).toFixed(2) + '</td><td class="n">' + Number(p.costUnit).toFixed(2) + '</td><td>' + p.canales.map(canNom).join(', ') + '</td><td>' + (p.modelo === 'suscripcion' ? 'Suscripción' : 'Venta') + '</td><td class="n">' + Math.round(p.AW * 100) + ' %</td></tr>'; }).join('') + '</table></div><p class="muted">Atributos en escala 0–10. Precio y costo en Bs por litro.</p>';
 }
 function grafico() {
   var H = V.estado.hist; if (!H.length) return '';
@@ -465,12 +465,12 @@ function vInvestigacion() {
 // ---------- Mercado y competencia ----------
 function vMercado() {
   var E = V.estado, html = '<div class="card"><h2>Empresas de la industria</h2>' + tablaEmpresas() + '<p class="muted">Las ventas y la participación de las otras empresas del curso no son públicas: se conocen con el "Estudio de la industria" y lo que ofrecen, con el "Análisis de competidores" (Decidir → 3. Investigación).</p></div>';
-  html += '<div class="card"><h2>Lo que sabemos de cada segmento</h2><div class="scroll"><table><tr><th>Segmento</th><th class="n">Tamaño del mercado</th><th class="n">Crecimiento por trimestre</th><th class="n">Precio de referencia por porción (250 ml)</th><th class="n">Equivale por litro</th><th>Conocimiento (calidad del insight)</th><th>Pesos observados</th></tr>' +
+  html += '<div class="card"><h2>Lo que sabemos de cada segmento</h2><div class="scroll"><table><tr><th>Segmento</th><th class="n">Tamaño del mercado</th><th class="n">Crecimiento por trimestre</th><th class="n">Precio de referencia (Bs por litro)</th><th>Conocimiento (calidad del insight)</th><th>Pesos observados</th></tr>' +
     V.cat.segmentos.map(function (s) {
       var k = E.conocimiento.pesos[s.id], iq = E.iq[s.id] || 0;
       var pes = k ? Object.keys(k.pesos).map(function (a) { return (a === 'precio' ? 'Precio' : V.cat.attrs[a]) + ' ' + k.pesos[a]; }).join(', ') + ' <span class="muted">(' + esc(k.metodo) + ', T' + k.t + ')</span>' : '<span class="muted">Sin investigar</span>';
       var lat = E.conocimiento.latentes && E.conocimiento.latentes[s.id] ? '<br><span class="tag ok">Necesidad latente: ' + E.conocimiento.latentes[s.id].join(', ') + '</span>' : '';
-      return '<tr><td>' + esc(s.id + ' ' + s.nombre) + (s.nuevo ? ' <span class="tag">nuevo para la empresa</span>' : '') + '</td><td class="n">' + Math.round(s.part * 100) + ' %</td><td class="n">' + (s.g * 100).toFixed(0) + ' %</td><td class="n">Bs ' + s.pref.toFixed(2) + '</td><td class="n">Bs ' + (s.pref * 4).toFixed(2) + '</td><td><div class="bar"><i style="width:' + Math.round(iq * 100) + '%"></i></div><span class="muted">' + Math.round(iq * 100) + ' %</span></td><td>' + pes + lat + '</td></tr>';
+      return '<tr><td>' + esc(s.id + ' ' + s.nombre) + (s.nuevo ? ' <span class="tag">nuevo para la empresa</span>' : '') + '</td><td class="n">' + Math.round(s.part * 100) + ' %</td><td class="n">' + (s.g * 100).toFixed(0) + ' %</td><td class="n">Bs ' + s.pref.toFixed(2) + '</td><td><div class="bar"><i style="width:' + Math.round(iq * 100) + '%"></i></div><span class="muted">' + Math.round(iq * 100) + ' %</span></td><td>' + pes + lat + '</td></tr>';
     }).join('') + '</table></div>' + (E.conocimiento.tendencia ? '<p><b>Tendencia:</b> ' + esc(E.conocimiento.tendencia) + '</p>' : '') + '</div>';
   var infs = (E.informes || []).filter(function (i) { return i.datos; });
   ['industria', 'competidores', 'percepcion'].forEach(function (mid) {
@@ -558,7 +558,7 @@ function tarjetaProyecto(p) {
     html += '<div class="grid g2"><div>' + chkB('proyectos.' + pid + '.piloto', 'Hacer un piloto este trimestre (' + bs(g.costoPiloto) + ', 4 semanas). Reduce el riesgo de fracaso y acelera la adopción.') + '</div><div>' + chkB('proyectos.' + pid + '.detener', '<span style="color:#B42318">Detener el proyecto</span>') + '</div></div>';
     html += chkB('proyectos.' + pid + '.lanzarOn', '<b>Lanzar al mercado</b> (' + bs(g.costoLanzamiento) + ' + costo de implementación de la idea' + (p.base === 'nuevo' ? '; inversión de escalamiento ' + bs(g.capexEscalamiento) + ' de caja' : '') + ')', 'data-rerender="1"');
     if (a.lanzarOn) {
-      html += '<div class="grid g4"><div><label>Nombre comercial</label>' + inp('proyectos.' + pid + '.lanzar.nombre') + '</div><div><label>Precio (Bs por porción)</label>' + inp('proyectos.' + pid + '.lanzar.precio', 'number', 'step=0.1 min=0.5') + '</div><div><label>Protección</label>' + sel('proyectos.' + pid + '.lanzar.proteccion', [['ninguna', 'Ninguna'], ['velocidad', 'Velocidad de mercado'], ['secreto', 'Secreto industrial'], ['patente', 'Patente (' + bs(g.costoPatente) + ', solo novedad ≥ 4)'], ['activos', 'Activos complementarios']]) + '</div><div><label>Comunicación por trimestre (Bs)</label>' + inp('proyectos.' + pid + '.lanzar.comunicacion', 'number', 'min=0 max=80000 step=1000') + '</div></div>' +
+      html += '<div class="grid g4"><div><label>Nombre comercial</label>' + inp('proyectos.' + pid + '.lanzar.nombre') + '</div><div><label>Precio (Bs por litro)</label>' + inp('proyectos.' + pid + '.lanzar.precio', 'number', 'step=0.1 min=2') + '</div><div><label>Protección</label>' + sel('proyectos.' + pid + '.lanzar.proteccion', [['ninguna', 'Ninguna'], ['velocidad', 'Velocidad de mercado'], ['secreto', 'Secreto industrial'], ['patente', 'Patente (' + bs(g.costoPatente) + ', solo novedad ≥ 4)'], ['activos', 'Activos complementarios']]) + '</div><div><label>Comunicación por trimestre (Bs)</label>' + inp('proyectos.' + pid + '.lanzar.comunicacion', 'number', 'min=0 max=80000 step=1000') + '</div></div>' +
         '<label>Canales (si no eliges, se usan los del producto actual)</label><div class="inline">' + V.cat.canales.map(function (c) { return chkA('proyectos.' + pid + '.lanzar.canales', c.id, esc(c.nombre) + (c.costo ? ' (' + bs(c.costo) + '/trim.)' : '')); }).join('') + '</div>' +
         '<p class="muted">Cada producto nuevo activo tiene un costo de gestión de ' + bs(g.costoGestionProducto) + ' por trimestre.</p>';
     }
@@ -578,13 +578,13 @@ function vProductos() {
     var pref = 'productos.' + p.id;
     var ph = (p.pronHist || []).slice(-1)[0];
     html += '<div class="card"><h2>' + esc(p.nombre) + '</h2><div class="grid g4">' +
-      '<div><label>1. Precio (Bs por porción; cambio máximo ±30 %)</label>' + inp(pref + '.precio', 'number', 'step=0.05') + '</div>' +
+      '<div><label>1. Precio (Bs por litro; cambio máximo ±30 %)</label>' + inp(pref + '.precio', 'number', 'step=0.1') + '</div>' +
       '<div><label>2. Publicidad por trimestre (Bs)</label>' + inp(pref + '.comunicacion', 'number', 'min=0 max=80000 step=1000') + '</div>' +
       '<div><label>3. Publicidad dirigida a</label>' + sel(pref + '.segPub', [['todos', 'Todo el mercado']].concat(V.cat.segmentos.map(function (s) { return [s.id, s.id + ' ' + s.nombre]; }))) + '</div>' +
       '<div><label>4. Promoción en el punto de venta (Bs, 0 a ' + kbs(g.promoMax) + ' mil)</label>' + inp(pref + '.promo', 'number', 'min=0 max=' + g.promoMax + ' step=1000') + '</div></div>' +
       ayuda('La publicidad dirigida a un segmento atrae más a ese segmento y un poco menos a los demás. La promoción (degustaciones, exhibidores, descuentos) sube las ventas solo en este trimestre. Ambas son gastos comerciales: no salen del presupuesto de innovación.', 0) +
       '<label>5. Canales</label><div class="inline">' + V.cat.canales.map(function (c) { return (p.legado && (c.id === 'tienda' || c.id === 'super')) ? '<label class="chk"><input type="checkbox" checked disabled> ' + esc(c.nombre) + '</label>' : chkA(pref + '.canales', c.id, esc(c.nombre) + (c.costo ? ' (' + bs(c.costo) + '/trim.)' : '')); }).join('') + '</div>' +
-      '<div class="grid g4"><div><label>6. Pronóstico de ventas (porciones del trimestre)</label>' + inp(pref + '.pronostico', 'number', 'min=0 step=10000') + (ph ? '<p class="muted">T' + ph.t + ': pronosticaron ' + ph.pron.toLocaleString('es-BO') + ', vendieron ' + ph.real.toLocaleString('es-BO') + '.</p>' : '<p class="muted">Se compara con lo que vendan.</p>') + '</div>' +
+      '<div class="grid g4"><div><label>6. Pronóstico de ventas (litros del trimestre)</label>' + inp(pref + '.pronostico', 'number', 'min=0 step=5000') + (ph ? '<p class="muted">T' + ph.t + ': pronosticaron ' + ph.pron.toLocaleString('es-BO') + ', vendieron ' + ph.real.toLocaleString('es-BO') + '.</p>' : '<p class="muted">Se compara con lo que vendan.</p>') + '</div>' +
       (p.legado ? '<div><label>7. Retirar</label><p class="muted">El producto original no se puede retirar.</p></div>' : '<div><label>7. Retirar</label>' + chkB(pref + '.retirar', 'Retirar del mercado') + '</div>') + '</div></div>';
   });
   return html;
@@ -617,7 +617,7 @@ function vResultados() {
     fila('Motivación intrínseca', function (h) { return h.MI; }, function (v) { return Number(v).toFixed(2); }) + fila('Autoeficacia creativa', function (h) { return h.AE; }, function (v) { return Number(v).toFixed(2); }) + fila('Clima creativo', function (h) { return h.clima; }, function (v) { return v; }) + fila('Madurez', function (h) { return h.madurez; }, function (v) { return v; }) +
     fila('Acierto en noticias', function (h) { return h.aciertoNoticias; }, pct) + fila('Semanas-persona usadas', function (h) { return h.semanasUsadas; }, function (v) { return v; }) + '</table></div></div>';
   var ul = H[H.length - 1];
-  html += '<div class="card"><h2>Ventas por producto (T' + ul.t + ')</h2><table><tr><th>Producto</th><th class="n">Ventas</th><th class="n">Porciones</th><th class="n">Margen</th>' + V.cat.segmentos.map(function (s) { return '<th class="n">' + s.id + '</th>'; }).join('') + '</tr>' + ul.productos.map(function (p) { return '<tr><td>' + esc(p.nombre) + '</td><td class="n">' + bs(p.ventas) + '</td><td class="n">' + Math.round(p.unidades).toLocaleString('es-BO') + '</td><td class="n">' + pct(p.margen) + '</td>' + V.cat.segmentos.map(function (s) { return '<td class="n">' + pct(p.cuotas[s.id]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>';
+  html += '<div class="card"><h2>Ventas por producto (T' + ul.t + ')</h2><table><tr><th>Producto</th><th class="n">Ventas</th><th class="n">Litros</th><th class="n">Margen</th>' + V.cat.segmentos.map(function (s) { return '<th class="n">' + s.id + '</th>'; }).join('') + '</tr>' + ul.productos.map(function (p) { return '<tr><td>' + esc(p.nombre) + '</td><td class="n">' + bs(p.ventas) + '</td><td class="n">' + Math.round(p.unidades).toLocaleString('es-BO') + '</td><td class="n">' + pct(p.margen) + '</td>' + V.cat.segmentos.map(function (s) { return '<td class="n">' + pct(p.cuotas[s.id]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>';
   return html;
 }
 
@@ -637,13 +637,13 @@ function vDecidirCerrado() {
 function vCaso() {
   var S = V.cat.segmentos, g = V.cat.general;
   var html = '<div class="card"><h2>' + esc(V.equipo.nombre) + ': la situación en la que se encuentran</h2>' +
-    '<p>Su equipo dirige la innovación de <b>' + esc(V.equipo.nombre) + '</b>, una de las <b>' + nEmp() + ' empresas lácteas cruceñas</b> que compiten en esta industria' + (nEmp() > 1 ? ' (las demás son las empresas de los otros equipos del curso)' : '') + '. Todas parten en igualdad de condiciones: mismo producto, mismo presupuesto y misma participación. Su producto principal es la <b>Leche saborizada de 1 litro</b>, que se vende en tiendas de barrio y supermercados a Bs 9 el litro (Bs 2,25 por porción de 250 ml). Es un producto querido por su sabor, pero poco práctico, poco saludable y sin atributos de sostenibilidad.</p>' +
+    '<p>Su equipo dirige la innovación de <b>' + esc(V.equipo.nombre) + '</b>, una de las <b>' + nEmp() + ' empresas lácteas cruceñas</b> que compiten en esta industria' + (nEmp() > 1 ? ' (las demás son las empresas de los otros equipos del curso)' : '') + '. Todas parten en igualdad de condiciones: mismo producto, mismo presupuesto y misma participación. Su producto principal es la <b>Leche saborizada de 1 litro</b>, que se vende en tiendas de barrio y supermercados a Bs 9 el litro. Es un producto querido por su sabor, pero poco práctico, poco saludable y sin atributos de sostenibilidad.</p>' +
     '<p>El producto está en su <b>fase de madurez</b>: las familias con niños, que son la mitad del mercado, compran cada vez menos, mientras crecen los segmentos que la empresa casi no atiende (universitarios, oficinistas y consumidores saludables). Hoy la empresa vende alrededor de <b>Bs 2 millones por trimestre</b>, con una participación de mercado cercana al ' + pct(11.2 / nEmp()) + ', y gana dinero, pero si no cambia nada sus ventas y utilidades irán cayendo año tras año.</p>' +
     '<p>El directorio les entrega un <b>presupuesto anual de innovación</b> (Bs 400.000 el primer año), un equipo con <b>' + g.semanasTrimestre + ' semanas-persona por trimestre</b> y un encargo: <b>renovar el portafolio de la empresa en cinco años</b> sin poner en riesgo su caja. El presupuesto de cada año siguiente dependerá de los resultados que logren.</p></div>';
   html += '<div class="card"><h2>El encargo del directorio (su mandato)</h2><p><b>' + esc(V.equipo.mandato.nombre) + '.</b> ' + esc(V.equipo.mandato.texto) + '</p><p class="muted">El mandato define cómo el directorio evaluará sus proyectos: cuánto valora la novedad, el riesgo, el tiempo, el costo y el ajuste al cliente.</p></div>';
   html += P4_lienzoActual();
-  html += '<div class="card"><h2>El mercado de bebidas lácteas</h2><p>El mercado vende unos 8 millones de porciones por trimestre y está formado por cinco segmentos. Conocen su tamaño y su crecimiento, pero <b>no saben qué valora realmente cada uno</b>: descubrirlo es su primera tarea.</p><div class="scroll"><table><tr><th>Segmento</th><th class="n">Tamaño del mercado</th><th class="n">Crecimiento por trimestre</th><th class="n">Precio que suele pagar por porción (250 ml)</th><th class="n">Equivale por litro</th><th>Situación de la empresa</th></tr>' +
-    S.map(function (s) { return '<tr><td>' + esc(s.id + ' ' + s.nombre) + '</td><td class="n">' + Math.round(s.part * 100) + ' %</td><td class="n">' + (s.g > 0 ? '+' : '') + (s.g * 100).toFixed(0) + ' %</td><td class="n">Bs ' + s.pref.toFixed(2) + '</td><td class="n">Bs ' + (s.pref * 4).toFixed(2) + '</td><td>' + (s.nuevo ? 'Casi no lo atiende' : 'Cliente tradicional') + '</td></tr>'; }).join('') + '</table></div></div>';
+  html += '<div class="card"><h2>El mercado de bebidas lácteas</h2><p>El mercado vende unos 2 millones de litros por trimestre y está formado por cinco segmentos. Conocen su tamaño y su crecimiento, pero <b>no saben qué valora realmente cada uno</b>: descubrirlo es su primera tarea.</p><div class="scroll"><table><tr><th>Segmento</th><th class="n">Tamaño del mercado</th><th class="n">Crecimiento por trimestre</th><th class="n">Precio que suele pagar (Bs por litro)</th><th>Situación de la empresa</th></tr>' +
+    S.map(function (s) { return '<tr><td>' + esc(s.id + ' ' + s.nombre) + '</td><td class="n">' + Math.round(s.part * 100) + ' %</td><td class="n">' + (s.g > 0 ? '+' : '') + (s.g * 100).toFixed(0) + ' %</td><td class="n">Bs ' + s.pref.toFixed(2) + '</td><td>' + (s.nuevo ? 'Casi no lo atiende' : 'Cliente tradicional') + '</td></tr>'; }).join('') + '</table></div></div>';
   html += '<div class="card"><h2>Las empresas que compiten con ustedes</h2><p>El producto más innovador y mejor adaptado a cada segmento es el que el mercado acepta: lo que gane una empresa lo pierden las demás.</p>' + tablaEmpresas() + '</div>';
   html += '<div class="card"><h2>Otros competidores del mercado</h2><ul class="fb"><li><b>Líder nacional:</b> la marca más grande del país, fuerte en familias y adultos mayores, con precio parecido al suyo.</li><li><b>Marca regional:</b> compite con precio bajo; suele copiar rápido lo que funciona.</li><li><b>Importados premium:</b> productos caros, saludables y prácticos, fuertes en oficinistas y deportistas.</li><li><b>Nuevos entrantes:</b> el sector observa a emprendimientos de bebidas vegetales que venden por aplicaciones. Hoy no son una amenaza… todavía.</li></ul></div>';
   html += '<div class="card"><h2>Punto de partida financiero (miles de Bs)</h2><div class="grid g2"><table>' + [['Caja', 400], ['Cuentas por cobrar', 600], ['Inventarios', 500], ['Activo fijo neto', 2500], ['<b>Total activo</b>', 4000]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + r[1].toLocaleString('es-BO') + '</td></tr>'; }).join('') + '</table><table>' + [['Proveedores', 700], ['Deuda de largo plazo', 1300], ['Capital', 1500], ['Resultados acumulados', 500], ['<b>Total pasivo y patrimonio</b>', 4000]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + r[1].toLocaleString('es-BO') + '</td></tr>'; }).join('') + '</table></div><p class="muted">Gastos fijos de operación: Bs 500.000 por trimestre. Si la caja se vuelve negativa, el banco otorga un préstamo de emergencia con interés alto.</p></div>';
@@ -1329,9 +1329,9 @@ function hallazgos(inf) {
   if (m === 'lideres') return '<p>Conceptos entregados al proyecto <b>' + esc(d.proyecto) + '</b>:</p><div class="grid g2">' + d.conceptos.map(function (c) { return '<div class="box"><b>' + esc(c.nombre) + '</b><br><span class="muted">' + esc(c.desc) + '</span><br>Tipo: ' + esc(c.tipo) + ' · novedad ' + c.nov + '/5 · calidad estimada <b>' + Number(c.qObs).toFixed(1) + '</b> de 9 (±1,5 sin validar)</div>'; }).join('') + '</div>';
   if (m === 'industria') {
     return '<div class="grid g2"><div><h3>Participación de mercado total (rango estimado)</h3><table><tr><th>Empresa</th><th class="n">Participación</th></tr>' + d.filas.map(function (f) { return '<tr' + (f.yo ? ' style="font-weight:bold"' : '') + '><td>' + esc(f.nombre) + '</td><td class="n">' + f.lo.toFixed(1) + ' – ' + f.hi.toFixed(1) + ' %</td></tr>'; }).join('') + '</table></div>' +
-      '<div><h3>Tamaño de cada segmento (miles de porciones)</h3><table><tr><th>Segmento</th>' + d.tendencia[0].serie.map(function (x) { return '<th class="n">T' + x.t + '</th>'; }).join('') + '</tr>' + d.tendencia.map(function (r) { return '<tr><td>' + esc(r.seg + ' ' + r.nombre) + '</td>' + r.serie.map(function (x) { return '<td class="n">' + x.miles.toLocaleString('es-BO') + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div></div>';
+      '<div><h3>Tamaño de cada segmento (miles de litros)</h3><table><tr><th>Segmento</th>' + d.tendencia[0].serie.map(function (x) { return '<th class="n">T' + x.t + '</th>'; }).join('') + '</tr>' + d.tendencia.map(function (r) { return '<tr><td>' + esc(r.seg + ' ' + r.nombre) + '</td>' + r.serie.map(function (x) { return '<td class="n">' + x.miles.toLocaleString('es-BO') + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div></div>';
   }
-  if (m === 'competidores') return '<div class="scroll"><table><tr><th>Empresa o marca</th><th class="n">Precio (Bs/porción)</th><th>Envase</th><th>Mensaje o publicidad</th><th>Canales</th><th>Presencia</th></tr>' + d.filas.map(function (f) { return '<tr><td>' + esc(f.nombre) + (f.rival ? ' <span class="tag">empresa del curso</span>' : '') + '</td><td class="n">' + Number(f.precio).toFixed(2) + '</td><td>' + esc(f.envase) + '</td><td>' + esc(f.mensaje) + '</td><td>' + esc(f.canales) + '</td><td>' + esc(f.presencia) + '</td></tr>'; }).join('') + '</table></div>';
+  if (m === 'competidores') return '<div class="scroll"><table><tr><th>Empresa o marca</th><th class="n">Precio (Bs por litro)</th><th>Envase</th><th>Mensaje o publicidad</th><th>Canales</th><th>Presencia</th></tr>' + d.filas.map(function (f) { return '<tr><td>' + esc(f.nombre) + (f.rival ? ' <span class="tag">empresa del curso</span>' : '') + '</td><td class="n">' + Number(f.precio).toFixed(2) + '</td><td>' + esc(f.envase) + '</td><td>' + esc(f.mensaje) + '</td><td>' + esc(f.canales) + '</td><td>' + esc(f.presencia) + '</td></tr>'; }).join('') + '</table></div>';
   if (m === 'vigilancia') return '<table><tr><th>Señal</th><th>Área (PESTELDC)</th><th>Confianza</th><th>Horizonte</th></tr>' + d.senales.map(function (x) { return '<tr><td>' + esc(x.texto) + '</td><td>' + esc(x.area) + '</td><td><span class="tag ' + (x.confianza === 'alta' ? 'ok' : (x.confianza === 'media' ? 'aviso' : '')) + '">' + esc(x.confianza) + '</span></td><td>' + esc(x.horizonte) + '</td></tr>'; }).join('') + '</table>';
   if (m === 'percepcion') {
     var A = Object.keys(V.cat.attrs);
@@ -1339,7 +1339,7 @@ function hallazgos(inf) {
       d.marcas.map(function (mk) { return '<tr' + (mk.propio ? ' style="font-weight:bold"' : '') + '><td>' + esc(mk.nombre) + '</td>' + A.map(function (k) { return '<td class="n">' + Number(mk.perc[k]).toFixed(1) + '</td>'; }).join('') + '</tr>' + (mk.propio ? '<tr class="muted"><td>↳ valor real de su producto</td>' + A.map(function (k) { return '<td class="n">' + Number(mk.real[k]).toFixed(1) + '</td>'; }).join('') + '</tr>' : ''); }).join('') +
       '</table></div><p class="muted">La diferencia entre lo percibido y el valor real de su producto es una brecha de comunicación.</p></div></div>';
   }
-  if (m === 'testConcepto') return '<p>Proyecto <b>' + esc(d.proyecto) + '</b> · segmento ' + esc(d.seg) + '. El detalle de cada concepto (curvas de precio, Kano y frases) está en Decidir → 4. Proyectos.</p><table><tr><th>Concepto</th><th class="n">Intención de compra declarada</th><th class="n">Precio aceptable (Bs por porción)</th><th class="n">Calidad corregida</th></tr>' + d.conceptos.map(function (c) { return '<tr><td>' + esc(c.nombre) + '</td><td class="n">' + c.intencion + ' %</td><td class="n">' + Number(c.pmc).toFixed(2) + ' – ' + Number(c.pme).toFixed(2) + '</td><td class="n">' + Number(c.qCorr).toFixed(1) + ' ±' + String(c.margen).replace('.', ',') + '</td></tr>'; }).join('') + '</table><p class="muted">La intención declarada exagera la compra real: úsenla para comparar conceptos entre sí.</p>';
+  if (m === 'testConcepto') return '<p>Proyecto <b>' + esc(d.proyecto) + '</b> · segmento ' + esc(d.seg) + '. El detalle de cada concepto (curvas de precio, Kano y frases) está en Decidir → 4. Proyectos.</p><table><tr><th>Concepto</th><th class="n">Intención de compra declarada</th><th class="n">Precio aceptable (Bs por litro)</th><th class="n">Calidad corregida</th></tr>' + d.conceptos.map(function (c) { return '<tr><td>' + esc(c.nombre) + '</td><td class="n">' + c.intencion + ' %</td><td class="n">' + Number(c.pmc).toFixed(2) + ' – ' + Number(c.pme).toFixed(2) + '</td><td class="n">' + Number(c.qCorr).toFixed(1) + ' ±' + String(c.margen).replace('.', ',') + '</td></tr>'; }).join('') + '</table><p class="muted">La intención declarada exagera la compra real: úsenla para comparar conceptos entre sí.</p>';
   return '';
 }
 function tarjetaInforme(inf, editable) {
@@ -1567,7 +1567,7 @@ function tabFichas(p, a) {
   [0, 1, 2].forEach(function (i) {
     var f = a.fichas[i], b = 'proyectos.' + pid + '.fichas.' + i + '.', s = sumaP(f.pts);
     html += '<div class="box"><h3>Ficha ' + (i + 1) + (f.externa ? ' <span class="tag">propuesta externa ' + esc(f.externa) + '</span>' : '') + '</h3>' +
-      '<div class="grid g2"><div><label>Nombre</label>' + inp(b + 'nombre') + '</div><div><label>Precio objetivo (Bs por porción; su producto actual: ' + Number(V.estado.productos[0].precio).toFixed(2) + ')</label>' + inp(b + 'precioObj', 'number', 'step=0.1 min=0.5') + '</div></div>' +
+      '<div class="grid g2"><div><label>Nombre</label>' + inp(b + 'nombre') + '</div><div><label>Precio objetivo (Bs por litro; su producto actual: ' + Number(V.estado.productos[0].precio).toFixed(2) + ')</label>' + inp(b + 'precioObj', 'number', 'step=0.5 min=2') + '</div></div>' +
       '<label>Concepto en una frase: Para [quién] que [necesidad], [producto] es [qué] que [beneficio], a diferencia de [alternativa]</label>' + txtA(b + 'frase', 'Para universitarios que desayunan camino a clases, …') +
       '<label>Qué mejora: repartan 10 puntos</label><div class="grid g6">' + PTSK.map(function (k) { return '<div><label class="muted">' + esc(V.cat.ptsNom[k]) + '</label>' + inp(b + 'pts.' + k, 'number', 'min=0 max=10 data-rerender="1"') + '</div>'; }).join('') + '</div>' +
       '<p class="' + (s === 10 || !f.nombre ? 'muted' : 'err') + '">' + s + ' de 10 puntos' + (s !== 10 && f.nombre ? ': deben ser exactamente 10.' : '') + '</p>' +
@@ -1611,7 +1611,7 @@ function bloqueTest(f) {
   var T = f.test;
   if (!T) return '<p class="muted">Sin test de concepto: calidad estimada ' + Number(f.qObs).toFixed(1) + ' ±' + String(f.margen).replace('.', ',') + '.</p>';
   return '<div class="grid g2"><div><p><b>Intención de compra declarada: ' + T.intencion + ' %</b> <span class="muted">(seguro o probablemente la comprarían; está inflada: la compra real suele ser menor)</span></p>' +
-    '<p><b>Rango de precio aceptable:</b> Bs ' + T.vw.pmc.toFixed(2) + ' a Bs ' + T.vw.pme.toFixed(2) + ' por porción · su precio: Bs ' + Number(T.precioObj).toFixed(2) + '</p>' + svgVW(T.vw, T.precioObj) +
+    '<p><b>Rango de precio aceptable:</b> Bs ' + T.vw.pmc.toFixed(2) + ' a Bs ' + T.vw.pme.toFixed(2) + ' por litro · su precio: Bs ' + Number(T.precioObj).toFixed(2) + '</p>' + svgVW(T.vw, T.precioObj) +
     '<p><b>Calidad corregida:</b> ' + Number(T.qCorr).toFixed(1) + ' ±' + String(T.margen).replace('.', ',') + '</p></div>' +
     '<div><h3>Clasificación de Kano para el segmento</h3><table>' + PTSK.map(function (k) { return '<tr><td>' + esc(V.cat.ptsNom[k]) + '</td><td>' + esc(V.cat.kanoNom[T.kano[k]] || '') + '</td><td class="n">' + (f.pts[k] || 0) + ' pts</td></tr>'; }).join('') + '</table>' +
     '<h3>Lo que dijeron los clientes</h3>' + T.frases.map(function (x) { return '<p class="cita">' + esc(x) + '</p>'; }).join('') + '</div></div>';
@@ -1749,7 +1749,7 @@ function P3_tEsp(p, a) {
   var car = p.protoCar || {};
   html += '<h3>1. Lo que viene del prototipo</h3><p>' + esc(F.tam) + ' · ' + esc((c.car.apertura.ops.filter(function (o) { return o[0] === car.apertura; })[0] || [])[1] || '') + ' · ' + esc((c.car.senal.ops.filter(function (o) { return o[0] === car.senal; })[0] || [])[1] || '') + ' · ajuste del prototipo ' + Math.round((p.protoFit || 0) * 100) + ' %. Estas características quedan fijas.</p>';
   html += '<h3>2. Ficha técnica</h3><div class="grid g3">' + Object.keys(c.ficha).map(function (k) { return '<div><label>' + esc(c.ficha[k].nom) + '</label>' + sel(base + k, c.ficha[k].ops.map(function (o) { return [o[0], o[1] + ' · ' + P3_bs2(o[3] === 'u' ? o[2] : o[2] * F.porc) + '/u']; }), 'data-rerender="1"') + '</div>'; }).join('') + '</div>';
-  html += '<div class="grid g3"><div class="kpi"><div class="v">' + P3_bs2(F.costoU) + '</div><div class="l">Costo estimado por unidad de ' + esc(F.tam) + ' (' + P3_bs2(F.costoU / F.porc) + ' por porción de 250 ml)</div></div><div class="kpi"><div class="v">' + F.vida + ' días</div><div class="l">Vida útil</div></div><div class="kpi"><div class="v">' + P3_n(F.capU) + '</div><div class="l">Unidades por trimestre que pueden producir</div></div></div>';
+  html += '<div class="grid g3"><div class="kpi"><div class="v">' + P3_bs2(F.costoU) + '</div><div class="l">Costo estimado por unidad de ' + esc(F.tam) + ' (' + P3_bs2(F.costoU / F.porc) + ' por litro)</div></div><div class="kpi"><div class="v">' + F.vida + ' días</div><div class="l">Vida útil</div></div><div class="kpi"><div class="v">' + P3_n(F.capU) + '</div><div class="l">Unidades por trimestre que pueden producir</div></div></div>';
   html += '<h3>3. Caso de negocio</h3><div class="grid g3"><div><label>Precio al público por unidad (Bs)</label>' + inp(base + 'precioU', 'number', 'step="0.1" min="0" data-rerender="1"') + (p.vw ? '<p class="muted">Van Westendorp: aceptable entre ' + P3_bs2(p.vw.pmc * F.porc) + ' y ' + P3_bs2(p.vw.pme * F.porc) + ' por unidad.</p>' : '') + '</div><div><label>Unidades que esperan vender por trimestre</label>' + inp(base + 'volumen', 'number', 'step="500" min="0" data-rerender="1"') + '</div><div><label>Publicidad por trimestre (Bs)</label>' + inp(base + 'publicidad', 'number', 'step="1000" min="0" data-rerender="1"') + '</div></div>';
   if (p.ref) {
     var R = p.ref, mx = Math.max(R.p90 * 1.4, Number(e.volumen) || 0, 1), pc = function (x) { return Math.min(100, 100 * x / mx); };
@@ -1812,7 +1812,7 @@ function P3_tLan(p, a) {
   var top = p.concepto && p.concepto.pts ? Object.keys(p.concepto.pts).sort(function (x, y) { return (p.concepto.pts[y] || 0) - (p.concepto.pts[x] || 0); })[0] : 'conv';
   html += '<h3>1. Nombre y mensaje</h3><div class="grid g2"><div><label>Nombre comercial</label>' + inp(base + 'nombre') + '</div><div><label>Mensaje publicitario en una frase</label>' + inp(base + 'mensaje', 'text', 'placeholder="Se abre con un dedo. Así de fácil."') + '</div></div>' +
     ayuda('Su concepto apuesta sobre todo por ' + esc((V.cat.ptsNom[top] || '').toLowerCase()) + ': el mensaje debería decirlo con palabras del cliente.');
-  html += '<h3>2. Precio, publicidad y canales</h3><div class="grid g3"><div><label>Precio por unidad de ' + esc((P3_c().tam[(p.protoCar || {}).tamano || '330'] || {}).nom || '') + ' (Bs)</label>' + inp(base + 'precioU', 'number', 'step="0.1"') + '<p class="muted">El simulador lo convierte a ' + P3_bs2((Number(L.precioU) || 0) / P3_porc(p)) + ' por porción de 250 ml.</p></div><div><label>Publicidad por trimestre (Bs)</label>' + inp(base + 'publicidad', 'number', 'step="1000"') + '</div><div><label>Publicidad dirigida a</label>' + sel(base + 'segPub', V.cat.segmentos.map(function (s) { return [s.id, s.id + ' ' + s.nombre]; })) + '</div></div>' +
+  html += '<h3>2. Precio, publicidad y canales</h3><div class="grid g3"><div><label>Precio por unidad de ' + esc((P3_c().tam[(p.protoCar || {}).tamano || '330'] || {}).nom || '') + ' (Bs)</label>' + inp(base + 'precioU', 'number', 'step="0.1"') + '<p class="muted">Equivale a ' + P3_bs2((Number(L.precioU) || 0) / P3_porc(p)) + ' por litro.</p></div><div><label>Publicidad por trimestre (Bs)</label>' + inp(base + 'publicidad', 'number', 'step="1000"') + '</div><div><label>Publicidad dirigida a</label>' + sel(base + 'segPub', V.cat.segmentos.map(function (s) { return [s.id, s.id + ' ' + s.nombre]; })) + '</div></div>' +
     '<label>Canales</label>' + V.cat.canales.map(function (ch) { return chkA(base + 'canales', ch.id, esc(ch.nombre)); }).join('') +
     chkB(base + 'reemplaza', 'Reemplaza a la leche saborizada (solo si el proyecto mejora el producto actual; si no, conviven)') +
     '<p class="muted">Costo del lanzamiento: ' + bs(V.cat.general.costoLanzamiento) + ' más la implementación del concepto' + (E.inversion ? ' y la máquina nueva (' + bs(E.inversion) + ')' : '') + '.</p>' +
@@ -1868,7 +1868,7 @@ function P4_lienzoActual() {
     blk('Relación con el cliente', '<p>' + esc(rel[c.rel] || 'Autoservicio en la tienda') + '</p>', 'rel') + blk('Canales', lst(can), 'can') +
     blk('Segmentos de clientes', '<p>S1 Familias con niños y S5 Adultos mayores (clientes tradicionales).</p>', 'seg') +
     blk('Estructura de costos', '<p>Leche cruda, envase de cartón, planta y línea de envasado, distribución, publicidad masiva y gastos fijos de Bs 500.000 por trimestre.</p>', 'cos') +
-    blk('Fuentes de ingresos', '<p>Venta por unidad a Bs 9 el litro (Bs 2,25 por porción) a través de tiendas y supermercados.</p>', 'ing') + '</div></div>';
+    blk('Fuentes de ingresos', '<p>Venta a Bs 9 el litro a través de tiendas y supermercados.</p>', 'ing') + '</div></div>';
 }
 
 // ---------- estudiante: Decidir → Evaluar conceptos de otros ----------
@@ -1885,7 +1885,7 @@ function P4_cargarPares() {
     r.asignadas.forEach(function (a, i) {
       var m = r.mias[a.key] || {};
       h += '<div class="card proj"><h3>' + esc(a.alias) + ' · ' + esc(a.nombre) + ' <span class="tag">' + esc(a.seg) + '</span>' + (a.tipo4p ? ' <span class="tag">' + esc(a.tipo4p) + '</span>' : '') + '</h3>' +
-        (a.reto ? '<p class="muted">Reto del proyecto: ' + esc(a.reto) + '</p>' : '') + '<p>' + esc(a.frase || '(sin frase de posicionamiento)') + '</p><p class="muted">Apuesta: ' + esc(P4_ptsTxt(a.pts)) + (a.precioObj ? ' · Precio objetivo Bs ' + esc(a.precioObj) + ' por porción' : '') + '</p>' +
+        (a.reto ? '<p class="muted">Reto del proyecto: ' + esc(a.reto) + '</p>' : '') + '<p>' + esc(a.frase || '(sin frase de posicionamiento)') + '</p><p class="muted">Apuesta: ' + esc(P4_ptsTxt(a.pts)) + (a.precioObj ? ' · Precio objetivo Bs ' + esc(a.precioObj) + ' por litro' : '') + '</p>' +
         '<div class="grid g4">' + r.criterios.map(function (c) { return '<div><label for="p4n_' + i + '_' + c[0] + '">' + esc(c[1]) + '</label><select id="p4n_' + i + '_' + c[0] + '">' + P4_opts(m[c[0]]) + '</select></div>'; }).join('') +
         '<div><label for="p4n_' + i + '_com">Comentario breve (opcional)</label><input type="text" id="p4n_' + i + '_com" maxlength="300" value="' + esc(m.com || '') + '"></div></div></div>';
     });
@@ -2101,7 +2101,7 @@ var UNIDADES = [
     { t: 'Apropiabilidad', x: 'Crear valor no garantiza capturarlo. La capacidad de apropiarse de los beneficios depende de la protección (patentes, secreto, marcas), de la facilidad de imitación y del control de activos complementarios como la distribución o la producción.', s: 'Lanzamiento: protección (ninguna, secreto o patente) retrasa la imitación de la marca regional.', r: ['teece86'] },
     { t: 'Difusión de las innovaciones', x: 'Los productos nuevos se adoptan de forma gradual: primero unos pocos innovadores y luego la mayoría, impulsada por la imitación y la recomendación. La velocidad depende de la ventaja percibida, la compatibilidad, la simplicidad y la comunicación.', s: 'El conocimiento de marca de un producto nuevo crece trimestre a trimestre según la comunicación.', r: ['rogers', 'bass'] },
     { t: 'Canales y lanzamiento', x: 'Un buen producto puede fracasar si no llega al lugar donde su cliente compra. Los canales tienen costo y alcanzan mejor a unos segmentos que a otros, por lo que deben elegirse según el cliente objetivo.', s: 'Canales: tiendas, supermercados, kioscos universitarios, máquinas expendedoras, app propia y apps de delivery.', r: ['kotler'] },
-    { t: 'Escalar y costear', x: 'Pasar del piloto a la producción en volumen exige inversión y cambia la estructura de costos. Un margen atractivo en el prototipo puede desaparecer si el costo unitario o los gastos de gestión del nuevo producto no se controlan.', s: 'Cada producto nuevo tiene costo por porción, inversión de escalamiento y costo fijo trimestral de gestión.', r: ['tidd'] }
+    { t: 'Escalar y costear', x: 'Pasar del piloto a la producción en volumen exige inversión y cambia la estructura de costos. Un margen atractivo en el prototipo puede desaparecer si el costo unitario o los gastos de gestión del nuevo producto no se controlan.', s: 'Cada producto nuevo tiene costo por litro, inversión de escalamiento y costo fijo trimestral de gestión.', r: ['tidd'] }
   ] },
   { n: 8, titulo: 'Innovación disruptiva', pregunta: '¿Vieron venir al disruptor? ¿Qué hicieron y qué deberían haber hecho?', temas: [
     { t: 'Innovación sostenedora y disruptiva', x: 'La innovación sostenedora mejora los productos en lo que los mejores clientes ya valoran. La disruptiva llega con un producto inferior en esas dimensiones, pero más simple, barato o accesible, y atrae a clientes que el líder no atiende.', s: 'La startup de bebidas vegetales entra con atributos distintos a los que valora su cliente tradicional.', r: ['chris'] },
@@ -2289,19 +2289,19 @@ var MANUAL = [
   ['h', 'Ayudas dentro de cada pantalla'],
   ['p', 'Los recuadros celestes explican cada decisión. Sus enlaces <b>Aprender: unidad N</b> y <b>Glosario</b> llevan a la teoría. Arriba de cada pantalla hay un enlace a la sección de este manual que la explica.']
 ]},
-{ id: 'caso', t: 'El caso y sus unidades', r: 'Producto, precios por porción, segmentos, competidores y finanzas.', b: [
+{ id: 'caso', t: 'El caso y sus unidades', r: 'Producto, precios por litro, segmentos, competidores y finanzas.', b: [
   ['h', 'La empresa'],
   ['p', 'Todas las empresas del curso parten iguales: el mismo producto, el mismo presupuesto y la misma participación. Venden alrededor de Bs 2 millones por trimestre, tienen gastos fijos de Bs 500.000 por trimestre y ganan dinero, pero si no cambian nada sus ventas irán cayendo.'],
-  ['h', 'Todo se mide en porciones de 250 ml'],
-  ['p', 'El mercado se cuenta en <b>porciones de 250 ml</b> (unos 8 millones por trimestre). Los precios y costos del simulador están en <b>Bs por porción</b>, salvo cuando la pantalla dice "por unidad".'],
-  ['ej', 'La leche saborizada de 1 litro se vende a Bs 9. Un litro son 4 porciones: Bs 9 ÷ 4 = <b>Bs 2,25 por porción</b>. Una botella de 330 ml a Bs 6,60 equivale a 1,32 porciones: Bs 6,60 ÷ 1,32 = Bs 5,00 por porción.'],
+  ['h', 'Todo se mide en litros'],
+  ['p', 'El mercado se cuenta en <b>litros</b> (unos 2 millones por trimestre). Los precios y costos del simulador están en <b>Bs por litro</b>, salvo cuando la pantalla dice "por unidad" (una botella o envase de un tamaño dado).'],
+  ['ej', 'La leche saborizada de 1 litro se vende a <b>Bs 9 por litro</b>. Una botella de 330 ml (0,33 litros) que se vende a Bs 6,60 equivale a Bs 6,60 ÷ 0,33 = <b>Bs 20 por litro</b>.'],
   ['h', 'Los cinco segmentos'],
-  ['tabla', ['Segmento', 'Tamaño', 'Suelen pagar por porción', 'Equivale por litro', 'Hoy'], [
-    ['S1 Familias con niños', '45 %', 'Bs 2,50', 'Bs 10', 'Cliente tradicional, decrece'],
-    ['S2 Universitarios', '15 %', 'Bs 6,00', 'Bs 24', 'Casi no lo atienden, crece'],
-    ['S3 Oficinistas', '15 %', 'Bs 7,00', 'Bs 28', 'Casi no lo atienden'],
-    ['S4 Deportistas y saludables', '10 %', 'Bs 8,00', 'Bs 32', 'Casi no lo atienden, crece rápido'],
-    ['S5 Adultos mayores', '15 %', 'Bs 3,00', 'Bs 12', 'Cliente tradicional']]],
+  ['tabla', ['Segmento', 'Tamaño', 'Suelen pagar por litro', 'Hoy'], [
+    ['S1 Familias con niños', '45 %', 'Bs 10', 'Cliente tradicional, decrece'],
+    ['S2 Universitarios', '15 %', 'Bs 24', 'Casi no lo atienden, crece'],
+    ['S3 Oficinistas', '15 %', 'Bs 28', 'Casi no lo atienden'],
+    ['S4 Deportistas y saludables', '10 %', 'Bs 32', 'Casi no lo atienden, crece rápido'],
+    ['S5 Adultos mayores', '15 %', 'Bs 12', 'Cliente tradicional']]],
   ['p', 'Lo que cada segmento <b>valora</b> (sabor, nutrición, conveniencia, salud, sostenibilidad y precio) no se dice: descubrirlo con investigación es su primera tarea. El precio de la tabla es una referencia, no un tope: un producto que entrega lo que el segmento valora puede cobrar más.'],
   ['h', 'Los competidores del simulador'],
   ['lista', ['<b>Líder nacional</b>: la marca más grande, fuerte en familias y adultos mayores, con precio parecido al suyo. Si pierde clientes, baja su precio.',
@@ -2379,7 +2379,7 @@ var MANUAL = [
   ['p', 'Repetir un método en el trimestre siguiente cuesta <b>50 % más</b>.'],
   ['h', 'Cómo leer un informe'],
   ['p', 'Todos los informes tienen la misma estructura: <b>pregunta</b>, <b>método y muestra</b>, <b>hallazgos</b>, <b>limitaciones</b> y <b>¿qué decisión tomamos con este dato?</b>. Ese último campo es obligatorio para enviar el trimestre siguiente.'],
-  ['ej', 'Hallazgo: S2 dice valorar el precio, pero la observación muestra que no compra lácteos porque no los puede tomar con una mano en el micro. Decisión: creamos un proyecto para S2 centrado en conveniencia y fijamos un precio objetivo de Bs 5 por porción.'],
+  ['ej', 'Hallazgo: S2 dice valorar el precio, pero la observación muestra que no compra lácteos porque no los puede tomar con una mano en el micro. Decisión: creamos un proyecto para S2 centrado en conveniencia y fijamos un precio objetivo de Bs 20 por litro.'],
   ['idea', 'Comparen métodos sobre el mismo segmento (triangulación). Si la encuesta y la observación no coinciden, pesa más lo que el cliente hace que lo que dice. Repartan los estudios en el año: investigar todo en un trimestre no alcanza ni en dinero ni en semanas.'],
   ['ir', [['Ir a 3. Investigación', 'investigacion'], ['Ver mis informes', 'informes']]]
 ]},
@@ -2430,7 +2430,7 @@ var MANUAL = [
   ['h', '2. Votar en equipo'],
   ['p', 'Cuando todos escribieron, alguien presiona <b>Abrir la votación</b>. Las ideas aparecen mezcladas y sin autor. Cada integrante reparte <b>3 votos</b> (puede dar varios a una misma idea). Guarden y actualicen para ver los totales.'],
   ['h', '3. Fichas de concepto (hasta 3)'],
-  ['lista', ['<b>Nombre</b> y <b>precio objetivo</b> en Bs por porción.',
+  ['lista', ['<b>Nombre</b> y <b>precio objetivo</b> en Bs por litro.',
     '<b>Concepto en una frase</b>: <i>Para [quién] que [necesidad], [producto] es [qué] que [beneficio], a diferencia de [alternativa].</i>',
     '<b>Qué mejora</b>: repartan exactamente <b>10 puntos</b> entre sabor, nutrición, conveniencia, salud, sostenibilidad y precio. Más puntos en un atributo lo hacen mejor, pero más difícil y caro de lograr.',
     '¿Tecnología nueva?, ¿cambia cómo venden o cobran?, y su tipo en las 4P.',
@@ -2473,7 +2473,7 @@ var MANUAL = [
     ['Envase falso', 'Solo comprensión (se mira pero no se abre).'],
     ['Guion gráfico', 'Solo rutina (viñetas del día del cliente).']]],
   ['ojo', 'Si el formato no puede comprobar el supuesto elegido, la versión solo trae opiniones y no mejora el producto. El simulador se los advierte en rojo.'],
-  ['p', 'Elijan las características: cómo se abre, cómo se ve la forma de abrir, tamaño de la porción (200 ml, 330 ml o 1 litro) y si se puede volver a cerrar. Describan el prototipo en dos líneas y, si quieren, peguen el enlace a una foto del que construyeron.'],
+  ['p', 'Elijan las características: cómo se abre, cómo se ve la forma de abrir, tamaño del envase (200 ml, 330 ml o 1 litro) y si se puede volver a cerrar. Describan el prototipo en dos líneas y, si quieren, peguen el enlace a una foto del que construyeron.'],
   ['h', '3. Prueba con clientes simulados'],
   ['tabla', ['Personas', 'Costo', 'Semanas'], [['5', 'Bs 6.000', '1'], ['8', 'Bs 8.000', '1'], ['12', 'Bs 11.000', '2']]],
   ['p', 'Elijan también dónde se prueba (en casa, en el lugar de consumo o en la tienda). Con pocas personas aparecen la mayoría de los problemas, pero el resultado varía más.'],
@@ -2489,7 +2489,7 @@ var MANUAL = [
 { id: 'especificar', t: 'Fases 5 y 6. Especificar y la Puerta', r: 'Ficha técnica, caso de negocio, lienzo, pre-mortem y acta del comité.', b: [
   ['p', 'Especificar es definir cómo se fabricará el producto y cuánto costará. La Puerta es el comité que, con esa información, decide si se autoriza el piloto. Lo que viene del prototipo (tamaño y forma de abrir) queda fijo.'],
   ['h', '1. Ficha técnica'],
-  ['p', 'Elijan envase, base líquida, azúcar, conservación (pasteurizada, 12 días; UHT, 90 días), etiqueta y producción (línea actual, máquina nueva con inversión de Bs 60.000 o maquila). La pantalla calcula el <b>costo por unidad</b> y por porción, la vida útil y cuántas unidades pueden producir por trimestre.'],
+  ['p', 'Elijan envase, base líquida, azúcar, conservación (pasteurizada, 12 días; UHT, 90 días), etiqueta y producción (línea actual, máquina nueva con inversión de Bs 60.000 o maquila). La pantalla calcula el <b>costo por unidad</b> y por litro, la vida útil y cuántas unidades pueden producir por trimestre.'],
   ['h', '2. Caso de negocio'],
   ['p', 'Escriban el <b>precio al público por unidad</b>, las <b>unidades que esperan vender por trimestre</b> y la <b>publicidad</b>. La pantalla calcula el margen por unidad, la utilidad por trimestre, la inversión que falta y en cuántos trimestres se recupera.'],
   ['p', 'La <b>clase de referencia</b> muestra cuánto vendieron otros lanzamientos en su primer trimestre (la mediana y el rango donde caen 8 de cada 10). Si su pronóstico supera a 9 de cada 10, el simulador se los advierte: es un pronóstico optimista.'],
@@ -2527,7 +2527,7 @@ var MANUAL = [
 { id: 'lanzar', t: 'Fase 8. Lanzar y revisar', r: 'Salir al mercado y cerrar el proyecto con una revisión.', b: [
   ['h', 'Lanzar'],
   ['lista', ['<b>Nombre comercial</b> y <b>mensaje publicitario</b> en una frase. El mensaje debería decir, con palabras del cliente, el beneficio principal del concepto; si no, el simulador lo marca.',
-    '<b>Precio por unidad</b>: la pantalla lo convierte a Bs por porción.',
+    '<b>Precio por unidad</b>: la pantalla muestra a cuánto equivale por litro.',
     '<b>Publicidad</b> por trimestre y el <b>segmento</b> al que va dirigida.',
     '<b>Canales</b>.',
     '<b>Reemplaza a la leche saborizada</b>: solo si el proyecto mejora el producto actual; si no, conviven.',
@@ -2543,12 +2543,12 @@ var MANUAL = [
 { id: 'productos', t: 'Paso 5. Productos', r: 'El negocio actual sigue vendiendo mientras innovan.', b: [
   ['p', 'Para cada producto en el mercado deciden siete variables:'],
   ['tabla', ['Variable', 'Regla', 'Efecto'], [
-    ['1. Precio', 'Bs por porción; cambio máximo ±30 % por trimestre.', 'Cada segmento lo compara con lo que suele pagar.'],
+    ['1. Precio', 'Bs por litro; cambio máximo ±30 % por trimestre.', 'Cada segmento lo compara con lo que suele pagar.'],
     ['2. Publicidad', 'Bs por trimestre (hasta Bs 80.000).', 'Mantiene el conocimiento de marca. Con menos de Bs 10.000, la gente empieza a olvidarla.'],
     ['3. Publicidad dirigida a', 'Todo el mercado o un segmento.', 'Atrae más a ese segmento y un poco menos a los demás.'],
     ['4. Promoción', 'Entre Bs 0 y Bs 60.000.', 'Sube las ventas solo en este trimestre.'],
     ['5. Canales', 'Tiendas y supermercados están incluidos; los demás cuestan por trimestre.', 'Cada canal llega mejor a ciertos segmentos.'],
-    ['6. Pronóstico de ventas', 'Porciones del trimestre.', 'Se compara con lo que vendan.'],
+    ['6. Pronóstico de ventas', 'Litros del trimestre.', 'Se compara con lo que vendan.'],
     ['7. Retirar', 'No se puede retirar el producto original.', 'Deja de venderse y de costar gestión.']]],
   ['tabla', ['Canal', 'Costo por trimestre'], [['Tiendas de barrio', 'Incluido'], ['Supermercados', 'Incluido'], ['Kioscos universitarios', 'Bs 6.000'], ['Máquinas expendedoras', 'Bs 9.000'], ['App propia con entrega', 'Bs 15.000'], ['App de delivery (terceros)', 'Bs 12.000']]],
   ['p', 'La publicidad y la promoción son gastos comerciales: salen de la caja, no del presupuesto de innovación.'],
@@ -2621,7 +2621,7 @@ var MANUAL = [
     ['El trimestre dice "Cerrado"', 'El docente aún no lo abre o ya lo cerró. Mientras tanto, lean resultados y estudien en Aprender.'],
     ['No veo las ideas de mis compañeros', 'Es a propósito: se ven al abrir la votación. Guarden y presionen Actualizar.'],
     ['¿Por qué no se creó mi proyecto?', 'Revisen "Qué pasó y por qué": suele ser el máximo de proyectos o menos de 20 % en adyacente + transformacional para un segmento nuevo.'],
-    ['¿Los precios son por litro?', 'No. Son por porción de 250 ml, salvo donde la pantalla dice "por unidad".'],
+    ['¿Los precios son por litro?', 'Sí. Precios, costos y cantidades se expresan por litro, salvo donde la pantalla dice "por unidad" (un envase de un tamaño dado).'],
     ['¿Cómo sabemos cómo les va a los otros equipos?', 'Con el Estudio de la industria (participación) y el Análisis de competidores (lo que ofrecen).'],
     ['¿Qué es la empresa gemela?', 'Su misma empresa, pero sin innovar. Sirve para medir el valor que crean.'],
     ['¿Quién ve nuestras contraseñas?', 'Nadie. Se guardan cifradas; el docente solo puede asignar una temporal.']]]

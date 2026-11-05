@@ -122,11 +122,11 @@ function ptsDeTexto_(s) {
 function sumaPts_(p) { return PTS_KEYS_.reduce(function (s, k) { return s + (p[k] || 0); }, 0); }
 function maxAttrPts_(p) { return Math.max.apply(null, ATTRS.map(function (k) { return p[k] || 0; })); }
 function attrTop_(p) { var best = null; PTS_KEYS_.forEach(function (k) { if (best === null || (p[k] || 0) > (p[best] || 0)) best = k; }); return best; }
-/** Efectos del concepto sobre el producto: atributos (0–10) y costo por porción. */
+/** Efectos del concepto sobre el producto: atributos (0–10) y costo por litro. */
 function efConcepto_(p) {
   var ef = {}; ATTRS.forEach(function (k) { if (p[k]) ef[k] = r1_(p[k] * 0.6); });
   var sAttr = ATTRS.reduce(function (s, k) { return s + (p[k] || 0); }, 0), mx = maxAttrPts_(p);
-  ef.cu = r2_(0.03 * sAttr + 0.01 * mx * mx - 0.05 * (p.precio || 0));
+  ef.cu = r2_(0.12 * sAttr + 0.04 * mx * mx - 0.2 * (p.precio || 0));
   return ef;
 }
 function iterMinDe_(tipo, mx, combinado) {
@@ -241,7 +241,7 @@ function devolucionFicha_(P, S, pj, f, t) {
   D.push('Ajuste con el cliente: ' + nivel + ' (estimado, sin validar; calidad ' + Number(f.qObs).toFixed(1) + ' ±' + String(f.margen).replace('.', ',') + '). Su concepto apuesta sobre todo por ' + PTS_NOM_[top].toLowerCase() + (rk <= 2 ? ', uno de los atributos que más pesan para ' + seg.id + '.' : (rk >= 5 ? ', que para ' + seg.id + ' pesa poco.' : ', que para ' + seg.id + ' tiene un peso intermedio.')));
   PTS_KEYS_.forEach(function (k) { if (kano[k] === 'basico' && !(f.pts[k] > 0)) D.push(PTS_NOM_[k] + ' es un atributo básico para ' + seg.id + ': si falta, el cliente lo rechaza aunque no lo diga. Su concepto no le asignó puntos.'); });
   var mx = maxAttrPts_(f.pts), it = iterMinDe_(tipoRealFicha_(f), mx, f.combinado), ef = efConcepto_(f.pts);
-  D.push('Riesgo: el atributo con más puntos tiene ' + mx + '. Calculamos ' + it + (it === 1 ? ' iteración' : ' iteraciones') + ' de prototipo y un costo por porción ' + (ef.cu >= 0 ? '+' : '') + 'Bs ' + ef.cu.toFixed(2).replace('.', ',') + '.');
+  D.push('Riesgo: el atributo con más puntos tiene ' + mx + '. Calculamos ' + it + (it === 1 ? ' iteración' : ' iteraciones') + ' de prototipo y un costo por litro ' + (ef.cu >= 0 ? '+' : '') + 'Bs ' + ef.cu.toFixed(2).replace('.', ',') + '.');
   var tr = tipoRealFicha_(f);
   D.push('Tipo de innovación según el contenido del concepto: ' + TIPOS_NOM_[tr].toLowerCase() + (tr !== pj.tipoDecl ? ' (el proyecto se declaró ' + TIPOS_NOM_[pj.tipoDecl].toLowerCase() + ').' : ', igual que lo declarado para el proyecto.'));
   if (f.origen === 'propia') { var fit = ajusteTecnica_(P, pj, f.tecnica, S.org); if (fit.texto) D.push('Técnica: ' + fit.texto); }
@@ -466,7 +466,7 @@ function ideaDe_(P, pj) { return pj.concepto || ideaById_(P, pj.ideaSel); }
 // =====================================================================
 // ETAPA 3 (v2.0): Prototipar, Especificar y Puerta, Piloto, Lanzar, Revisión
 // =====================================================================
-var P3_TAM_ = { '200': { nom: '200 ml', porc: 0.8 }, '330': { nom: '330 ml', porc: 1.32 }, '1000': { nom: '1 litro', porc: 4 } };
+var P3_TAM_ = { '200': { nom: '200 ml', porc: 0.2 }, '330': { nom: '330 ml', porc: 0.33 }, '1000': { nom: '1 litro', porc: 1 } }; // porc = litros por unidad
 var P3_SUP_ = { uso: 'Pueden abrirlo y tomarlo solos (uso)', comp: 'Entienden cómo se usa sin explicación (comprensión)', rut: 'Encaja en su rutina diaria (rutina)' };
 var P3_FMT_ = {
   maqueta: { nom: 'Maqueta física', desc: 'Los clientes la tocan y la usan.', obs: ['uso', 'comp', 'rut'] },
@@ -477,7 +477,7 @@ var P3_FMT_ = {
 var P3_CAR_ = {
   apertura: { nom: 'Cómo se abre o se toma', ops: [['rosca', 'Tapa de rosca estándar', 0.45, { S5: 0.3 }], ['ancha', 'Tapa de rosca ancha', 0.6, { S5: 0.5 }], ['deportiva', 'Tapa deportiva', 0.8, { S2: 0.9, S3: 0.85, S4: 0.9, S5: 0.55 }], ['pestana', 'Pestaña que se levanta con un dedo', 0.85, { S5: 0.9 }], ['pajilla', 'Pajilla que perfora el sello', 0.65, { S1: 0.8, S5: 0.5 }]] },
   senal: { nom: 'Cómo se ve la forma de abrir', ops: [['nada', 'Sin indicación', 0.5, { S5: 0.35 }], ['icono', 'Ícono pequeño', 0.65, { S5: 0.5 }], ['flecha', 'Color contrastante y flecha “abrir aquí”', 0.9, {}], ['frase', 'Frase grande con el beneficio', 0.8, {}]] },
-  tamano: { nom: 'Tamaño de la porción', ops: [['200', '200 ml', 0.6, { S1: 0.6, S2: 0.6, S3: 0.6, S4: 0.5, S5: 0.9 }], ['330', '330 ml', 0.7, { S1: 0.5, S2: 0.9, S3: 0.9, S4: 0.85, S5: 0.6 }], ['1000', '1 litro', 0.5, { S1: 0.9, S2: 0.2, S3: 0.3, S4: 0.4, S5: 0.5 }]] },
+  tamano: { nom: 'Tamaño del envase', ops: [['200', '200 ml', 0.6, { S1: 0.6, S2: 0.6, S3: 0.6, S4: 0.5, S5: 0.9 }], ['330', '330 ml', 0.7, { S1: 0.5, S2: 0.9, S3: 0.9, S4: 0.85, S5: 0.6 }], ['1000', '1 litro', 0.5, { S1: 0.9, S2: 0.2, S3: 0.3, S4: 0.4, S5: 0.5 }]] },
   recierre: { nom: 'Se puede volver a cerrar', ops: [['no', 'No', 0, {}], ['si', 'Sí', 0.1, {}]] }
 };
 var P3_PERS_ = {
@@ -489,15 +489,15 @@ var P3_PERS_ = {
 };
 var P3_FICHA_ = {
   envase: { nom: 'Envase', ops: [['botella', 'Botella', 0.70, 'u'], ['caja', 'Caja de cartón', 0.35, 'u'], ['vaso', 'Vaso sellado', 0.55, 'u']] },
-  base: { nom: 'Base líquida', ops: [['entera', 'Leche entera', 1.20, 'p'], ['semi', 'Leche semidescremada', 1.20, 'p'], ['sinlac', 'Leche sin lactosa', 1.60, 'p'], ['mixta', 'Mezcla láctea y vegetal', 1.50, 'p']] },
-  azucar: { nom: 'Azúcar', ops: [['normal', 'Normal', 0.08, 'p'], ['reducida', 'Reducida', 0.12, 'p'], ['sin', 'Sin azúcar añadida', 0.15, 'p']] },
-  conserv: { nom: 'Conservación', ops: [['pasteurizada', 'Pasteurizada · 12 días', 0.05, 'p'], ['uht', 'UHT · 90 días', 0.20, 'p']] },
+  base: { nom: 'Base líquida', ops: [['entera', 'Leche entera', 4.80, 'p'], ['semi', 'Leche semidescremada', 4.80, 'p'], ['sinlac', 'Leche sin lactosa', 6.40, 'p'], ['mixta', 'Mezcla láctea y vegetal', 6.00, 'p']] },
+  azucar: { nom: 'Azúcar', ops: [['normal', 'Normal', 0.32, 'p'], ['reducida', 'Reducida', 0.48, 'p'], ['sin', 'Sin azúcar añadida', 0.60, 'p']] },
+  conserv: { nom: 'Conservación', ops: [['pasteurizada', 'Pasteurizada · 12 días', 0.20, 'p'], ['uht', 'UHT · 90 días', 0.80, 'p']] },
   etiqueta: { nom: 'Etiqueta', ops: [['estandar', 'Estándar', 0.08, 'u'], ['grande', 'Letra grande y alto contraste', 0.10, 'u']] },
-  prod: { nom: 'Producción', ops: [['linea', 'Línea actual', 0.25, 'p'], ['maquina', 'Máquina nueva (inversión Bs 60.000)', 0.15, 'p'], ['maquila', 'Maquila tercerizada', 0.55, 'p']] }
+  prod: { nom: 'Producción', ops: [['linea', 'Línea actual', 1.00, 'p'], ['maquina', 'Máquina nueva (inversión Bs 60.000)', 0.60, 'p'], ['maquila', 'Maquila tercerizada', 2.20, 'p']] }
 };
 var P3_COSTO_AP_ = { rosca: 0.10, ancha: 0.18, deportiva: 0.30, pestana: 0.35, pajilla: 0.05 };
 var P3_COSTO_SEN_ = { nada: 0, icono: 0.01, flecha: 0.02, frase: 0.01 };
-var P3_CAP_ = { linea: 120000, maquina: 300000, maquila: 200000 }; // porciones por trimestre
+var P3_CAP_ = { linea: 30000, maquina: 75000, maquila: 50000 }; // litros por trimestre
 var P3_LIENZO_ = {
   soc: ['Distribuidor mayorista', 'Maquila tercerizada', 'Empresa de reparto', 'Universidades o empresas', 'Proveedor de envases'],
   act: ['Producir', 'Distribuir a tiendas', 'Entregar a domicilio', 'Operar máquinas o kioscos', 'Atender pedidos por app'],
@@ -514,7 +514,7 @@ var P3_RIESGOS_ = {
   vida: 'El producto vence antes de venderse'
 };
 var P3_COSTO_PUNTO_ = { tienda: 300, super: 800, kiosco: 400, maquina: 1200, app: 2000, delivery: 1000 };
-var P3_REF_DEF_ = [15000, 20000, 26000, 32000, 38000, 45000, 55000, 70000]; // porciones en el primer trimestre (lanzamientos de referencia)
+var P3_REF_DEF_ = [3750, 5000, 6500, 8000, 9500, 11250, 13750, 17500]; // litros en el primer trimestre (lanzamientos de referencia)
 var P3_CLAVES_ = { sab: ['sabor', 'rico', 'delicios', 'gusto'], nut: ['nutri', 'energ', 'saci', 'hambre', 'proteín', 'protein', 'avena'], conv: ['fácil', 'facil', 'práctic', 'practic', 'una mano', 'llevar', 'abr', 'rápid', 'rapid', 'camino'], salud: ['salud', 'sano', 'azúcar', 'azucar', 'liviano', 'ligero'], sost: ['planeta', 'recicl', 'sostenib', 'ambiente', 'verde'], precio: ['precio', 'barato', 'ahorr', 'económic', 'economic', 'conviene'] };
 
 function p3Op_(grupo, id) { var g = P3_CAR_[grupo]; for (var i = 0; i < g.ops.length; i++) if (g.ops[i][0] === id) return g.ops[i]; return g.ops[0]; }
@@ -784,7 +784,7 @@ function procesarFases3_(P, S, pj, a, ctx) {
     var prod = productoProspectivo_(P, W, pj, { precio: precioU / E.porc, canales: can, comunicacion: pub, nombre: L.nombre || pj.nombre }, falla);
     prod.costUnit = r2_(E.costoReal / E.porc); prod.cap = E.capP; prod.porcU = E.porc; prod.lanzT = t + 1; prod.desde = t + 1;
     prod.AW = r2_((pj.pil ? 0.25 : 0.05) * (msgOk ? 1 : 0.8)); prod.segPub = P.segmentos.some(function (s) { return s.id === L.segPub; }) ? L.segPub : pj.segmento;
-    prod.precio = r2_(clamp_(prod.precio, 0.5, 20));
+    prod.precio = r2_(clamp_(prod.precio, 2, 80));
     if (pj.disruptiva) { prod.AW = r2_(prod.AW * 0.5); prod.disruptiva = true; }
     var p0u = W.productos[0].unidades || 0;
     if (pj.base === 'P0' && L.reemplaza) {
