@@ -1,0 +1,472 @@
+<style>
+/* ============ Acceso v2.3 · tema SMAA ============ */
+:root{--ax-bg:#0e1e35;--ax-bg2:#162840;--ax-bg3:#1d3352;--ax-bg4:#254062;--ax-border:#2a4d72;--ax-border2:#3a6090;--ax-text:#e8f0f8;--ax-text2:#a8c0d8;--ax-text3:#88b0cc;--ax-accent:#0d6ecc;--ax-accent-h:#1a85e8;--ax-accent2:#5ab40c;--ax-accent2-h:#6acc18;--ax-accent3:#e8a820;--ax-accent4:#e84040;--ax-gold:#f0c040;--ax-r:14px;--ax-sans:'Sora',Arial,Helvetica,sans-serif;--ax-mono:'Space Mono',ui-monospace,Menlo,monospace}
+body.ax-on{background:#0A1A33}
+body.ax-on>header,body.ax-on>nav,body.ax-on>main,body.ax-on>footer{display:none!important}
+#ax{display:none}
+body.ax-on #ax{display:block;position:fixed;inset:0;overflow-y:auto;font-family:var(--ax-sans);color:var(--ax-text);
+background-color:#0A1A33;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 1000' preserveAspectRatio='xMidYMid slice'%3E%3Cdefs%3E%3CradialGradient id='g' cx='62%25' cy='45%25' r='78%25'%3E%3Cstop offset='0' stop-color='%232A5599'/%3E%3Cstop offset='.5' stop-color='%231B3A6B'/%3E%3Cstop offset='1' stop-color='%230A1A33'/%3E%3C/radialGradient%3E%3CradialGradient id='v' cx='50%25' cy='50%25' r='72%25'%3E%3Cstop offset='.62' stop-color='%23000' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='.6'/%3E%3C/radialGradient%3E%3Cfilter id='b' x='-50%25' y='-10%25' width='200%25' height='120%25'%3E%3CfeGaussianBlur stdDeviation='9'/%3E%3C/filter%3E%3C/defs%3E%3Crect width='1600' height='1000' fill='url(%23g)'/%3E%3Cg transform='rotate(-17 260 500)'%3E%3Crect x='40' y='-400' width='12' height='1900' fill='%231E5BB8' opacity='.85'/%3E%3Crect x='86' y='-400' width='7' height='1900' fill='%231E5BB8' opacity='.7'/%3E%3Crect x='150' y='-400' width='86' height='1900' fill='%235BC22E' opacity='.45' filter='url(%23b)'/%3E%3Crect x='162' y='-400' width='60' height='1900' fill='%235BC22E' opacity='.9'/%3E%3C/g%3E%3Crect width='1600' height='1000' fill='url(%23v)'/%3E%3C/svg%3E");background-size:cover;background-position:center}
+.ax-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 12px 18px;box-sizing:border-box;gap:14px}
+.ax-card{width:380px;max-width:94vw;box-sizing:border-box;background:rgba(10,26,51,.82);border:1px solid rgba(91,194,46,.28);border-radius:var(--ax-r);padding:32px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 8px 40px rgba(10,26,51,.55)}
+.ax-card.ax-wide{width:560px}
+.ax-logos{display:flex;justify-content:center;gap:12px;margin-bottom:14px}
+.ax-logo{width:80px;height:80px;background:#fff;border-radius:12px;padding:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.25);overflow:hidden}
+.ax-logo img{width:100%;height:100%;object-fit:contain}
+.ax-logo span{font:700 9px var(--ax-mono);color:#7a8ba3;text-align:center}
+.ax-title{font-family:var(--ax-mono);font-weight:700;color:#fff;letter-spacing:3px;text-align:center;font-size:19px;margin:4px 0 2px;line-height:1.25}
+.ax-sub{text-align:center;color:var(--ax-accent2);font-weight:600;font-size:14px;margin:2px 0}
+.ax-sub2{text-align:center;color:var(--ax-text3);font-size:11.5px;margin:2px 0 18px}
+.ax-card h2{font:700 15px var(--ax-mono);letter-spacing:1px;color:#fff;margin:0 0 12px;text-align:center}
+.ax-card label{display:block;font-size:12.5px;color:var(--ax-text2);margin:12px 0 5px;font-weight:500}
+#ax input.ax-in,.ax-in{width:100%;box-sizing:border-box;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);border-radius:10px;color:#fff;font:400 14px var(--ax-sans);padding:11px 12px;outline:none;transition:border-color .15s}
+#ax input.ax-in::placeholder,.ax-in::placeholder{color:rgba(255,255,255,.38)}
+#ax input.ax-in:focus,.ax-in:focus{border-color:var(--ax-accent-h);box-shadow:0 0 0 3px rgba(13,110,204,.25)}
+#ax input.ax-code,.ax-code{font-family:var(--ax-mono);text-transform:uppercase;letter-spacing:2px}
+.ax-pw{position:relative}#ax .ax-pw input.ax-in{padding-right:44px}
+.ax-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--ax-text2);font-size:16px;cursor:pointer;padding:6px;border-radius:8px}
+.ax-eye:focus-visible,.ax-btn:focus-visible,.ax-ghost:focus-visible,.ax-green:focus-visible,.ax-back:focus-visible,.ax-link:focus-visible,.ax-pick:focus-visible{outline:2px solid var(--ax-gold);outline-offset:2px}
+.ax-hint{font-size:11.5px;color:var(--ax-text3);margin:5px 0 0}
+.ax-ok{color:var(--ax-accent2);font-size:12.5px;margin:6px 0 0;font-weight:600}.ax-bad{color:#ff7272;font-size:12.5px;margin:6px 0 0;font-weight:600}
+.ax-btn,.ax-ghost,.ax-green{display:block;width:100%;box-sizing:border-box;border-radius:10px;padding:12px 14px;font:600 14.5px var(--ax-sans);cursor:pointer;text-align:center;text-decoration:none;margin-top:16px;transition:background .15s,border-color .15s}
+.ax-btn{background:var(--ax-accent);color:#fff;border:0}.ax-btn:hover{background:var(--ax-accent-h)}
+.ax-green{background:var(--ax-accent2);color:#0a1a33;border:0}.ax-green:hover{background:var(--ax-accent2-h)}
+.ax-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}.ax-ghost:hover{border-color:#fff;background:rgba(255,255,255,.06)}
+.ax-btn:disabled,.ax-green:disabled{opacity:.6;cursor:default}
+.ax-back{display:inline-block;background:none;border:0;color:var(--ax-text2);font:500 13px var(--ax-sans);cursor:pointer;margin-top:14px;padding:4px 0}
+.ax-link{color:var(--ax-text2);font-size:12.5px;text-decoration:underline;background:none;border:0;cursor:pointer;padding:2px}
+.ax-center{text-align:center;margin:12px 0 0}
+.ax-div{display:flex;align-items:center;gap:10px;color:var(--ax-text3);font-size:12px;margin:18px 0 0}
+.ax-div:before,.ax-div:after{content:"";flex:1;height:1px;background:rgba(255,255,255,.18)}
+.ax-err{color:#ff7272;font-size:13px;margin-top:10px;min-height:0;text-align:center;font-weight:500}
+.ax-info{color:var(--ax-accent2);font-size:13px;margin-top:10px;text-align:center}
+.ax-warn{background:rgba(232,168,32,.12);border:1px solid rgba(232,168,32,.45);color:var(--ax-accent3);border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:14px}
+.ax-2col{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.ax-inth{display:flex;justify-content:space-between;align-items:center;margin:18px 0 6px}
+.ax-inth b{font:700 12px var(--ax-mono);letter-spacing:1.5px;color:var(--ax-accent2)}
+.ax-add{background:none;border:1px solid var(--ax-accent2);color:var(--ax-accent2);border-radius:8px;padding:5px 10px;font:600 12px var(--ax-sans);cursor:pointer}
+.ax-add:disabled{opacity:.4;cursor:default}
+.ax-fila{border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:10px;margin-top:8px;position:relative;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+#ax .ax-fila input.ax-in{padding:8px 10px;font-size:13px}
+.ax-fila .ax-n{grid-column:1/-1;font:700 11px var(--ax-mono);color:var(--ax-text3);letter-spacing:1px}
+.ax-x{position:absolute;top:6px;right:8px;background:none;border:0;color:#ff8a8a;font-size:15px;cursor:pointer}
+.ax-pick{display:block;width:100%;text-align:left;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:10px;padding:12px 14px;margin-top:8px;cursor:pointer;font:500 14px var(--ax-sans)}
+.ax-pick:hover{border-color:var(--ax-accent2)}
+.ax-foot{color:var(--ax-text2);font-size:11.5px;text-align:center;max-width:560px;opacity:.9}
+@media (max-height:900px){.ax-wrap{padding:12px 12px 10px;gap:8px}.ax-card{padding:20px 28px}.ax-logos{margin-bottom:8px;gap:10px}.ax-logo{width:58px;height:58px;padding:6px}.ax-title{font-size:16px;letter-spacing:2px;white-space:nowrap}.ax-sub2{margin:2px 0 10px}.ax-card h2{margin:0 0 6px}.ax-card label{margin:8px 0 4px}}
+@media (max-width:600px){.ax-card{padding:24px 18px}.ax-logo{width:60px;height:60px;padding:6px}.ax-2col,.ax-fila{grid-template-columns:1fr}.ax-title{font-size:16px;letter-spacing:2px}}
+
+/* ============ Panel docente con el tema SMAA ============ */
+body.ax-doc{--azul:#e8f0f8;--azul2:#88b0cc;--claro:#1d3352;--borde:#2a4d72;--texto:#e8f0f8;--suave:#a8c0d8;--ok:#5ab40c;--mal:#e84040;--aviso:#e8a820;--fondo:#0e1e35;--blanco:#162840;background:#0e1e35;color:#e8f0f8;font-family:'Sora',Arial,Helvetica,sans-serif}
+body.ax-doc>header{background:#0a1a33;border-bottom:1px solid #2a4d72}
+body.ax-doc>header h1{font-family:'Space Mono',monospace;letter-spacing:1px}
+body.ax-doc .ax-who{background:#1d3352;border:1px solid #3a6090;border-radius:20px;padding:2px 10px}
+body.ax-doc .ax-salir{color:#fff;background:#e84040;border-radius:8px;padding:2px 10px;text-decoration:none}
+body.ax-doc nav{background:#162840;border-bottom:1px solid #2a4d72}
+body.ax-doc nav button{color:#a8c0d8}
+body.ax-doc nav button.on{background:#0d6ecc;border-color:#0d6ecc;color:#fff}
+body.ax-doc .card{background:#162840;border:1px solid #2a4d72;border-radius:14px}
+body.ax-doc .card h2{color:#5ab40c;font-family:'Space Mono',monospace;letter-spacing:.5px}
+body.ax-doc .card h3{color:#88b0cc}
+body.ax-doc th{background:#1d3352;color:#a8c0d8;text-transform:uppercase;font-size:11px;letter-spacing:.06em}
+body.ax-doc td{border-bottom-color:#2a4d72}
+body.ax-doc tr:nth-child(even) td{background:#1d3352}
+body.ax-doc td .inline{flex-wrap:wrap}
+body.ax-doc input[type=text],body.ax-doc input[type=number],body.ax-doc input[type=password],body.ax-doc select,body.ax-doc textarea{background:rgba(255,255,255,.06);color:#e8f0f8;border-color:#3a6090}
+body.ax-doc input:focus,body.ax-doc select:focus,body.ax-doc textarea:focus,body.ax-doc button:focus-visible{outline:2px solid #1a85e8;outline-offset:1px}
+body.ax-doc select option{background:#162840;color:#e8f0f8}
+body.ax-doc .btn{background:#0d6ecc;color:#fff;border-radius:8px}
+body.ax-doc .btn:hover{background:#1a85e8}
+body.ax-doc .btn.sec{background:transparent;color:#e8f0f8;border:1px solid #3a6090}
+body.ax-doc .btn.peligro,body.ax-doc .btn.ax-rojo{background:#e84040;color:#fff;border:0}
+body.ax-doc .btn.ax-verde{background:#5ab40c;color:#0a1a33;border:0}
+body.ax-doc .kpi{background:#1d3352}
+body.ax-doc .kpi .v{color:#fff}
+body.ax-doc .tag{background:#254062;color:#e8f0f8}
+body.ax-doc .tag.ok{background:rgba(90,180,12,.18);color:#8fdc4c}
+body.ax-doc .tag.mal{background:rgba(232,64,64,.18);color:#ff8a8a}
+body.ax-doc .tag.aviso{background:rgba(232,168,32,.18);color:#f0c040}
+body.ax-doc .ayuda,body.ax-doc .calc{background:#1d3352;color:#a8c0d8}
+body.ax-doc .okbox{background:rgba(90,180,12,.14)}
+body.ax-doc .limbox,body.ax-doc .tarea{background:rgba(232,168,32,.12);color:#e8f0f8}
+body.ax-doc .blk,body.ax-doc .p4blk,body.ax-doc .hist3 details,body.ax-doc .tarea details{background:#1d3352}
+body.ax-doc .muted{color:#a8c0d8}
+body.ax-doc a{color:#5aa8f0}
+body.ax-doc svg text{fill:#a8c0d8}
+body.ax-doc main .msg{position:fixed;top:14px;right:14px;z-index:60;max-width:420px;box-shadow:0 8px 30px rgba(0,0,0,.45);border-radius:10px}
+body.ax-doc main .msg.ok{background:#173a18;color:#9be26a;border:1px solid #5ab40c}
+body.ax-doc main .msg.err{background:#3a1717;color:#ff9a9a;border:1px solid #e84040}
+body.ax-doc [style*="border-bottom:1px solid #eee"]{border-bottom-color:#2a4d72!important}
+.ax-codigo{font-family:'Space Mono',ui-monospace,monospace;font-weight:700;letter-spacing:2px;font-size:15px}
+.ax-codigo.big{font-size:30px;letter-spacing:4px;color:#f0c040}
+.ax-toast{position:fixed;right:14px;bottom:18px;z-index:80;background:#162840;color:#e8f0f8;border:1px solid #5ab40c;border-radius:10px;padding:10px 14px;font:13px 'Sora',Arial,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.45);max-width:380px}
+.ax-toast.err{border-color:#e84040;color:#ffb0b0}
+.ax-modal{position:fixed;inset:0;background:rgba(5,12,25,.72);z-index:90;display:flex;align-items:center;justify-content:center;padding:16px}
+.ax-modal>div{background:#162840;border:1px solid #3a6090;border-radius:14px;padding:22px;max-width:440px;width:100%;color:#e8f0f8;font-family:'Sora',Arial,sans-serif;box-shadow:0 12px 50px rgba(0,0,0,.5)}
+.ax-modal h3{margin:0 0 10px;font-family:'Space Mono',monospace;color:#fff}
+.ax-modal .inline{justify-content:flex-end;margin-top:14px}
+.ax-eqint{font-size:12.5px;line-height:1.5}
+.ax-det td{background:#0e1e35!important}
+.ax-tmp{font-family:'Space Mono',monospace;color:#f0c040;font-weight:700;letter-spacing:2px}
+</style>
+<div id="ax" role="main" aria-live="polite"></div>
+<script>
+// ===================== Acceso v2.3 (cliente) =====================
+var AXS = { logos: [], manual: '', inv: null, pend: null, reg: null, eq: null, doc: null };
+var AX_PIE = 'UAGRM - Ingeniería Comercial – COM505T Innovación – Profesor Jhonny David Atila Lijerón';
+function AX_$(id) { return document.getElementById(id); }
+function AX_inicio() {
+  document.body.classList.add('ax-on');
+  AX_$('ax').innerHTML = AX_marco('<p class="ax-center" style="color:#a8c0d8">Cargando…</p>');
+  call('apiAXInicio', (typeof AX_INV !== 'undefined' && AX_INV) || '').then(function (r) {
+    AXS.logos = r.logos || []; AXS.manual = r.manual || ''; AXS.inv = r.invitacion;
+    AX_mostrar(AXS.inv ? 'alta' : 'ingresar');
+  }).catch(function (e) { AX_mostrar('ingresar'); AX_err(e); });
+}
+function AX_cab() {
+  var lg = [0, 1, 2].map(function (i) { var s = AXS.logos[i]; var alt = ['UAGRM', 'Ciencias Económicas', 'Ingeniería Comercial'][i]; return '<div class="ax-logo">' + (s ? '<img src="' + s + '" alt="Logo ' + alt + '">' : '<span>' + alt + '</span>') + '</div>'; }).join('');
+  return '<div class="ax-logos">' + lg + '</div><div class="ax-title">Simulador de Innovación</div><div class="ax-sub">Innovación</div><div class="ax-sub2">Empresas que compiten en un mismo mercado · 20 trimestres de decisiones</div>';
+}
+function AX_marco(cuerpo, ancho) {
+  return '<div class="ax-wrap"><div class="ax-card' + (ancho ? ' ax-wide' : '') + '">' + AX_cab() + cuerpo + '</div><div class="ax-foot">' + esc(AX_PIE) + '</div></div>';
+}
+function AX_pw(id, ph, ac) { return '<div class="ax-pw"><input class="ax-in" type="password" id="' + id + '" placeholder="' + esc(ph || '') + '" autocomplete="' + (ac || 'current-password') + '"><button type="button" class="ax-eye" aria-label="Mostrar u ocultar la contraseña" onclick="AX_ojo(\'' + id + '\')">👁</button></div>'; }
+function AX_ojo(id) { var e = AX_$(id); e.type = e.type === 'password' ? 'text' : 'password'; }
+function AX_err(m) { var e = AX_$('axErr'); if (e) { e.className = 'ax-err'; e.textContent = m || ''; } }
+function AX_info(m) { var e = AX_$('axErr'); if (e) { e.className = 'ax-info'; e.textContent = m || ''; } }
+function AX_busy(btn, on, txt) { if (!btn) return; if (on) { btn.dataset.t = btn.textContent; btn.textContent = 'Procesando…'; btn.disabled = true; } else { btn.textContent = txt || btn.dataset.t || btn.textContent; btn.disabled = false; } }
+function AX_enter(ev, fn) { if (ev.key === 'Enter') { ev.preventDefault(); fn(); } }
+function AX_cerrar() { document.body.classList.remove('ax-on'); AX_$('ax').innerHTML = ''; }
+
+function AX_mostrar(modo, msg) {
+  document.body.classList.add('ax-on');
+  var h = '', ancho = false;
+  if (modo === 'ingresar') {
+    h = '<h2>Ingresar</h2><label for="axU">Nombre de equipo · Correo del profesor</label><input class="ax-in" id="axU" autocomplete="username" oninput="AX_codVis()" onkeydown="AX_enter(event,AX_ingresar)">' +
+      '<label for="axP">Contraseña</label>' + AX_pw('axP', '') +
+      '<div id="axCodBox"><label for="axC">Código de simulación</label><input class="ax-in ax-code" id="axC" placeholder="INN-XXXX" autocomplete="off" oninput="this.value=this.value.toUpperCase()" onkeydown="AX_enter(event,AX_ingresar)"><p class="ax-hint">📌 Te lo da tu docente. Los docentes no lo necesitan.</p></div>' +
+      '<button class="ax-btn" id="axGo" onclick="AX_ingresar()">Ingresar →</button><div id="axErr" class="ax-err"></div>' +
+      '<p class="ax-center"><button class="ax-link" onclick="AX_mostrar(\'recuperar\')">¿Olvidaste tu contraseña?</button></p>' +
+      '<div class="ax-div">¿Primera vez?</div><button class="ax-ghost" onclick="AX_mostrar(\'registro\')">Registrar mi equipo</button>' +
+      (AXS.manual ? '<a class="ax-ghost" href="' + esc(AXS.manual) + '" target="_blank" rel="noopener">📘 Ver Manual del Estudiante</a>' : '');
+  } else if (modo === 'registro') {
+    ancho = true; AXS.reg = { ok: false, max: 5 };
+    h = '<h2>Registrar mi equipo</h2><label for="axRn">Nombre del equipo o empresa</label><input class="ax-in" id="axRn" maxlength="40" placeholder="Ejemplo: Lácteos Andinos">' +
+      '<p class="ax-hint">📌 Es el nombre con el que ingresarán y competirán.</p>' +
+      '<div class="ax-2col"><div><label for="axRp">Contraseña</label>' + AX_pw('axRp', 'Mínimo 4 caracteres', 'new-password') + '</div><div><label for="axRp2">Confirmar contraseña</label>' + AX_pw('axRp2', '', 'new-password') + '</div></div>' +
+      '<label for="axRc">Código de simulación</label><input class="ax-in ax-code" id="axRc" placeholder="INN-XXXX" autocomplete="off" oninput="this.value=this.value.toUpperCase();AX_validarCod()"><div id="axRcm"></div>' +
+      '<div class="ax-inth"><b>INTEGRANTES DEL EQUIPO</b><button class="ax-add" id="axAdd" onclick="AX_fila()">+ Agregar integrante</button></div><div id="axFilas"></div>' +
+      '<p class="ax-hint">📌 El número de registro es obligatorio; el teléfono es opcional.</p>' +
+      '<div class="ax-warn">⚠ Guarda bien tu contraseña — la necesitarás en cada ronda.</div>' +
+      '<button class="ax-green" id="axGo" onclick="AX_registrar()">✓ Registrar Equipo</button><div id="axErr" class="ax-err"></div>' +
+      '<button class="ax-back" onclick="AX_mostrar(\'ingresar\')">← Volver</button>';
+  } else if (modo === 'recuperar') {
+    h = '<h2>Recuperar contraseña</h2><div class="ax-warn">Equipos: pedí a tu docente una contraseña temporal. Con ella ingresas y el sistema te pedirá crear una nueva.</div>' +
+      '<label for="axRe">Docentes: tu correo</label><input class="ax-in" id="axRe" type="email" autocomplete="username" onkeydown="AX_enter(event,AX_verPregunta)"><button class="ax-btn" id="axGoP" onclick="AX_verPregunta()">Ver mi pregunta de seguridad</button>' +
+      '<div id="axPreg"></div><div id="axErr" class="ax-err"></div><button class="ax-back" onclick="AX_mostrar(\'ingresar\')">← Volver</button>';
+  } else if (modo === 'cambiar') {
+    var min = AXS.pend && AXS.pend.tipo === 'docente' ? 6 : 4;
+    h = '<h2>Crea tu contraseña</h2><p class="ax-hint" style="text-align:center">📌 Ingresaste con una contraseña temporal. Crea una nueva para continuar (mínimo ' + min + ' caracteres).</p>' +
+      '<label for="axN1">Contraseña nueva</label>' + AX_pw('axN1', '', 'new-password') + '<label for="axN2">Confirmar contraseña nueva</label>' + AX_pw('axN2', '', 'new-password') +
+      '<button class="ax-btn" id="axGo" onclick="AX_cambiarTemp()">Guardar y continuar →</button><div id="axErr" class="ax-err"></div><button class="ax-back" onclick="AX_mostrar(\'ingresar\')">← Volver</button>';
+  } else if (modo === 'quien') {
+    var P = AXS.pend || {};
+    h = '<h2>¿Quién eres?</h2><p class="ax-hint" style="text-align:center">📌 ' + esc(P.equipo || 'Tu equipo') + ': elige tu nombre para que tus aportes queden registrados a tu nombre.</p>' +
+      (P.integrantes || []).map(function (i) { return '<button class="ax-pick" onclick="AX_elegir(\'' + esc(i.registro) + '\')">' + esc(i.nombre) + ' <span style="color:#88b0cc;font-size:12px">· ' + esc(i.registro) + '</span></button>'; }).join('') +
+      '<div id="axErr" class="ax-err"></div><button class="ax-back" onclick="AX_mostrar(\'ingresar\')">← Volver</button>';
+  } else if (modo === 'alta') {
+    var I = AXS.inv || {};
+    if (!I.ok) h = '<h2>Invitación</h2><div class="ax-err" style="font-size:14px">' + esc(I.mensaje || 'Este enlace de invitación no es válido.') + '</div><button class="ax-ghost" onclick="AXS.inv=null;AX_mostrar(\'ingresar\')">Ir al inicio</button>';
+    else h = '<h2>Crear mi cuenta de docente</h2><label for="axAn">Nombre completo</label><input class="ax-in" id="axAn" autocomplete="name"><label for="axAe">Correo</label><input class="ax-in" id="axAe" type="email" autocomplete="email">' +
+      '<div class="ax-2col"><div><label for="axAp">Contraseña</label>' + AX_pw('axAp', 'Mínimo 6 caracteres', 'new-password') + '</div><div><label for="axAp2">Confirmar</label>' + AX_pw('axAp2', '', 'new-password') + '</div></div>' +
+      '<label for="axAr">Pregunta de seguridad: ' + esc(I.pregunta) + '</label><input class="ax-in" id="axAr" autocomplete="off"><p class="ax-hint">📌 Te servirá para recuperar tu contraseña.</p>' +
+      '<button class="ax-green" id="axGo" onclick="AX_alta()">✓ Crear mi cuenta</button><div id="axErr" class="ax-err"></div>';
+  }
+  AX_$('ax').innerHTML = AX_marco(h, ancho);
+  if (modo === 'registro') AX_fila();
+  if (msg) AX_info(msg);
+  var f = AX_$('ax').querySelector('input'); if (f) try { f.focus(); } catch (e) { }
+}
+function AX_codVis() { var u = AX_$('axU').value; AX_$('axCodBox').style.display = u.indexOf('@') > 0 ? 'none' : ''; }
+
+// ---------- ingresar ----------
+function AX_ingresar() {
+  var u = AX_$('axU').value.trim(), p = AX_$('axP').value, c = AX_$('axC') ? AX_$('axC').value : '', b = AX_$('axGo');
+  AX_err('');
+  if (!u || !p) { AX_err('Completa el usuario y la contraseña.'); return; }
+  if (u.indexOf('@') < 0 && !c.trim()) { AX_err('Escribe el código de simulación.'); return; }
+  AX_busy(b, true);
+  call('apiAXLogin', u, p, c).then(function (r) {
+    AXS.pend = { tipo: r.tipo, tok: r.token, actual: p, integrantes: r.integrantes, equipo: r.equipo };
+    if (r.cambiarClave) { AX_mostrar('cambiar'); return; }
+    if (r.tipo === 'docente') AX_entrarDocente(r.token); else AX_quien();
+  }).catch(function (e) { AX_busy(b, false); AX_err(e); });
+}
+function AX_quien() {
+  var P = AXS.pend;
+  if (P.integrantes && P.integrantes.length === 1) { AX_elegir(P.integrantes[0].registro); return; }
+  AX_mostrar('quien');
+}
+function AX_elegir(reg) {
+  var P = AXS.pend;
+  call('apiAXElegir', P.tok, reg).then(function () { TOK = P.tok; ROL = 'equipo'; TAB = 'inicio'; AXS.pend = null; AX_cerrar(); cargar(); }).catch(AX_err);
+}
+function AX_entrarDocente(tok) { TOK = tok; ROL = 'docente'; ATAB = 'simulaciones'; SIMID = null; AXS.pend = null; AX_cerrar(); document.body.classList.add('ax-doc'); cargarAdmin(); }
+function AX_cambiarTemp() {
+  var a = AX_$('axN1').value, b2 = AX_$('axN2').value, P = AXS.pend, b = AX_$('axGo'), min = P.tipo === 'docente' ? 6 : 4;
+  if (a.length < min) { AX_err('La contraseña debe tener al menos ' + min + ' caracteres.'); return; }
+  if (a !== b2) { AX_err('Las contraseñas no coinciden.'); return; }
+  AX_busy(b, true);
+  call('apiAXCambiarClave', P.tok, P.actual, a).then(function (r) {
+    if (P.tipo === 'docente') AX_entrarDocente(P.tok); else { P.integrantes = r.integrantes || P.integrantes; AX_quien(); }
+  }).catch(function (e) { AX_busy(b, false); AX_err(e); });
+}
+
+// ---------- registro ----------
+var AX_TIMER = null;
+function AX_validarCod() {
+  clearTimeout(AX_TIMER);
+  var c = AX_$('axRc').value.trim(), m = AX_$('axRcm');
+  AXS.reg.ok = false;
+  if (c.replace(/[\s-]/g, '').length < 4) { m.innerHTML = ''; return; }
+  AX_TIMER = setTimeout(function () {
+    call('apiAXInfoCodigo', c).then(function (r) {
+      if (AX_$('axRc').value.trim() !== c) return;
+      if (r.ok) { AXS.reg.ok = true; AXS.reg.max = r.maxIntegrantes || 5; m.innerHTML = '<p class="ax-ok">✓ Simulación encontrada: ' + esc(r.nombre) + '</p>'; }
+      else m.innerHTML = '<p class="ax-bad">✗ ' + esc(r.motivo || 'Código no válido') + '</p>';
+      AX_numerar();
+    }).catch(function () { m.innerHTML = '<p class="ax-bad">✗ Código no válido</p>'; });
+  }, 350);
+}
+function AX_fila() {
+  var box = AX_$('axFilas'); if (box.children.length >= AXS.reg.max) return;
+  var d = document.createElement('div'); d.className = 'ax-fila';
+  d.innerHTML = '<span class="ax-n"></span><button class="ax-x" title="Quitar integrante" aria-label="Quitar integrante" onclick="AX_quitarFila(this)">✕</button>' +
+    [['apPaterno', 'Apellido paterno'], ['apMaterno', 'Apellido materno'], ['nombres', 'Nombres'], ['registro', 'N.º de registro *'], ['celular', 'Teléfono (opcional)']].map(function (k) { return '<input class="ax-in" data-k="' + k[0] + '" placeholder="' + k[1] + '" aria-label="' + k[1] + '"' + (k[0] === 'registro' || k[0] === 'celular' ? ' inputmode="numeric"' : '') + '>'; }).join('');
+  box.appendChild(d); AX_numerar();
+}
+function AX_quitarFila(btn) { var box = AX_$('axFilas'); if (box.children.length <= 1) return; btn.parentNode.remove(); AX_numerar(); }
+function AX_numerar() {
+  var box = AX_$('axFilas'); if (!box) return;
+  [].forEach.call(box.children, function (d, i) { d.querySelector('.ax-n').textContent = 'INTEGRANTE ' + (i + 1); d.querySelector('.ax-x').style.display = box.children.length > 1 ? '' : 'none'; });
+  var a = AX_$('axAdd'); if (a) a.disabled = box.children.length >= AXS.reg.max;
+}
+function AX_registrar() {
+  var nom = AX_$('axRn').value.trim(), p1 = AX_$('axRp').value, p2 = AX_$('axRp2').value, cod = AX_$('axRc').value.trim(), b = AX_$('axGo');
+  AX_err('');
+  if (nom.length < 3) { AX_err('Escribe el nombre del equipo (al menos 3 caracteres).'); return; }
+  if (p1.length < 4) { AX_err('La contraseña debe tener al menos 4 caracteres.'); return; }
+  if (p1 !== p2) { AX_err('Las contraseñas no coinciden.'); return; }
+  if (!AXS.reg.ok) { AX_err('Escribe un código de simulación válido.'); return; }
+  var ints = [].map.call(AX_$('axFilas').children, function (d) { var o = {}; [].forEach.call(d.querySelectorAll('input'), function (i) { o[i.dataset.k] = i.value.trim(); }); return o; })
+    .filter(function (o) { return o.apPaterno || o.apMaterno || o.nombres || o.registro || o.celular; });
+  if (!ints.length) { AX_err('Registra al menos un integrante.'); return; }
+  for (var i = 0; i < ints.length; i++) if (!ints[i].registro) { AX_err('Integrante ' + (i + 1) + ': el número de registro es obligatorio.'); return; }
+  AX_busy(b, true);
+  call('apiRegistrarEquipo', cod, { nombreEquipo: nom, clave: p1, confirmar: p2, integrantes: ints }).then(function (r) {
+    TOK = r.token; ROL = 'equipo'; TAB = 'inicio'; AX_cerrar(); cargar();
+    setTimeout(function () { aviso('Equipo "' + r.equipo + '" registrado. Para ingresar usen el nombre del equipo, la contraseña y el código de la simulación.'); }, 1200);
+  }).catch(function (e) { AX_busy(b, false); AX_err(e); });
+}
+
+// ---------- recuperar (docentes) y alta por invitación ----------
+function AX_verPregunta() {
+  var e = AX_$('axRe').value.trim(), b = AX_$('axGoP'); AX_err('');
+  if (!e) { AX_err('Escribe tu correo.'); return; }
+  AX_busy(b, true);
+  call('apiAXPregunta', e).then(function (r) {
+    AX_busy(b, false);
+    AX_$('axPreg').innerHTML = '<label for="axRr">' + esc(r.pregunta) + '</label><input class="ax-in" id="axRr" autocomplete="off"><label for="axRn1">Contraseña nueva</label>' + AX_pw('axRn1', 'Mínimo 6 caracteres', 'new-password') + '<label for="axRn2">Confirmar contraseña nueva</label>' + AX_pw('axRn2', '', 'new-password') + '<button class="ax-btn" id="axGoR" onclick="AX_recuperar()">Cambiar contraseña</button>';
+  }).catch(function (x) { AX_busy(b, false); AX_err(x); });
+}
+function AX_recuperar() {
+  var a = AX_$('axRn1').value, c = AX_$('axRn2').value, b = AX_$('axGoR'); AX_err('');
+  if (a.length < 6) { AX_err('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (a !== c) { AX_err('Las contraseñas no coinciden.'); return; }
+  AX_busy(b, true);
+  call('apiAXRecuperar', AX_$('axRe').value.trim(), AX_$('axRr').value, a).then(function (r) { AX_mostrar('ingresar', r.mensaje); }).catch(function (x) { AX_busy(b, false); AX_err(x); });
+}
+function AX_alta() {
+  var p = AX_$('axAp').value, b = AX_$('axGo'); AX_err('');
+  if (p.length < 6) { AX_err('La contraseña debe tener al menos 6 caracteres.'); return; }
+  if (p !== AX_$('axAp2').value) { AX_err('Las contraseñas no coinciden.'); return; }
+  AX_busy(b, true);
+  call('apiAXAlta', AX_INV, { nombre: AX_$('axAn').value, email: AX_$('axAe').value, clave: p, confirmar: AX_$('axAp2').value, respuesta: AX_$('axAr').value }).then(function (r) {
+    AX_INV = ''; AXS.inv = null; AX_entrarDocente(r.token);
+  }).catch(function (x) { AX_busy(b, false); AX_err(x); });
+}
+
+// ---------- equipo: mis integrantes y mi contraseña (pantalla de trabajo) ----------
+function AX_vEquipo() { return '<div class="card"><h2>Mi equipo</h2><div id="meq" class="muted">Cargando…</div></div><div class="card"><h2>Cambiar la contraseña del equipo</h2><div class="grid g4"><div><label for="axQa">Contraseña actual</label><input type="password" id="axQa"></div><div><label for="axQn">Contraseña nueva (mínimo 4)</label><input type="password" id="axQn"></div><div><label for="axQc">Confirmar contraseña nueva</label><input type="password" id="axQc"></div></div><div style="margin-top:10px"><button class="btn" onclick="AX_cambiarMia()">Cambiar contraseña</button></div><p class="muted">La contraseña es del equipo: avisa a tus compañeros cuando la cambies.</p></div>'; }
+function AX_cargarMiEquipo() {
+  call('apiMiEquipo', TOK).then(function (m) {
+    if (!AX_$('meq')) return;
+    var ed = !m.bloqueado, k = ['apPaterno', 'apMaterno', 'nombres', 'registro', 'celular'];
+    var h = '<p><b>' + esc(m.equipo) + '</b> · ' + esc(m.simulacion) + (m.sigla ? ' (' + esc(m.sigla) + ')' : '') + ' · Código de la simulación: <b>' + esc(m.codigo) + '</b></p>' +
+      (ed ? '' : '<p class="tag aviso">El docente bloqueó la edición de integrantes: pídele los cambios.</p>') +
+      '<div class="scroll"><table><tr><th>Apellido paterno</th><th>Apellido materno</th><th>Nombres</th><th>Registro</th><th>Teléfono</th>' + (ed ? '<th></th>' : '') + '</tr>' +
+      m.integrantes.map(function (i, n) {
+        var yo = String(i.registro) === String(m.yo) ? ' <span class="tag">tú</span>' : '';
+        if (!ed) return '<tr><td>' + esc(i.apPaterno) + '</td><td>' + esc(i.apMaterno) + '</td><td>' + esc(i.nombres) + yo + '</td><td>' + esc(i.registro) + '</td><td>' + esc(i.celular) + '</td></tr>';
+        return '<tr>' + k.map(function (c) { return '<td><input type="text" id="axMe_' + c + '_' + n + '" value="' + esc(i[c]) + '"></td>'; }).join('') + '<td><div class="inline">' + yo + '<button class="btn sec" onclick="AX_meGuardar(' + n + ',\'' + esc(i.registro) + '\')">Guardar</button><button class="btn sec" onclick="AX_meQuitar(\'' + esc(i.registro) + '\')">Quitar</button></div></td></tr>';
+      }).join('') + '</table></div>';
+    if (ed && m.integrantes.length < m.maxIntegrantes) h += '<h3>Agregar integrante (' + m.integrantes.length + ' de ' + m.maxIntegrantes + ')</h3><div class="grid g4">' + [['apPaterno', 'Apellido paterno'], ['apMaterno', 'Apellido materno'], ['nombres', 'Nombres'], ['registro', 'N.º de registro'], ['celular', 'Teléfono (opcional)']].map(function (x) { return '<div><label>' + x[1] + '</label><input type="text" id="ai_' + x[0] + '"></div>'; }).join('') + '</div><div style="margin-top:10px"><button class="btn sec" onclick="AX_meAgregar()">Agregar</button></div>';
+    AX_$('meq').innerHTML = h; AX_$('meq').className = '';
+  }).catch(function (e) { if (AX_$('meq')) AX_$('meq').innerHTML = esc(e); });
+}
+function AX_meDatos(pre, suf) { var o = {}; ['apPaterno', 'apMaterno', 'nombres', 'registro', 'celular'].forEach(function (k) { o[k] = AX_$(pre + k + suf).value; }); return o; }
+function AX_meAgregar() { call('apiAXMiEquipo', TOK, 'agregar', AX_meDatos('ai_', '')).then(function (r) { aviso(r.mensaje); AX_cargarMiEquipo(); }).catch(function (e) { aviso(e, 'err'); }); }
+function AX_meGuardar(n, reg) { var o = AX_meDatos('axMe_', '_' + n); o.registroOriginal = reg; call('apiAXMiEquipo', TOK, 'editar', o).then(function (r) { aviso(r.mensaje); AX_cargarMiEquipo(); }).catch(function (e) { aviso(e, 'err'); }); }
+function AX_meQuitar(reg) { AX_confirmar('Quitar integrante', '¿Quitar a este integrante del equipo?', 'Quitar', function () { call('apiAXMiEquipo', TOK, 'quitar', { registro: reg }).then(function (r) { aviso(r.mensaje); AX_cargarMiEquipo(); }).catch(function (e) { aviso(e, 'err'); }); }); }
+function AX_cambiarMia() {
+  var a = AX_$('axQa').value, n = AX_$('axQn').value, c = AX_$('axQc').value;
+  if (n.length < 4) { aviso('La contraseña nueva debe tener al menos 4 caracteres.', 'err'); return; }
+  if (n !== c) { aviso('Las contraseñas no coinciden.', 'err'); return; }
+  call('apiAXCambiarClave', TOK, a, n).then(function () { aviso('Contraseña cambiada. Avisa a tus compañeros.'); AX_$('axQa').value = AX_$('axQn').value = AX_$('axQc').value = ''; }).catch(function (e) { aviso(e, 'err'); });
+}
+
+// ---------- utilidades del panel docente ----------
+function AX_toast(m, tipo) { var d = document.createElement('div'); d.className = 'ax-toast' + (tipo === 'err' ? ' err' : ''); d.setAttribute('role', 'status'); d.textContent = m; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 6000); }
+function AX_modal(html) { var d = document.createElement('div'); d.className = 'ax-modal'; d.innerHTML = '<div role="dialog" aria-modal="true">' + html + '</div>'; document.body.appendChild(d); var b = d.querySelector('button'); if (b) b.focus(); return d; }
+function AX_cambiarCodigo(simId, actual) {
+  var d = AX_modal('<h3>Cambiar el código de la simulación</h3><p>Código actual: <span class="ax-codigo">' + esc(actual) + '</span></p><label for="axNC">Código nuevo (4 a 12 letras, números o guiones)</label><input type="text" id="axNC" maxlength="12" value="' + esc(actual) + '" style="text-transform:uppercase;letter-spacing:2px;font-family:Space Mono,monospace"><p class="muted" style="color:#e8a820">⚠ Desde ese momento los equipos deben usar el código nuevo para registrarse e ingresar. Avíseles antes de cambiarlo.</p><div class="inline"><button class="btn sec" id="axNCno">Cancelar</button><button class="btn" id="axNCsi">Guardar código</button></div>');
+  var inp = d.querySelector('#axNC'); inp.focus(); inp.select();
+  d.querySelector('#axNCno').onclick = function () { d.remove(); };
+  d.querySelector('#axNCsi').onclick = function () {
+    var v = inp.value.trim().toUpperCase().replace(/\s/g, '');
+    if (v === String(actual).toUpperCase()) { d.remove(); return; }
+    d.remove(); adm('editarSimulacion', { simId: simId, codigo: v });
+  };
+}
+function AX_confirmar(tit, txt, ok, fn) {
+  var d = AX_modal('<h3>' + esc(tit) + '</h3><p>' + esc(txt) + '</p><div class="inline"><button class="btn sec" id="axMNo">Cancelar</button><button class="btn ax-rojo peligro" id="axMSi">' + esc(ok) + '</button></div>');
+  d.querySelector('#axMNo').onclick = function () { d.remove(); };
+  d.querySelector('#axMSi').onclick = function () { d.remove(); fn(); };
+}
+function AX_mostrarClave(tit, clave, nota) {
+  var d = AX_modal('<h3>' + esc(tit) + '</h3><p>Contraseña temporal:</p><p class="ax-codigo big">' + esc(clave) + '</p><p class="muted" style="color:#a8c0d8">' + esc(nota) + '</p><div class="inline"><button class="btn sec" id="axMC">Copiar</button><button class="btn" id="axMOk">Listo, la anoté</button></div>');
+  d.querySelector('#axMC').onclick = function () { AX_copiar(clave); };
+  d.querySelector('#axMOk').onclick = function () { d.remove(); };
+}
+function AX_copiar(t) {
+  function fb() { var a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); AX_toast('Copiado: ' + t); } catch (e) { AX_toast('Seleccione y copie: ' + t); } a.remove(); }
+  try { navigator.clipboard.writeText(t).then(function () { AX_toast('Copiado: ' + t); }, fb); } catch (e) { fb(); }
+}
+function AX_eqApi(accion, datos) { datos = datos || {}; datos.simId = SIMID; return call('apiAXEquipos', TOK, accion, datos); }
+
+// ---------- panel docente: Equipos ----------
+function AX_aEquipos() { return '<div id="axEq"><div class="card"><p class="muted">Cargando equipos…</p></div></div>'; }
+function AX_cargarEquipos() {
+  AX_eqApi('listar').then(function (r) { AXS.eq = r; AX_pintarEquipos(); }).catch(function (e) { AX_toast(e, 'err'); });
+}
+function AX_estadoEq(e) {
+  return (e.temporal ? '<span class="tag aviso">contraseña temporal</span> ' : '<span class="tag ok">activo</span> ') + (e.bloqueado ? '<span class="tag mal">edición bloqueada</span>' : '<span class="tag">edición abierta</span>');
+}
+function AX_pintarEquipos() {
+  var r = AXS.eq, s = r.sim;
+  var h = '<div class="card"><h2>Equipos · ' + esc(s.nombre) + (s.sigla ? ' (' + esc(s.sigla) + ')' : '') + '</h2><div class="inline" style="justify-content:space-between"><div><div class="muted">Código de la simulación</div><span class="ax-codigo big">' + esc(s.codigo) + '</span> <button class="btn sec" onclick="AX_copiar(\'' + esc(s.codigo) + '\')">Copiar</button></div>' +
+    '<div class="inline">' + (s.acceso === 'cerrada' ? '<span class="tag mal">Simulación cerrada</span><button class="btn ax-verde" onclick="adm(\'acceso\',{valor:\'activa\'})">Activar</button>' : '<span class="tag ok">Simulación activa</span><button class="btn sec" onclick="adm(\'acceso\',{valor:\'cerrada\'})">Cerrar</button>') +
+    '<button class="btn sec" onclick="AX_csv()">Exportar CSV</button></div></div><p class="muted">' + r.equipos.length + ' equipos · máximo ' + s.maxIntegrantes + ' integrantes por equipo · registro de equipos ' + (s.registroAbierto ? 'abierto' : 'cerrado') + ' (se cambia en Partida). Las contraseñas no se pueden ver: si un equipo la olvida, genere una temporal.</p></div>';
+  h += '<div class="card"><div class="scroll"><table><tr><th>N.º</th><th>Equipo</th><th>Integrantes</th><th>Estado</th><th>Acciones</th></tr>' + (r.equipos.length ? r.equipos.map(function (e) {
+    var ints = e.integrantes.map(function (i) { return esc((i.nombres + ' ' + i.apPaterno + ' ' + i.apMaterno).replace(/\s+/g, ' ').trim()) + ' · ' + esc(i.registro) + (i.celular ? ' · ' + esc(i.celular) : ''); }).join('<br>');
+    var tmp = e.tempPendiente ? '<div style="margin-top:6px">Contraseña temporal inicial: <span class="ax-tmp">' + esc(e.tempPendiente) + '</span> <button class="btn sec" onclick="AX_ocultarTemp(\'' + e.equipoId + '\')">Ya la entregué</button></div>' : '';
+    return '<tr><td>' + e.n + '</td><td><b>' + esc(e.nombre) + '</b>' + tmp + '</td><td class="ax-eqint">' + ints + '</td><td>' + AX_estadoEq(e) + '</td><td><div class="inline">' +
+      '<button class="btn sec" onclick="AX_detalle(\'' + e.equipoId + '\')">Ver detalle</button>' +
+      '<button class="btn sec" onclick="AX_claveEq(\'' + e.equipoId + '\')">Contraseña temporal</button>' +
+      '<button class="btn sec" onclick="AX_bloq(\'' + e.equipoId + '\',' + (e.bloqueado ? 'false' : 'true') + ')">' + (e.bloqueado ? 'Desbloquear edición' : 'Bloquear edición') + '</button>' +
+      '<button class="btn ax-rojo peligro" onclick="AX_elimEq(\'' + e.equipoId + '\')">Eliminar</button></div></td></tr>' +
+      '<tr class="ax-det" id="axDet_' + e.equipoId + '" style="display:none"><td colspan="5">' + AX_detHtml(e, s) + '</td></tr>';
+  }).join('') : '<tr><td colspan="5" class="muted">Aún no hay equipos registrados.</td></tr>') + '</table></div></div>';
+  AX_$('axEq').innerHTML = h;
+}
+function AX_detHtml(e, s) {
+  var k = ['apPaterno', 'apMaterno', 'nombres', 'registro', 'celular'], id = e.equipoId;
+  var h = '<div class="inline"><label for="axEn_' + id + '">Nombre del equipo</label><input type="text" id="axEn_' + id + '" value="' + esc(e.nombre) + '" style="max-width:260px"><button class="btn sec" onclick="AX_renombrar(\'' + id + '\')">Corregir nombre</button></div>' +
+    '<div class="scroll" style="margin-top:8px"><table><tr><th>Apellido paterno</th><th>Apellido materno</th><th>Nombres</th><th>Registro</th><th>Teléfono</th><th></th></tr>' +
+    e.integrantes.map(function (i, n) { return '<tr>' + k.map(function (c) { return '<td><input type="text" id="axI_' + id + '_' + c + '_' + n + '" value="' + esc(i[c]) + '"></td>'; }).join('') + '<td><div class="inline"><button class="btn sec" onclick="AX_intEditar(\'' + id + '\',' + n + ',\'' + esc(i.registro) + '\')">Guardar</button><button class="btn sec" onclick="AX_intQuitar(\'' + id + '\',\'' + esc(i.registro) + '\')">Quitar</button></div></td></tr>'; }).join('') + '</table></div>';
+  if (e.integrantes.length < s.maxIntegrantes) h += '<div class="grid g4" style="margin-top:8px">' + [['apPaterno', 'Apellido paterno'], ['apMaterno', 'Apellido materno'], ['nombres', 'Nombres'], ['registro', 'Registro'], ['celular', 'Teléfono (opcional)']].map(function (f) { return '<div><label>' + f[1] + '</label><input type="text" id="axIA_' + id + '_' + f[0] + '"></div>'; }).join('') + '</div><button class="btn sec" style="margin-top:6px" onclick="AX_intAgregar(\'' + id + '\')">+ Agregar integrante</button>';
+  return h;
+}
+function AX_detalle(id) { var r = AX_$('axDet_' + id); r.style.display = r.style.display === 'none' ? '' : 'none'; }
+function AX_recargarEq(m) { if (m) AX_toast(m); AX_cargarEquipos(); }
+function AX_renombrar(id) { AX_eqApi('renombrar', { equipoId: id, nombre: AX_$('axEn_' + id).value }).then(function (r) { AX_recargarEq(r.mensaje); }).catch(function (e) { AX_toast(e, 'err'); }); }
+function AX_claveEq(id) {
+  var e = AXS.eq.equipos.filter(function (x) { return x.equipoId === id; })[0];
+  AX_confirmar('Contraseña temporal', 'Se generará una contraseña temporal para ' + e.nombre + '. La actual dejará de funcionar y el equipo deberá crear una nueva al ingresar.', 'Generar', function () {
+    AX_eqApi('claveTemporal', { equipoId: id }).then(function (r) { AX_mostrarClave('Equipo ' + r.equipo, r.clave, 'Entréguela en persona o por mensaje directo. No se volverá a mostrar.'); AX_cargarEquipos(); }).catch(function (x) { AX_toast(x, 'err'); });
+  });
+}
+function AX_ocultarTemp(id) { AX_eqApi('ocultarTemp', { equipoId: id }).then(function () { AX_recargarEq('La contraseña temporal inicial ya no se mostrará.'); }).catch(function (e) { AX_toast(e, 'err'); }); }
+function AX_bloq(id, v) { AX_eqApi('bloquear', { equipoId: id, valor: v }).then(function (r) { AX_recargarEq(r.mensaje); }).catch(function (e) { AX_toast(e, 'err'); }); }
+function AX_elimEq(id) {
+  var e = AXS.eq.equipos.filter(function (x) { return x.equipoId === id; })[0];
+  AX_confirmar('Eliminar equipo', '¿Eliminar el equipo "' + e.nombre + '" y sus ' + e.integrantes.length + ' integrantes? Esta acción no se puede deshacer.', 'Eliminar', function () {
+    AX_eqApi('eliminar', { equipoId: id }).then(function (r) { AX_recargarEq(r.mensaje); }).catch(function (x) { AX_toast(x, 'err'); });
+  });
+}
+function AX_intDatos(pre) { var o = {}; ['apPaterno', 'apMaterno', 'nombres', 'registro', 'celular'].forEach(function (k) { o[k] = AX_$(pre(k)).value; }); return o; }
+function AX_intEditar(id, n, reg) { var o = AX_intDatos(function (k) { return 'axI_' + id + '_' + k + '_' + n; }); o.equipoId = id; o.registroOriginal = reg; AX_eqApi('intEditar', o).then(function (r) { AX_recargarEq(r.mensaje); }).catch(function (e) { AX_toast(e, 'err'); }); }
+function AX_intQuitar(id, reg) { AX_confirmar('Quitar integrante', '¿Quitar al integrante ' + reg + ' de este equipo?', 'Quitar', function () { AX_eqApi('intQuitar', { equipoId: id, registro: reg }).then(function (r) { AX_recargarEq(r.mensaje); }).catch(function (e) { AX_toast(e, 'err'); }); }); }
+function AX_intAgregar(id) { var o = AX_intDatos(function (k) { return 'axIA_' + id + '_' + k; }); o.equipoId = id; AX_eqApi('intAgregar', o).then(function (r) { AX_recargarEq(r.mensaje); }).catch(function (e) { AX_toast(e, 'err'); }); }
+function AX_csv() {
+  var r = AXS.eq, filas = [['N', 'Equipo', 'Estado', 'Apellido paterno', 'Apellido materno', 'Nombres', 'Registro', 'Telefono']];
+  r.equipos.forEach(function (e) { var est = (e.temporal ? 'contraseña temporal' : 'activo') + (e.bloqueado ? ' / edición bloqueada' : ''); e.integrantes.forEach(function (i) { filas.push([e.n, e.nombre, est, i.apPaterno, i.apMaterno, i.nombres, i.registro, i.celular]); }); if (!e.integrantes.length) filas.push([e.n, e.nombre, est, '', '', '', '', '']); });
+  var csv = '﻿' + filas.map(function (f) { return f.map(function (c) { c = String(c === undefined ? '' : c); return /[",;\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(','); }).join('\r\n');
+  var nom = 'equipos_' + (r.sim.sigla || r.sim.simId) + '.csv';
+  try { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = nom; document.body.appendChild(a); a.click(); a.remove(); } catch (e) { }
+  var d = AX_modal('<h3>Exportar CSV</h3><p class="muted" style="color:#a8c0d8">Si la descarga no empezó (por ejemplo, dentro de Google Sites), copie este texto y péguelo en una hoja de cálculo.</p><textarea style="width:100%;min-height:160px" readonly>' + esc(csv.slice(1)) + '</textarea><div class="inline"><button class="btn sec" id="axCsvC">Copiar</button><button class="btn" id="axCsvOk">Cerrar</button></div>');
+  d.querySelector('#axCsvC').onclick = function () { AX_copiar(csv.slice(1)); };
+  d.querySelector('#axCsvOk').onclick = function () { d.remove(); };
+}
+
+// ---------- panel docente: Docentes (superadmin) ----------
+function AX_aDocentes() { return '<div id="axDoc"><div class="card"><p class="muted">Cargando docentes…</p></div></div>'; }
+function AX_cargarDocentes() { call('apiAXDocentes', TOK, 'listar').then(function (r) { AXS.doc = r; AX_pintarDocentes(); }).catch(function (e) { AX_toast(e, 'err'); }); }
+function AX_pintarDocentes() {
+  var r = AXS.doc;
+  var h = '<div class="card"><h2>Docentes</h2><div class="scroll"><table><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Pregunta de seguridad</th><th>Acciones</th></tr>' + r.docentes.map(function (d) {
+    return '<tr><td>' + esc(d.nombre) + '</td><td>' + esc(d.email) + '</td><td>' + (d.rol === 'superadmin' ? 'Superadministrador' : 'Profesor') + '</td><td>' + (d.activo ? '<span class="tag ok">activo</span>' : '<span class="tag mal">inactivo</span>') + (d.temporal ? ' <span class="tag aviso">contraseña temporal</span>' : '') + '</td><td>' + (d.tieneRespuesta ? esc(d.pregunta) : '<span class="tag aviso">sin configurar</span>') + '</td><td><div class="inline">' +
+      '<button class="btn sec" onclick="AX_docPreg(\'' + d.docenteId + '\')">Pregunta</button><button class="btn sec" onclick="AX_docClave(\'' + d.docenteId + '\')">Contraseña temporal</button>' + (d.rol !== 'superadmin' ? '<button class="btn sec" onclick="AX_docApi(\'activo\',{docenteId:\'' + d.docenteId + '\',valor:' + (d.activo ? 'false' : 'true') + '})">' + (d.activo ? 'Desactivar' : 'Activar') + '</button>' : '') + '</div></td></tr>';
+  }).join('') + '</table></div></div>';
+  h += '<div class="card"><h2>Invitar a un docente</h2><p class="muted">El enlace sirve una sola vez y vence en 72 horas. El docente define su nombre, correo y contraseña, y responde la pregunta de seguridad que usted escriba aquí.</p><div class="grid g2"><div><label for="axIp">Pregunta de seguridad</label><input type="text" id="axIp" placeholder="Ejemplo: ¿En qué ciudad hizo su maestría?"></div><div><label for="axIr">Rol</label><select id="axIr"><option value="profesor">Profesor (solo ve sus simulaciones)</option><option value="superadmin">Superadministrador (ve todo)</option></select></div></div><div style="margin-top:10px"><button class="btn ax-verde" onclick="AX_invitar()">Generar enlace de invitación</button></div><div id="axInvL"></div></div>';
+  h += '<div class="card"><h2>Invitaciones recientes</h2>' + (r.invitaciones.length ? '<div class="scroll"><table><tr><th>Código</th><th>Rol</th><th>Pregunta</th><th>Vence</th><th>Estado</th><th></th></tr>' + r.invitaciones.map(function (i) { return '<tr><td>' + esc(i.invId) + '</td><td>' + esc(i.rol) + '</td><td>' + esc(i.pregunta) + '</td><td>' + esc(i.vence ? new Date(i.vence).toLocaleString('es-BO') : '') + '</td><td>' + esc(i.estado) + '</td><td>' + (i.estado === 'pendiente' ? '<button class="btn sec" onclick="AX_docApi(\'anularInvitacion\',{invId:\'' + i.invId + '\'})">Anular</button>' : '') + '</td></tr>'; }).join('') + '</table></div>' : '<p class="muted">Sin invitaciones.</p>') + '</div>';
+  AX_$('axDoc').innerHTML = h;
+}
+function AX_docApi(a, d) { return call('apiAXDocentes', TOK, a, d).then(function (r) { if (r.mensaje) AX_toast(r.mensaje); AX_cargarDocentes(); return r; }).catch(function (e) { AX_toast(e, 'err'); }); }
+function AX_invitar() {
+  call('apiAXDocentes', TOK, 'invitar', { pregunta: AX_$('axIp').value, rol: AX_$('axIr').value }).then(function (r) {
+    AX_toast(r.mensaje);
+    var cont = AX_$('axInvL');
+    AX_cargarDocentes();
+    setTimeout(function () { var c = AX_$('axInvL'); if (c) c.innerHTML = '<div class="calc" style="margin-top:10px;word-break:break-all"><b>Enlace de invitación:</b><br><span style="font-family:Space Mono,monospace">' + esc(r.enlace) + '</span><br><button class="btn sec" style="margin-top:6px" onclick="AX_copiar(\'' + esc(r.enlace) + '\')">Copiar enlace</button></div>'; }, 700);
+  }).catch(function (e) { AX_toast(e, 'err'); });
+}
+function AX_docPreg(id) {
+  var d = AXS.doc.docentes.filter(function (x) { return x.docenteId === id; })[0];
+  var m = AX_modal('<h3>Pregunta de seguridad</h3><p>' + esc(d.nombre) + '</p><label>Pregunta</label><input type="text" id="axMp" value="' + esc(d.pregunta) + '"><label>Respuesta</label><input type="text" id="axMr"><div class="inline"><button class="btn sec" id="axMNo">Cancelar</button><button class="btn" id="axMSi">Guardar</button></div>');
+  m.querySelector('#axMNo').onclick = function () { m.remove(); };
+  m.querySelector('#axMSi').onclick = function () { var p = m.querySelector('#axMp').value, r = m.querySelector('#axMr').value; m.remove(); AX_docApi('pregunta', { docenteId: id, pregunta: p, respuesta: r }); };
+}
+function AX_docClave(id) {
+  var d = AXS.doc.docentes.filter(function (x) { return x.docenteId === id; })[0];
+  AX_confirmar('Contraseña temporal', 'Se generará una contraseña temporal para ' + d.nombre + '. Deberá cambiarla al ingresar.', 'Generar', function () {
+    call('apiAXDocentes', TOK, 'claveTemporal', { docenteId: id }).then(function (r) { AX_mostrarClave(d.nombre, r.clave, 'Entréguela por un medio privado. No se volverá a mostrar.'); AX_cargarDocentes(); }).catch(function (e) { AX_toast(e, 'err'); });
+  });
+}
+
+// ---------- panel docente: Mi cuenta ----------
+function AX_aCuenta() { return '<div id="axCta"><div class="card"><p class="muted">Cargando…</p></div></div>'; }
+function AX_cargarCuenta() {
+  call('apiAXCuenta', TOK, 'ver').then(function (d) {
+    AX_$('axCta').innerHTML = '<div class="card"><h2>Mi cuenta</h2><p><b>' + esc(d.nombre) + '</b> · ' + esc(d.email) + ' · ' + (d.rol === 'superadmin' ? 'Superadministrador' : 'Profesor') + '</p></div>' +
+      '<div class="card"><h2>Cambiar mi contraseña</h2><div class="grid g4"><div><label for="axCa">Contraseña actual</label><input type="password" id="axCa"></div><div><label for="axCn">Nueva (mínimo 6)</label><input type="password" id="axCn"></div><div><label for="axCc">Confirmar nueva</label><input type="password" id="axCc"></div></div><div style="margin-top:10px"><button class="btn" onclick="AX_ctaClave()">Cambiar contraseña</button></div></div>' +
+      '<div class="card"><h2>Pregunta de seguridad</h2><p class="muted">Sirve para recuperar la contraseña desde la pantalla de ingreso.' + (d.tieneRespuesta ? ' Pregunta actual: ' + esc(d.pregunta) : ' Aún no la configuró.') + '</p><div class="grid g4"><div><label for="axCp">Pregunta</label><input type="text" id="axCp" value="' + esc(d.pregunta) + '"></div><div><label for="axCr">Respuesta</label><input type="text" id="axCr"></div><div><label for="axCk">Contraseña actual</label><input type="password" id="axCk"></div></div><div style="margin-top:10px"><button class="btn" onclick="AX_ctaPreg()">Guardar pregunta</button></div></div>';
+  }).catch(function (e) { AX_toast(e, 'err'); });
+}
+function AX_ctaClave() {
+  var n = AX_$('axCn').value;
+  if (n.length < 6) { AX_toast('La contraseña nueva debe tener al menos 6 caracteres.', 'err'); return; }
+  if (n !== AX_$('axCc').value) { AX_toast('Las contraseñas no coinciden.', 'err'); return; }
+  call('apiAXCambiarClave', TOK, AX_$('axCa').value, n).then(function () { AX_toast('Contraseña cambiada.'); AX_cargarCuenta(); }).catch(function (e) { AX_toast(e, 'err'); });
+}
+function AX_ctaPreg() { call('apiAXCuenta', TOK, 'pregunta', { pregunta: AX_$('axCp').value, respuesta: AX_$('axCr').value, clave: AX_$('axCk').value }).then(function (r) { AX_toast(r.mensaje); AX_cargarCuenta(); }).catch(function (e) { AX_toast(e, 'err'); }); }
+</script>

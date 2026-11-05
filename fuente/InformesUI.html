@@ -1,0 +1,91 @@
+<script>
+// ---------- Informes de investigación (v1.8) ----------
+var FAMILIAS = { A: 'Entender al cliente', B: 'Entender el mercado y a los rivales', C: 'Entender cómo nos ven' };
+function attrNom(k) { return k === 'precio' ? 'Precio' : (V.cat.attrs[k] || k); }
+function svgBarrasError(filas, margen) {
+  var W = 560, x0 = 120, x1 = 520, h = 26, H = filas.length * h + 24, max = Math.max(50, Math.max.apply(null, filas.map(function (f) { return f.v + margen; })));
+  var sc = function (v) { return x0 + (x1 - x0) * v / max; };
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Importancia declarada con margen de error">';
+  [0, Math.round(max / 2), max].forEach(function (t) { s += '<line x1="' + sc(t) + '" x2="' + sc(t) + '" y1="4" y2="' + (H - 18) + '" stroke="#D0D7E2"/><text x="' + sc(t) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="10" fill="#5b6577">' + t + '</text>'; });
+  filas.forEach(function (f, i) {
+    var y = 6 + i * h, a = sc(Math.max(0, f.v - margen)), b = sc(f.v + margen);
+    s += '<text x="' + (x0 - 6) + '" y="' + (y + 14) + '" text-anchor="end" font-size="11" fill="#1d2433">' + esc(f.nombre) + '</text>' +
+      '<rect x="' + x0 + '" y="' + (y + 4) + '" width="' + Math.max(1, sc(f.v) - x0) + '" height="14" rx="2" fill="#2F5496"/>' +
+      '<line x1="' + a + '" x2="' + b + '" y1="' + (y + 11) + '" y2="' + (y + 11) + '" stroke="#1d2433" stroke-width="1.5"/>' +
+      '<line x1="' + a + '" x2="' + a + '" y1="' + (y + 6) + '" y2="' + (y + 16) + '" stroke="#1d2433"/><line x1="' + b + '" x2="' + b + '" y1="' + (y + 6) + '" y2="' + (y + 16) + '" stroke="#1d2433"/>' +
+      '<text x="' + (b + 5) + '" y="' + (y + 15) + '" font-size="11" fill="#1d2433">' + f.v + '</text>';
+  });
+  return s + '</svg>';
+}
+function svgMapa(d) {
+  var W = 320, H = 280, x0 = 30, x1 = 300, y0 = 14, y1 = 250, sx = function (v) { return x0 + (x1 - x0) * v / 10; }, sy = function (v) { return y1 - (y1 - y0) * v / 10; };
+  var col = ['#2F5496', '#B4531E', '#1E7B46', '#7A3FA0', '#5b6577', '#9A6700', '#B42318'];
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="max-width:360px" role="img" aria-label="Mapa perceptual">' +
+    '<rect x="' + x0 + '" y="' + y0 + '" width="' + (x1 - x0) + '" height="' + (y1 - y0) + '" fill="none" stroke="#D0D7E2"/>' +
+    '<text x="' + x1 + '" y="' + (y1 + 16) + '" text-anchor="end" font-size="9" fill="#5b6577">' + esc(d.ejes[0].nombre) + ' →</text>' +
+    '<text x="' + (x0 + 4) + '" y="' + (y0 + 12) + '" font-size="9" fill="#5b6577">↑ ' + esc(d.ejes[1].nombre) + '</text>' +
+    '<circle cx="' + sx(d.ideal[0]) + '" cy="' + sy(d.ideal[1]) + '" r="16" fill="#1E7B46" fill-opacity=".15" stroke="#1E7B46" stroke-dasharray="3 3"/><text x="' + sx(d.ideal[0]) + '" y="' + (sy(d.ideal[1]) + 28) + '" text-anchor="middle" font-size="10" fill="#1E7B46">Ideal</text>';
+  d.marcas.forEach(function (m, i) {
+    var c = m.propio ? '#2F5496' : col[(i % (col.length - 1)) + 1], x = sx(m.perc[d.ejes[0].attr]), y = sy(m.perc[d.ejes[1].attr]);
+    s += '<circle cx="' + x + '" cy="' + y + '" r="' + (m.propio ? 8 : 7) + '" fill="' + c + '" fill-opacity=".85" stroke="#fff"/><text x="' + x + '" y="' + (y + 3) + '" text-anchor="middle" font-size="8" fill="#fff" font-weight="bold">' + (i + 1) + '</text>';
+  });
+  return s + '</svg><ol class="leyenda">' + d.marcas.map(function (m) { return '<li' + (m.propio ? ' style="font-weight:bold"' : '') + '>' + esc(m.nombre) + '</li>'; }).join('') + '</ol>';
+}
+function hallazgos(inf) {
+  var d = inf.datos;
+  if (!d) return '<p class="muted">' + esc(inf.resumen || 'Informe archivado.') + '</p>';
+  var m = inf.metodo;
+  if (m === 'encuesta') return '<p><b>Segmento ' + esc(d.seg) + '.</b> Importancia declarada (puntos sobre 100):</p>' + svgBarrasError(d.filas, d.margen) + '<p class="muted">Las líneas finas muestran el margen de error. Si dos barras se solapan dentro del margen, no se puede afirmar que una importe más que la otra.</p>';
+  if (m === 'observacion') {
+    return '<div class="grid g2"><div><h3>Persona</h3><p><b>' + esc(d.persona[0]) + '</b><br>' + esc(d.persona[1]) + '</p><h3>Citas</h3>' + d.citas.map(function (c) { return '<p class="cita">' + esc(c) + '</p>'; }).join('') + '</div>' +
+      '<div><h3>Recorrido del cliente · frustración (1 baja, 5 alta)</h3><table>' + d.recorrido.map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td style="width:45%"><div class="bar"><i style="width:' + (r[1] * 20) + '%;background:' + (r[1] >= 5 ? '#B42318' : '#2F5496') + '"></i></div></td><td class="n">' + r[1] + '</td></tr>'; }).join('') + '</table></div></div>' +
+      '<h3>Mapa de empatía</h3><div class="grid g4 empatia">' + ['Dice', 'Hace', 'Piensa', 'Siente'].map(function (k, i) { return '<div><b>' + k + '</b><br>' + esc(d.empatia[i] || '') + '</div>'; }).join('') + '</div>' +
+      (d.latente.length ? '<p class="okbox"><b>Necesidad latente descubierta:</b> ' + esc(d.latente.join(' y ')) + '. Los clientes la valoran más de lo que dicen.</p>' : '<p class="muted">No apareció una necesidad latente clara en este segmento.</p>') +
+      '<h3>Lo que dicen frente a lo que hacen</h3><table><tr><th>Atributo</th><th class="n">Lugar en lo que dicen</th><th class="n">Lugar en lo que hacen</th></tr>' + d.comparacion.map(function (c) { return '<tr><td>' + esc(c.nombre) + '</td><td class="n">' + c.dice + '.º</td><td class="n"><b>' + c.hace + '.º</b></td></tr>'; }).join('') + '</table>';
+  }
+  if (m === 'extremos') return '<div class="grid g2">' + d.casos.map(function (c) { return '<div class="box"><b>' + esc(c[0]) + '</b><br>' + esc(c[1]) + '</div>'; }).join('') + '</div><h3>Tendencias detectadas</h3><table><tr><th>Tendencia</th><th>Atributo</th><th>Segmentos</th><th>Fuerza de la señal</th><th>Horizonte</th></tr>' + d.tendencias.map(function (x) { return '<tr><td>' + esc(x.texto) + '</td><td>' + esc(x.atributo) + '</td><td>' + esc(x.segmentos) + '</td><td>' + esc(x.fuerza) + '</td><td>' + esc(x.horizonte) + '</td></tr>'; }).join('') + '</table>';
+  if (m === 'lideres') return '<p>Conceptos entregados al proyecto <b>' + esc(d.proyecto) + '</b>:</p><div class="grid g2">' + d.conceptos.map(function (c) { return '<div class="box"><b>' + esc(c.nombre) + '</b><br><span class="muted">' + esc(c.desc) + '</span><br>Tipo: ' + esc(c.tipo) + ' · novedad ' + c.nov + '/5 · calidad estimada <b>' + Number(c.qObs).toFixed(1) + '</b> de 9 (±1,5 sin validar)</div>'; }).join('') + '</div>';
+  if (m === 'industria') {
+    return '<div class="grid g2"><div><h3>Participación de mercado total (rango estimado)</h3><table><tr><th>Empresa</th><th class="n">Participación</th></tr>' + d.filas.map(function (f) { return '<tr' + (f.yo ? ' style="font-weight:bold"' : '') + '><td>' + esc(f.nombre) + '</td><td class="n">' + f.lo.toFixed(1) + ' – ' + f.hi.toFixed(1) + ' %</td></tr>'; }).join('') + '</table></div>' +
+      '<div><h3>Tamaño de cada segmento (miles de porciones)</h3><table><tr><th>Segmento</th>' + d.tendencia[0].serie.map(function (x) { return '<th class="n">T' + x.t + '</th>'; }).join('') + '</tr>' + d.tendencia.map(function (r) { return '<tr><td>' + esc(r.seg + ' ' + r.nombre) + '</td>' + r.serie.map(function (x) { return '<td class="n">' + x.miles.toLocaleString('es-BO') + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div></div>';
+  }
+  if (m === 'competidores') return '<div class="scroll"><table><tr><th>Empresa o marca</th><th class="n">Precio (Bs/porción)</th><th>Envase</th><th>Mensaje o publicidad</th><th>Canales</th><th>Presencia</th></tr>' + d.filas.map(function (f) { return '<tr><td>' + esc(f.nombre) + (f.rival ? ' <span class="tag">empresa del curso</span>' : '') + '</td><td class="n">' + Number(f.precio).toFixed(2) + '</td><td>' + esc(f.envase) + '</td><td>' + esc(f.mensaje) + '</td><td>' + esc(f.canales) + '</td><td>' + esc(f.presencia) + '</td></tr>'; }).join('') + '</table></div>';
+  if (m === 'vigilancia') return '<table><tr><th>Señal</th><th>Área (PESTELDC)</th><th>Confianza</th><th>Horizonte</th></tr>' + d.senales.map(function (x) { return '<tr><td>' + esc(x.texto) + '</td><td>' + esc(x.area) + '</td><td><span class="tag ' + (x.confianza === 'alta' ? 'ok' : (x.confianza === 'media' ? 'aviso' : '')) + '">' + esc(x.confianza) + '</span></td><td>' + esc(x.horizonte) + '</td></tr>'; }).join('') + '</table>';
+  if (m === 'percepcion') {
+    var A = Object.keys(V.cat.attrs);
+    return '<div class="grid g2"><div><h3>Mapa perceptual · segmento ' + esc(d.seg) + '</h3>' + svgMapa(d) + '</div><div><h3>Curva de valor · percepción 0–10</h3><div class="scroll"><table><tr><th>Marca</th>' + A.map(function (k) { return '<th class="n">' + esc(V.cat.attrs[k]) + '</th>'; }).join('') + '</tr>' +
+      d.marcas.map(function (mk) { return '<tr' + (mk.propio ? ' style="font-weight:bold"' : '') + '><td>' + esc(mk.nombre) + '</td>' + A.map(function (k) { return '<td class="n">' + Number(mk.perc[k]).toFixed(1) + '</td>'; }).join('') + '</tr>' + (mk.propio ? '<tr class="muted"><td>↳ valor real de su producto</td>' + A.map(function (k) { return '<td class="n">' + Number(mk.real[k]).toFixed(1) + '</td>'; }).join('') + '</tr>' : ''); }).join('') +
+      '</table></div><p class="muted">La diferencia entre lo percibido y el valor real de su producto es una brecha de comunicación.</p></div></div>';
+  }
+  if (m === 'testConcepto') return '<p>Proyecto <b>' + esc(d.proyecto) + '</b> · segmento ' + esc(d.seg) + '. El detalle de cada concepto (curvas de precio, Kano y frases) está en Decidir → 4. Proyectos.</p><table><tr><th>Concepto</th><th class="n">Intención de compra declarada</th><th class="n">Precio aceptable (Bs por porción)</th><th class="n">Calidad corregida</th></tr>' + d.conceptos.map(function (c) { return '<tr><td>' + esc(c.nombre) + '</td><td class="n">' + c.intencion + ' %</td><td class="n">' + Number(c.pmc).toFixed(2) + ' – ' + Number(c.pme).toFixed(2) + '</td><td class="n">' + Number(c.qCorr).toFixed(1) + ' ±' + String(c.margen).replace('.', ',') + '</td></tr>'; }).join('') + '</table><p class="muted">La intención declarada exagera la compra real: úsenla para comparar conceptos entre sí.</p>';
+  return '';
+}
+function tarjetaInforme(inf, editable) {
+  var tActual = V.partida.t, pend = inf.requiere && inf.t === tActual - 1;
+  var html = '<div class="card informe"><div class="inline" style="justify-content:space-between"><h2>' + esc(inf.nombre) + (inf.segs && inf.segs.length ? ' · ' + esc(inf.segs.join(', ')) : '') + (inf.boletin ? ' · boletín' : '') + '</h2><span class="muted">' + esc(inf.id) + ' · emitido al cierre de T' + inf.t + ' · familia ' + esc(inf.fam) + ': ' + esc(FAMILIAS[inf.fam] || '') + '</span></div>' +
+    '<div class="grid g2"><div><h3>Pregunta</h3><p>' + esc(inf.pregunta || '') + '</p></div><div><h3>Método y muestra</h3><p class="muted">' + esc(inf.ficha || '') + '</p></div></div>' +
+    '<h3>Hallazgos</h3>' + hallazgos(inf) + '<p class="limbox"><b>Limitaciones.</b> ' + esc(inf.limites || '') + '</p>';
+  if (inf.requiere) {
+    html += '<div class="decbox"><b>¿Qué decisión tomamos con este dato?</b> ' + (pend ? '<span class="tag aviso">obligatoria para enviar</span>' : '');
+    if (editable && pend) html += txtA('decInformes.' + inf.id, 'Ejemplo: como S2 valora la conveniencia más de lo que dice, reescribimos el reto del proyecto y fijamos un precio bajo Bs 7.');
+    else html += '<p>' + (inf.decision ? esc(inf.decision) : '<span class="muted">Sin decisión registrada.</span>') + '</p>';
+    html += '</div>';
+  }
+  return html + '</div>';
+}
+function vInformes() {
+  var L = (V.estado.informes || []).slice().sort(function (a, b) { return b.t - a.t || (a.id < b.id ? 1 : -1); });
+  var editable = V.partida.estado === 'abierto' && !V.partida.finalizada && ROL === 'equipo';
+  var html = '<div class="card"><h2>Informes de investigación</h2><p>Cada estudio que compran llega como un informe con la misma estructura: pregunta, método y muestra, hallazgos, limitaciones y la decisión que toman con el dato. Investigar solo vale si cambia una decisión.</p>' +
+    ayuda('Comparen métodos distintos sobre el mismo segmento: cuando coinciden, la conclusión es más confiable; cuando se contradicen, pesa más lo que el cliente hace que lo que dice (triangulación).', 3) + '</div>';
+  if (!L.length) return html + '<div class="card"><p class="muted">Todavía no tienen informes. Compren estudios en Decidir → 3. Investigación; llegan al procesar el trimestre.</p></div>';
+  L.forEach(function (inf) { html += tarjetaInforme(inf, editable); });
+  if (editable && L.some(function (i) { return i.requiere && i.t === V.partida.t - 1; })) html += '<div class="inline"><button class="btn sec" onclick="guardar(false)">Guardar mis decisiones</button></div>';
+  return html;
+}
+function tarjetaCoherencia() {
+  var C = V.estado.coherencia || [];
+  if (!C.length) return '';
+  return '<div class="card"><h2>Informe de coherencia</h2><p class="muted">Compara lo que declararon en la Estrategia anual con lo que hicieron.</p><ul class="fb">' + C.map(function (c) { return '<li>' + (c.tipo === 'ok' ? '<span class="tag ok">coherente</span> ' : (c.tipo === 'aviso' ? '<span class="tag aviso">revisar</span> ' : '<span class="tag">nota</span> ')) + esc(c.texto) + '</li>'; }).join('') + '</ul></div>';
+}
+</script>

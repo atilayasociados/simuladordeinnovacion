@@ -1,0 +1,477 @@
+<script>
+// ---------- Proyectos: Definir, Idear y Evaluar (v1.9) ----------
+var FASES2 = ['Definir', 'Idear', 'Evaluar', 'Prototipar', 'Especificar', 'Puerta', 'Piloto', 'Lanzar'];
+var CRIT_PUGH = [['ajuste', 'Ajuste con el cliente'], ['viab', 'Viabilidad técnica'], ['costo', 'Costo por unidad'], ['nov', 'Novedad'], ['estr', 'Ajuste estratégico']];
+var PTSK = ['sab', 'nut', 'conv', 'salud', 'sost', 'precio'];
+var TABP = {};
+function MIREG_() { return String(V.usuario.registro); }
+function tipoP(tec, mod) { return tec ? (mod ? 'arquitectonica' : 'radical') : (mod ? 'disruptiva' : 'rutinaria'); }
+function tipoNom(t) { return (V.cat.tiposNom || {})[t] || t; }
+function sumaP(p) { return PTSK.reduce(function (s, k) { return s + (Number((p || {})[k]) || 0); }, 0); }
+
+function prepararBorrador2() {
+  var reg = MIREG_();
+  V.estado.proyectos.forEach(function (p) {
+    if (p.flujo !== 2 || p.estado !== 'activo') return;
+    var a = D.proyectos[p.id] = D.proyectos[p.id] || {};
+    a.ext = a.ext || {};
+    if (!Array.isArray(a.fichas)) a.fichas = [];
+    while (a.fichas.length < 3) a.fichas.push({ nombre: '', frase: '', pts: { sab: 0, nut: 0, conv: 0, salud: 0, sost: 0, precio: 0 }, precioObj: '', tec: 'no', mod: 'no', tipo4p: 'Producto', externa: '', test: false });
+    a.ind = a.ind || {}; var mi = a.ind[reg] = a.ind[reg] || {};
+    mi.campos = mi.campos || {};
+    if (!Array.isArray(mi.temas)) mi.temas = ['', '', '', '', '', '', '', ''];
+    if (!Array.isArray(mi.ideas)) mi.ideas = ['', '', '', '', '', '', '', '', '', '', '', ''];
+    if (!Array.isArray(mi.params)) mi.params = V.cat.morfoParams.map(function () { return ['', '', '']; });
+    if (!Array.isArray(mi.combos)) mi.combos = [0, 1, 2].map(function () { return ['', '', '', '', '', '']; });
+    a.votos = a.votos || {}; a.votos[reg] = a.votos[reg] || {};
+    if (!Array.isArray(a.combinar)) a.combinar = ['', ''];
+    a.pugh = a.pugh || {};
+    P3_borrador(p, a);
+  });
+  V.estado.proyectos.forEach(function (p) { if (p.flujo === 2 && p.etapa === 'lanzado' && p.resLanz && !p.aar) { var a = D.proyectos[p.id] = D.proyectos[p.id] || {}; a.aar = a.aar || { causas: [], tipo: '' }; } });
+}
+function limpiar2(d) {
+  V.estado.proyectos.forEach(function (p) {
+    var a = d.proyectos[p.id]; if (p.flujo !== 2 || !a) return;
+    var ext = a.ext || {};
+    a.externas = ['concurso', 'intra', 'startups'].filter(function (k) { return ext[k]; }).map(function (k) { return { id: k, premio: ext.premio || 'medio' }; });
+    delete a.ext;
+    a.fichas = (a.fichas || []).filter(function (f) { return f && String(f.nombre || '').trim(); });
+    if (a.elegir !== 'COMB') delete a.combinar;
+    if (p.etapa !== 'evaluar') { delete a.pugh; delete a.elegir; delete a.justificacion; delete a.combinar; }
+    if (p.etapa !== 'idear') { delete a.fichas; delete a.externas; delete a.ind; delete a.votos; }
+    if (p.etapa !== 'prototipar') { delete a.proto; delete a.aprendizaje; }
+    if (p.etapa !== 'especificar') delete a.esp;
+    if (p.etapa !== 'piloto') delete a.pil;
+    if (p.etapa !== 'lanzar') delete a.lan;
+    if (a.aar && !(a.aar.causas || []).length) delete a.aar;
+    delete a._ideas; delete a._votosTot; delete a._nVot; delete a._nAutores;
+  });
+}
+
+function revisarBriefCli(b) {
+  var reto = String(b.reto || '').trim(), low = reto.toLowerCase(), R = [];
+  var f = /^¿?\s*c[oó]mo podr[ií]amos/i.test(reto); R.push([f, f ? 'Empieza con “¿Cómo podríamos…?”.' : 'Debe empezar con “¿Cómo podríamos…?”.']);
+  var c = ['universitari', 'estudiant', 'joven', 'jóven', 'familia', 'madre', 'padre', 'niñ', 'oficin', 'trabajador', 'empleado', 'deportist', 'adulto', 'mayor', 'abuel', 'jubilad', 'persona', 'cliente'].some(function (w) { return low.indexOf(w) >= 0; });
+  R.push([c, c ? 'Nombra al cliente.' : 'No nombra al cliente.']);
+  var sol = ['botella', 'envase', 'sabor', 'yogur', 'caja', 'app', 'máquina', 'descuento', 'tapa', 'lata', 'pack', 'kiosco', 'suscripción', 'batido'].filter(function (w) { return new RegExp('(^|[^a-záéíóúñ])' + w).test(low); });
+  R.push([!sol.length, sol.length ? 'Trae la solución (“' + sol[0] + '”): describan la necesidad.' : 'No trae la solución.']);
+  var j = ['cuando', 'quiero', 'para'].every(function (k) { return String(b[k] || '').trim().length >= 5; }); R.push([j, j ? 'Trabajo por hacer completo.' : 'Completen cuando / quiero / para.']);
+  var e = !!b.evidencia && String(b.frase || '').trim().length >= 10; R.push([e, e ? 'Tiene evidencia.' : 'Sin evidencia: elijan un informe y copien una frase.']);
+  var k = /\d/.test(b.criterio || '') && /(trimestre|T\d|año|mes)/i.test(b.criterio || ''); R.push([k, k ? 'Criterio con cifra y plazo.' : 'El criterio necesita una cifra y un plazo.']);
+  return R;
+}
+function leerBrief() {
+  return { nombre: $('npNom').value.trim(), segmento: $('npSeg').value, tec: $('npTec').value, mod: $('npMod').value, portafolio: $('npPort').value,
+    brief: { cuando: $('npCuando').value.trim(), quiero: $('npQuiero').value.trim(), para: $('npPara').value.trim(), reto: $('npReto').value.trim(), evidencia: $('npEv').value, frase: $('npFrase').value.trim(), criterio: $('npCrit').value.trim() } };
+}
+function revisarBriefUI() {
+  var np = leerBrief(), R = revisarBriefCli(np.brief);
+  $('npRev').innerHTML = '<ul class="fb">' + R.map(function (r) { return '<li>' + (r[0] ? '<span class="tag ok">bien</span> ' : '<span class="tag aviso">mejorar</span> ') + esc(r[1]) + '</li>'; }).join('') + '</ul>';
+  $('npTipo').innerHTML = 'Tipo de innovación según sus respuestas: <b>' + esc(tipoNom(tipoP(np.tec === 'si', np.mod === 'si'))) + '</b>';
+}
+function agregarProyecto2() {
+  var np = leerBrief();
+  if (!np.nombre) { aviso('Escriban un nombre para el proyecto.', 'err'); return; }
+  if (np.brief.reto.length < 15) { aviso('Escriban el reto “¿Cómo podríamos…?” (al menos 15 caracteres).', 'err'); return; }
+  D.nuevosProyectos.push(np); render(); estimar();
+}
+
+function vProyectos2() {
+  var E = V.estado, g = V.cat.general, O = E.org, html = '', t = V.partida.t, anio = Math.floor((t - 1) / 4) + 1;
+  var act = E.proyectos.filter(function (p) { return p.estado === 'activo'; });
+  var maxP = anio === 1 ? (g.maxProyectosAnio1 || g.maxProyectos) : g.maxProyectos;
+  html += '<div class="card"><h2>Cómo avanza un proyecto de innovación</h2><div class="etapas">' + FASES2.map(function (f, i) { return '<span class="hecho">' + (i + 1) + '. ' + f + '</span>'; }).join('') + '</div>' +
+    '<p>Cada proyecto les pide <b>una sola tarea por trimestre</b>, la de su fase. Definir: escriben el brief al crear el proyecto. Idear: cada integrante aporta ideas con una técnica, votan y arman hasta 3 fichas de concepto. Evaluar: con el test de concepto comparan los conceptos en la matriz de Pugh y eligen uno. Las fases siguientes continúan con el prototipo, el piloto y el lanzamiento.</p>' +
+    ayuda('Acelerar una fase cuesta 50 % más en dinero y semanas y permite avanzar hasta dos fases en un trimestre, pero se aprende menos: en Idear llegan 30 % menos propuestas externas y el test de concepto es menos preciso (±1,0 en lugar de ±0,5).', 5, 'Stage') + '</div>';
+  html += '<div class="card"><h2>Su gestión de la creatividad hoy</h2><div class="grid g4">' + [['Motivación intrínseca', Number(O.MI).toFixed(2)], ['Autoeficacia creativa', Number(O.AE).toFixed(2)], ['Diversidad del equipo', Number(O.DIV).toFixed(2)], ['Madurez en innovación', O.madurez + ' de 5']].map(function (k) { return '<div class="kpi"><div class="v" style="font-size:18px">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('') + '</div>' +
+    ayuda('Con más motivación y autoeficacia las fichas de concepto salen mejores; con más diversidad, el análisis morfológico rinde más.', 2) + '</div>';
+  // nuevo proyecto
+  var cupo = maxP - act.length - D.nuevosProyectos.length;
+  html += '<div class="card"><h2>Nuevo proyecto · fase Definir</h2><p class="muted">Máximo ' + maxP + ' proyectos activos' + (anio === 1 ? ' en el primer año (3 desde el segundo)' : '') + '. Tienen ' + act.length + (D.nuevosProyectos.length ? ' y ' + D.nuevosProyectos.length + ' por crear' : '') + '.</p>';
+  if (cupo > 0) {
+    var infs = (E.informes || []).slice().sort(function (a, b) { return b.t - a.t; });
+    html += '<div class="grid g2"><div><label>Nombre del proyecto</label><input type="text" id="npNom" placeholder="Ejemplo: Desayuno camino a clases"></div><div><label>Segmento</label><select id="npSeg">' + V.cat.segmentos.map(function (s) { return '<option value="' + s.id + '">' + esc(s.id + ' ' + s.nombre) + '</option>'; }).join('') + '</select></div></div>' +
+      '<h3>Trabajo por hacer del cliente</h3>' + ayuda('Qué “trabajo” contrata el cliente cuando compra (Christensen et al., 2016). Escríbanlo desde su vida, no desde el producto.', 3, 'Trabajos por hacer') +
+      '<div class="grid g3"><div><label>Cuando…</label><input type="text" id="npCuando" placeholder="salgo a las 6:30 y no alcanzo a desayunar"></div><div><label>quiero…</label><input type="text" id="npQuiero" placeholder="algo que me quite el hambre"></div><div><label>para…</label><input type="text" id="npPara" placeholder="rendir en las clases de la mañana"></div></div>' +
+      '<label>Evidencia: informe que respalda el insight</label><select id="npEv"><option value="">Sin evidencia todavía</option>' + infs.map(function (i) { return '<option value="' + i.id + '">' + esc(i.nombre + (i.segs && i.segs.length ? ' · ' + i.segs.join(', ') : '') + ' · T' + i.t) + '</option>'; }).join('') + '</select>' +
+      '<label>Frase copiada del informe</label><input type="text" id="npFrase" placeholder="Ejemplo: “Si no lo puedo tomar con una mano en el micro, no me sirve.”">' +
+      '<label>Reto: ¿Cómo podríamos…?</label><input type="text" id="npReto" placeholder="¿Cómo podríamos ofrecer a los universitarios un desayuno que se tome con una mano en el micro?">' +
+      '<label>Criterio de éxito (cifra y plazo)</label><input type="text" id="npCrit" placeholder="8 % de S2 dos trimestres después del lanzamiento">' +
+      '<div class="grid g3"><div><label>¿Necesita tecnología que hoy no tenemos?</label><select id="npTec" onchange="revisarBriefUI()"><option value="no">No</option><option value="si">Sí</option></select></div><div><label>¿Cambia cómo vendemos o cobramos?</label><select id="npMod" onchange="revisarBriefUI()"><option value="no">No</option><option value="si">Sí</option></select></div><div><label>Lugar en el portafolio</label><select id="npPort">' + Object.keys(V.cat.portafolioNom).map(function (k) { return '<option value="' + k + '">' + esc(V.cat.portafolioNom[k]) + '</option>'; }).join('') + '</select></div></div>' +
+      '<p class="calc" id="npTipo">Tipo de innovación según sus respuestas: <b>Rutinaria</b></p>' + ayuda('Pisano (2015): si no cambia la tecnología ni el modelo de negocio, es rutinaria; si cambia solo el modelo, disruptiva; si cambia solo la tecnología, radical; si cambian ambos, arquitectónica. Al elegir el concepto se compara con el tipo real.', 1, 'Pisano') +
+      '<div class="inline"><button class="btn sec" onclick="revisarBriefUI()">Revisar el brief</button><button class="btn" onclick="agregarProyecto2()">Agregar proyecto</button></div><div id="npRev"></div>';
+  } else html += '<p class="muted">Ya tienen el máximo de proyectos activos.</p>';
+  if (D.nuevosProyectos.length) html += '<p>Se crearán al procesar el trimestre: ' + D.nuevosProyectos.map(function (n, i) { return '<span class="tag">' + esc(n.nombre) + ' · ' + n.segmento + (n.brief ? ' · ' + esc(tipoNom(tipoP(n.tec === 'si', n.mod === 'si'))) : '') + ' <a href="#" onclick="D.nuevosProyectos.splice(' + i + ',1);render();estimar();return false">×</a></span>'; }).join(' ') + '</p>';
+  html += '</div>';
+  if (!E.proyectos.length) html += '<div class="card"><p class="muted">Todavía no tienen proyectos.</p></div>';
+  E.proyectos.slice().reverse().forEach(function (p) { html += p.flujo === 2 ? tarjeta2(p) : tarjetaProyecto(p); });
+  var term = E.proyectos.filter(function (p) { return p.estado !== 'activo' && !p.revisado; });
+  if (term.length) html += '<div class="card"><h2>Revisión post-proyecto</h2>' + ayuda('Analizar qué funcionó y qué no en un proyecto terminado eleva la madurez en gestión de la innovación (máximo un nivel por año). Costo ' + bs(g.costoRevision) + ', 2 semanas.', 9) + sel('revision', [['', 'No hacer revisión']].concat(term.map(function (p) { return [p.id, p.nombre]; }))) + '</div>';
+  return html;
+}
+
+function faseIdx(p) {
+  if (p.etapa === 'idear') return 1; if (p.etapa === 'evaluar') return 2; if (p.etapa === 'lanzado') return 8;
+  var k3 = { prototipar: 3, especificar: 4, piloto: 6, lanzar: 7 }[p.etapa]; if (k3) return k3;
+  if (p.etapa === 'prototipo') return p.piloto ? 6 : (p.iter > 0 ? 3 : 3); return 0;
+}
+function cabecera2(p) {
+  var k = faseIdx(p);
+  return '<div class="etapas">' + FASES2.map(function (f, i) { return '<span class="' + (i === k && p.estado === 'activo' ? 'on' : (i < k ? 'hecho' : '')) + '">' + (i < k ? f + ' ✓' : f) + '</span>'; }).join('') + '</div>' +
+    '<div class="inline" style="justify-content:space-between"><p><b>Reto:</b> ' + esc(p.reto) + '</p><span class="tag mal">Invertido: ' + bs(p.gastoAcum) + ' · no se recupera</span></div>';
+}
+function tarjeta2(p) {
+  if (['prototipar', 'especificar', 'piloto', 'lanzar', 'lanzado', 'detenido'].indexOf(p.etapa) >= 0) return P3_tarjeta(p);
+  if (p.etapa !== 'idear' && p.etapa !== 'evaluar') return tarjetaProyecto(p) + '<div class="card">' + fichaCompleta2(p) + '</div>';
+  var html = '<div class="card proj"><h2>' + esc(p.nombre) + ' <span class="tag">' + esc(segNom(p.segmento)) + '</span> <span class="tag">' + esc(V.cat.portafolioNom[p.portafolio] || '') + '</span> <span class="tag">' + esc(tipoNom(p.tipoDecl)) + ' (declarado)</span></h2>' + cabecera2(p);
+  var malos = (p.revisionBrief || []).filter(function (r) { return !r.ok; });
+  if (malos.length && p.etapa === 'idear') html += '<p class="ayuda"><b>Revisión del brief:</b> ' + malos.map(function (r) { return esc(r.texto); }).join(' ') + '</p>';
+  html += '<div class="tarea"><p class="lbl">Tarea de este trimestre · ' + (p.etapa === 'idear' ? 'Idear' : 'Evaluar') + '</p>' + (p.etapa === 'idear' ? tareaIdear(p) : tareaEvaluar(p)) +
+    chkB('proyectos.' + p.id + '.acelerar', '<b>Acelerar esta fase</b> (+50 % de costo y semanas; ' + (p.etapa === 'idear' ? 'el comité elegirá directamente el concepto con mejor resultado del test, sin matriz de Pugh' : 'pueden iniciar el prototipo en este mismo trimestre') + ')', 'data-rerender="1"') + '</div>';
+  return html + fichaCompleta2(p) + '</div>';
+}
+
+// ----- Idear -----
+function tareaIdear(p) {
+  var pid = p.id, a = D.proyectos[pid], tab = TABP[pid] || 'mis';
+  var tabs = [['mis', '1. Mis ideas (individual)'], ['voto', '2. Votar en equipo'], ['fichas', '3. Fichas de concepto'], ['afuera', 'Ideas de afuera']];
+  var html = '<div class="inline">' + tabs.map(function (x) { return '<button class="btn ' + (tab === x[0] ? '' : 'sec') + '" onclick="TABP[\'' + pid + '\']=\'' + x[0] + '\';render()">' + x[1] + '</button>'; }).join('') + '</div>';
+  if (tab === 'mis') html += tabMisIdeas(p, a);
+  if (tab === 'voto') html += tabVoto(p, a);
+  if (tab === 'fichas') html += tabFichas(p, a);
+  if (tab === 'afuera') html += tabAfuera(p, a);
+  return html;
+}
+function tabMisIdeas(p, a) {
+  var pid = p.id, T = V.cat.tecnicas, reg = MIREG_(), base = 'proyectos.' + pid + '.ind.' + reg + '.';
+  var html = '<label>Técnica del equipo</label>' + sel('proyectos.' + pid + '.tecnica', [['', 'Elijan una técnica…']].concat(Object.keys(T).map(function (k) { return [k, T[k].nombre + ' · ' + T[k].sem + (T[k].sem === 1 ? ' semana' : ' semanas')]; })), 'data-rerender="1"');
+  if (!a.tecnica) return html + ayuda('SCAMPER ajusta con proyectos rutinarios; el análisis morfológico, con proyectos radicales o arquitectónicos; la flor de loto, con cualquier proyecto que tenga un reto bien escrito. Las ideas propias no cuestan dinero, solo semanas del equipo.', 5, 'SCAMPER');
+  html += '<p class="muted">' + esc(T[a.tecnica].desc) + ' Sus compañeros no verán sus ideas hasta que el equipo abra la votación. Aportaron: ' + (a._nAutores || 0) + ' integrantes.</p>';
+  if (a.tecnica === 'scamper') html += '<div class="grid g2">' + V.cat.scamper.map(function (s) { return '<div><label><b>' + s[0] + '</b> ' + esc(s[1]) + ' <span class="muted">· ' + esc(s[2]) + '</span></label>' + txtA(base + 'campos.' + s[0], 'Escriban una idea…') + '</div>'; }).join('') + '</div>';
+  if (a.tecnica === 'flor') html += '<p><b>Centro:</b> ' + esc(p.reto) + '</p><h3>Ocho temas alrededor del reto</h3><div class="grid g4">' + [0, 1, 2, 3, 4, 5, 6, 7].map(function (i) { return inp(base + 'temas.' + i, 'text', 'placeholder="Tema ' + (i + 1) + '"'); }).join('') + '</div><h3>Ideas (mínimo 6)</h3><div class="grid g2">' + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(function (i) { return inp(base + 'ideas.' + i, 'text', 'placeholder="Idea ' + (i + 1) + '"'); }).join('') + '</div>';
+  if (a.tecnica === 'morfo') {
+    var mi = a.ind[reg];
+    html += '<h3>Parámetros y opciones</h3><div class="scroll"><table><tr><th>Parámetro</th><th>Opción 1</th><th>Opción 2</th><th>Opción 3</th></tr>' + V.cat.morfoParams.map(function (n, i) { return '<tr><td>' + esc(n) + '</td>' + [0, 1, 2].map(function (j) { return '<td>' + inp(base + 'params.' + i + '.' + j, 'text', 'data-rerender="1"') + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>' +
+      '<h3>Tres combinaciones (una opción por parámetro)</h3><div class="scroll"><table><tr><th>Parámetro</th><th>Combinación 1</th><th>Combinación 2</th><th>Combinación 3</th></tr>' + V.cat.morfoParams.map(function (n, i) { return '<tr><td>' + esc(n) + '</td>' + [0, 1, 2].map(function (c) { return '<td>' + sel(base + 'combos.' + c + '.' + i, [['', '—']].concat([0, 1, 2].map(function (j) { return [String(j), (mi.params[i] && mi.params[i][j]) || ('Opción ' + (j + 1))]; }))) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>';
+  }
+  var n = contarMias(a);
+  html += '<p class="' + (n >= ({ scamper: 4, flor: 6, morfo: 2 }[a.tecnica]) ? 'okc' : 'muted') + '">Ustedes llevan ' + n + ' ideas (mínimo ' + ({ scamper: 4, flor: 6, morfo: 2 }[a.tecnica]) + ' para contar como participación). Guarden el borrador para que queden registradas.</p>';
+  return html;
+}
+function contarMias(a) {
+  var e = (a.ind || {})[MIREG_()] || {};
+  if (a.tecnica === 'scamper') return Object.keys(e.campos || {}).filter(function (k) { return String(e.campos[k] || '').trim(); }).length;
+  if (a.tecnica === 'flor') return (e.ideas || []).filter(function (x) { return String(x || '').trim(); }).length;
+  if (a.tecnica === 'morfo') return (e.combos || []).filter(function (c) { return c && c.every(function (x, i) { return x !== '' && e.params[i] && String(e.params[i][Number(x)] || '').trim(); }); }).length;
+  return 0;
+}
+function abrirVotacion(pid) { D.proyectos[pid].abrirVoto = true; TABP[pid] = 'voto'; call('apiGuardar', TOK, decisionLimpia(), false).then(function () { aviso('Votación abierta. Cada integrante reparte 3 votos.'); cargar(); }).catch(function (e) { aviso(e, 'err'); }); }
+function votar(pid, key, n) {
+  var v = D.proyectos[pid].votos[MIREG_()], tot = Object.keys(v).reduce(function (s, k) { return s + (k === key ? 0 : Number(v[k]) || 0); }, 0);
+  var nv = (Number(v[key]) || 0) === n ? n - 1 : n;
+  if (tot + nv > 3) { aviso('Cada integrante tiene 3 votos.', 'err'); return; }
+  if (nv <= 0) delete v[key]; else v[key] = nv; render();
+}
+function tabVoto(p, a) {
+  var pid = p.id;
+  if (!a.abrirVoto) return '<p>Cuando todos hayan escrito sus ideas, abran la votación. Las ideas se mostrarán mezcladas y sin autor, para juzgar la idea y no a la persona.</p><button class="btn" onclick="abrirVotacion(\'' + pid + '\')">Abrir la votación</button>';
+  var L = a._ideas || [], v = a.votos[MIREG_()] || {}, tot = a._votosTot || {}, usados = Object.keys(v).reduce(function (s, k) { return s + (Number(v[k]) || 0); }, 0);
+  if (!L.length) return '<p class="muted">Todavía no hay ideas registradas. Escriban sus ideas en “Mis ideas”, guarden y actualicen.</p>';
+  var html = '<p class="muted">Le quedan ' + (3 - usados) + ' de 3 votos. Votaron ' + (a._nVot || 0) + ' integrantes (los totales se actualizan al guardar y presionar Actualizar).</p><div class="scroll"><table><tr><th>Idea</th><th>Mis votos</th><th class="n">Total del equipo</th></tr>' +
+    L.slice().sort(function (x, y) { return (tot[y.key] || 0) - (tot[x.key] || 0); }).map(function (it) {
+      return '<tr><td>' + esc(it.texto) + '</td><td class="nowrap">' + [1, 2, 3].map(function (n) { return '<button class="dot' + ((Number(v[it.key]) || 0) >= n ? ' on' : '') + '" aria-label="Voto ' + n + '" onclick="votar(\'' + pid + '\',\'' + it.key + '\',' + n + ')">' + ((Number(v[it.key]) || 0) >= n ? '●' : '○') + '</button>'; }).join('') + '</td><td class="n">' + (tot[it.key] || 0) + '</td></tr>';
+    }).join('') + '</table></div><p class="muted">Las 3 ideas con más votos se pueden pasar a fichas de concepto en la pestaña 3.</p>';
+  return html;
+}
+function usarIdea(pid, i, texto, externa) { var f = D.proyectos[pid].fichas[i]; f.nombre = texto.slice(0, 80); f.externa = externa || ''; TABP[pid] = 'fichas'; render(); }
+function tabFichas(p, a) {
+  var pid = p.id, html = '';
+  var top = (a._ideas || []).slice().sort(function (x, y) { return ((a._votosTot || {})[y.key] || 0) - ((a._votosTot || {})[x.key] || 0); }).slice(0, 3);
+  if (top.length) html += '<p><b>Ideas más votadas:</b> ' + top.map(function (it, i) { return '<a href="#" onclick="usarIdea(\'' + pid + '\',' + i + ',' + esc(JSON.stringify(it.texto)) + ');return false">' + esc(it.texto) + '</a>'; }).join(' · ') + '</p>';
+  html += ayuda('Una ficha de concepto describe qué es, para quién y por qué es mejor, en el formato de Moore (1991). Repartan 10 puntos entre lo que su concepto mejora: más puntos en un atributo lo hacen más difícil y caro de lograr.', 5, 'Ficha de concepto');
+  [0, 1, 2].forEach(function (i) {
+    var f = a.fichas[i], b = 'proyectos.' + pid + '.fichas.' + i + '.', s = sumaP(f.pts);
+    html += '<div class="box"><h3>Ficha ' + (i + 1) + (f.externa ? ' <span class="tag">propuesta externa ' + esc(f.externa) + '</span>' : '') + '</h3>' +
+      '<div class="grid g2"><div><label>Nombre</label>' + inp(b + 'nombre') + '</div><div><label>Precio objetivo (Bs por porción; su producto actual: ' + Number(V.estado.productos[0].precio).toFixed(2) + ')</label>' + inp(b + 'precioObj', 'number', 'step=0.1 min=0.5') + '</div></div>' +
+      '<label>Concepto en una frase: Para [quién] que [necesidad], [producto] es [qué] que [beneficio], a diferencia de [alternativa]</label>' + txtA(b + 'frase', 'Para universitarios que desayunan camino a clases, …') +
+      '<label>Qué mejora: repartan 10 puntos</label><div class="grid g6">' + PTSK.map(function (k) { return '<div><label class="muted">' + esc(V.cat.ptsNom[k]) + '</label>' + inp(b + 'pts.' + k, 'number', 'min=0 max=10 data-rerender="1"') + '</div>'; }).join('') + '</div>' +
+      '<p class="' + (s === 10 || !f.nombre ? 'muted' : 'err') + '">' + s + ' de 10 puntos' + (s !== 10 && f.nombre ? ': deben ser exactamente 10.' : '') + '</p>' +
+      '<div class="grid g4"><div><label>¿Tecnología nueva?</label>' + sel(b + 'tec', [['no', 'No'], ['si', 'Sí']]) + '</div><div><label>¿Cambia cómo vendemos o cobramos?</label>' + sel(b + 'mod', [['no', 'No'], ['si', 'Sí']]) + '</div><div><label>Tipo en las 4P</label>' + sel(b + 'tipo4p', ['Producto', 'Proceso', 'Posición', 'Paradigma'].map(function (x) { return [x, x]; })) + '</div><div>' + chkB(b + 'test', 'Enviar al test de concepto (' + bs(V.cat.general.costoTestConcepto) + ')') + '</div></div></div>';
+  });
+  html += chkB('proyectos.' + pid + '.cerrarIdear', 'Pasar a Evaluar al procesar el trimestre aunque no hagan el test de concepto') +
+    '<p class="muted">Al procesar reciben una devolución escrita de cada ficha. Las fichas enviadas al test pasan a Evaluar con su informe.</p>';
+  return html;
+}
+function tabAfuera(p, a) {
+  var pid = p.id, F = V.cat.fuentesExt, b = 'proyectos.' + pid + '.ext.';
+  var html = ayuda('Innovación abierta (Chesbrough, 2003): las propuestas llegan escritas al procesar el trimestre; si una les sirve, la pasan a ficha. En los concursos, un premio medio suele dar mejores resultados que uno alto.', 5, 'abierta') +
+    '<div class="grid g3">' + Object.keys(F).map(function (k) {
+      var x = F[k], costo = x.costo + (x.premios ? x.premios[(a.ext && a.ext.premio) || 'medio'].extra : 0);
+      return '<div class="box">' + chkB(b + k, '<b>' + esc(x.nombre) + '</b> · ' + bs(costo) + ' · ' + x.sem + ' semanas') + '<p class="muted">' + esc(x.desc) + '</p>' + (x.premios ? '<label>Premio</label>' + sel(b + 'premio', [['bajo', 'Bajo'], ['medio', 'Medio'], ['alto', 'Alto']], 'data-rerender="1"') : '') + '</div>';
+    }).join('') + '</div>';
+  if (p.externas && p.externas.length) {
+    html += '<h3>Propuestas recibidas</h3><div class="scroll"><table><tr><th>Propuesta</th><th>Quién la propone</th><th>Tipo (4P)</th><th class="n">Novedad</th><th class="n">Calidad estimada</th><th></th></tr>' + p.externas.map(function (x) {
+      var libre = a.fichas.map(function (f) { return !f.nombre; }).indexOf(true);
+      return '<tr><td>' + esc(x.texto) + '</td><td class="muted">' + esc(x.autor) + ' · ' + esc(x.fuente) + '</td><td>' + esc(x.tipo4p) + '</td><td class="n">' + x.nov + '/5</td><td class="n">' + Number(x.qObs).toFixed(1) + ' ±1,5</td><td>' + (libre >= 0 ? '<a href="#" onclick="usarIdea(\'' + pid + '\',' + libre + ',' + esc(JSON.stringify(x.texto)) + ',\'' + x.id + '\');return false">Pasar a ficha</a>' : '') + '</td></tr>';
+    }).join('') + '</table></div>';
+  }
+  return html;
+}
+
+// ----- Evaluar -----
+function svgVW(vw, precio) {
+  var W = 360, H = 190, x0 = 34, x1 = 350, y0 = 10, y1 = 160, n = vw.precios.length, pmin = vw.precios[0], pmax = vw.precios[n - 1];
+  var sx = function (p) { return x0 + (x1 - x0) * (p - pmin) / (pmax - pmin); }, sy = function (v) { return y1 - (y1 - y0) * v / 100; };
+  var S = [['muyBarato', '#7A3FA0', 'Muy barato'], ['barato', '#2F5496', 'Barato'], ['caro', '#B4531E', 'Caro'], ['muyCaro', '#B42318', 'Muy caro']];
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="max-width:420px" role="img" aria-label="Medidor de precios de Van Westendorp">';
+  [0, 50, 100].forEach(function (v) { s += '<line x1="' + x0 + '" x2="' + x1 + '" y1="' + sy(v) + '" y2="' + sy(v) + '" stroke="#D0D7E2"/><text x="' + (x0 - 4) + '" y="' + (sy(v) + 3) + '" text-anchor="end" font-size="9" fill="#5b6577">' + v + '%</text>'; });
+  s += '<rect x="' + sx(vw.pmc) + '" y="' + y0 + '" width="' + Math.max(1, sx(vw.pme) - sx(vw.pmc)) + '" height="' + (y1 - y0) + '" fill="#1E7B46" fill-opacity=".1"/>';
+  S.forEach(function (c) { s += '<polyline fill="none" stroke="' + c[1] + '" stroke-width="2" points="' + vw.precios.map(function (p, i) { return sx(p) + ',' + sy(vw[c[0]][i]); }).join(' ') + '"/>'; });
+  if (precio) s += '<line x1="' + sx(precio) + '" x2="' + sx(precio) + '" y1="' + y0 + '" y2="' + y1 + '" stroke="#1d2433" stroke-dasharray="3 3"/>';
+  [0, Math.floor(n / 2), n - 1].forEach(function (i) { s += '<text x="' + sx(vw.precios[i]) + '" y="' + (y1 + 14) + '" text-anchor="middle" font-size="9" fill="#5b6577">Bs ' + vw.precios[i].toFixed(2) + '</text>'; });
+  s += '</svg><p class="leyenda muted">' + S.map(function (c) { return '<span style="color:' + c[1] + '">■</span> ' + c[2]; }).join(' · ') + ' · zona verde: rango aceptable · línea punteada: su precio objetivo</p>';
+  return s;
+}
+function bloqueTest(f) {
+  var T = f.test;
+  if (!T) return '<p class="muted">Sin test de concepto: calidad estimada ' + Number(f.qObs).toFixed(1) + ' ±' + String(f.margen).replace('.', ',') + '.</p>';
+  return '<div class="grid g2"><div><p><b>Intención de compra declarada: ' + T.intencion + ' %</b> <span class="muted">(seguro o probablemente la comprarían; está inflada: la compra real suele ser menor)</span></p>' +
+    '<p><b>Rango de precio aceptable:</b> Bs ' + T.vw.pmc.toFixed(2) + ' a Bs ' + T.vw.pme.toFixed(2) + ' por porción · su precio: Bs ' + Number(T.precioObj).toFixed(2) + '</p>' + svgVW(T.vw, T.precioObj) +
+    '<p><b>Calidad corregida:</b> ' + Number(T.qCorr).toFixed(1) + ' ±' + String(T.margen).replace('.', ',') + '</p></div>' +
+    '<div><h3>Clasificación de Kano para el segmento</h3><table>' + PTSK.map(function (k) { return '<tr><td>' + esc(V.cat.ptsNom[k]) + '</td><td>' + esc(V.cat.kanoNom[T.kano[k]] || '') + '</td><td class="n">' + (f.pts[k] || 0) + ' pts</td></tr>'; }).join('') + '</table>' +
+    '<h3>Lo que dijeron los clientes</h3>' + T.frases.map(function (x) { return '<p class="cita">' + esc(x) + '</p>'; }).join('') + '</div></div>';
+}
+function tareaEvaluar(p) {
+  var pid = p.id, a = D.proyectos[pid], F = p.fichas || [];
+  var html = ayuda('Comparen cada concepto con su producto actual criterio por criterio: +1 si es mejor, 0 si es igual, −1 si es peor (Pugh, 1991). Lean antes el test de concepto: la matriz se llena con datos, no con gustos.', 5, 'Pugh');
+  F.forEach(function (f) { html += '<div class="box"><h3>' + esc(f.nombre) + (f.combinado ? ' <span class="tag">combinado</span>' : '') + '</h3><p class="muted">' + esc(f.frase || '') + '</p>' + bloqueTest(f) + '</div>'; });
+  html += '<h3>Matriz de Pugh · referencia: su producto actual</h3><div class="scroll"><table><tr><th>Criterio</th><th class="n">Referencia</th>' + F.map(function (f) { return '<th class="n">' + esc(f.nombre) + '</th>'; }).join('') + '</tr>' +
+    CRIT_PUGH.map(function (c) { return '<tr><td>' + c[1] + '</td><td class="n">0</td>' + F.map(function (f) { return '<td class="n">' + sel('proyectos.' + pid + '.pugh.' + f.id + '.' + c[0], [['0', '0'], ['1', '+1'], ['-1', '−1']], 'data-rerender="1"') + '</td>'; }).join('') + '</tr>'; }).join('');
+  var sumas = F.map(function (f) { var m = (a.pugh || {})[f.id] || {}, mas = 0, men = 0; CRIT_PUGH.forEach(function (c) { var v = Number(m[c[0]]) || 0; if (v > 0) mas++; if (v < 0) men++; }); return { mas: mas, men: men, s: mas - men }; });
+  html += '<tr><td>Cantidad de +1 / −1</td><td></td>' + sumas.map(function (x) { return '<td class="n">' + x.mas + ' / ' + x.men + '</td>'; }).join('') + '</tr><tr><th>Suma</th><td class="n">0</td>' + sumas.map(function (x) { return '<th class="n">' + (x.s > 0 ? '+' : '') + x.s + '</th>'; }).join('') + '</tr></table></div>';
+  var avs = avisosPugh(p, a); if (avs.length) html += '<ul class="fb">' + avs.map(function (x) { return '<li><span class="tag aviso">revisar</span> ' + esc(x) + '</li>'; }).join('') + '</ul>';
+  html += '<label>Por qué eligen este concepto (citen un dato del test)</label>' + txtA('proyectos.' + pid + '.justificacion', 'Ejemplo: elegimos el concepto 1 porque gana la matriz con +3 y el test mostró 64 % de intención con un precio dentro del rango aceptable.') +
+    '<label>Elegir</label>' + F.map(function (f) { return '<label class="chk"><input type="radio" name="el_' + pid + '" data-p="proyectos.' + pid + '.elegir" value="' + f.id + '"' + (a.elegir === f.id ? ' checked' : '') + '><span>' + esc(f.nombre) + '</span></label>'; }).join('') +
+    (F.length >= 2 ? '<label class="chk"><input type="radio" name="el_' + pid + '" data-p="proyectos.' + pid + '.elegir" value="COMB"' + (a.elegir === 'COMB' ? ' checked' : '') + ' data-rerender="1"><span>Combinar dos conceptos (suma sus puntos fuertes y exige una iteración más de prototipo)</span></label>' : '') +
+    (a.elegir === 'COMB' ? '<div class="grid g2">' + [0, 1].map(function (i) { return sel('proyectos.' + pid + '.combinar.' + i, [['', 'Elegir concepto…']].concat(F.map(function (f) { return [f.id, f.nombre]; }))); }).join('') + '</div>' : '') +
+    '<label class="chk"><input type="radio" name="el_' + pid + '" data-p="proyectos.' + pid + '.elegir" value=""' + (!a.elegir ? ' checked' : '') + '><span>Todavía no elegir</span></label>' +
+    chkB('proyectos.' + pid + '.volverIdear', 'Ninguno convence: volver a Idear') +
+    (a.acelerar ? '<h3>Prototipo en este mismo trimestre (acelerado)</h3>' + protoForm(pid, true) : '');
+  return html;
+}
+function avisosPugh(p, a) {
+  var out = [], F = p.fichas || [], conT = F.filter(function (f) { return f.test; });
+  if (!conT.length) return out;
+  var minInt = Math.min.apply(null, conT.map(function (f) { return f.test.intencion; }));
+  F.forEach(function (f) {
+    var m = (a.pugh || {})[f.id] || {};
+    if (f.test && Number(m.ajuste) > 0 && f.test.intencion === minInt && conT.length > 1) out.push('Marcaron +1 en ajuste con el cliente a “' + f.nombre + '”, pero tiene la intención de compra más baja del test.');
+    if (f.test && Number(m.ajuste) > 0 && PTSK.some(function (k) { return f.test.kano[k] === 'basico' && !(f.pts[k] > 0); })) out.push('“' + f.nombre + '” no atiende un atributo básico para el segmento según Kano: revisen el +1 en ajuste.');
+    if (Number(m.viab) > 0 && f.tec === true) out.push('Marcaron +1 en viabilidad técnica a “' + f.nombre + '”, pero su ficha dice que necesita tecnología que no tienen.');
+    if (f.test && Number(m.costo) > 0 && f.test.precioObj > f.test.vw.pme) out.push('“' + f.nombre + '” tiene un precio objetivo por encima del rango aceptable: revisen el +1 en costo.');
+  });
+  return out;
+}
+
+// ----- ficha completa (solo lectura) -----
+function fichaCompleta2(p) {
+  var b = p.brief || {}, html = '<details><summary>Ver ficha completa</summary><div class="hist">';
+  html += '<div><b>DEFINIR · BRIEF</b><p>Cuando ' + esc(b.cuando || '…') + ', quiero ' + esc(b.quiero || '…') + ', para ' + esc(b.para || '…') + '.</p><p>Criterio de éxito: ' + esc(b.criterio || '—') + '</p>' + (b.frase ? '<p class="cita">' + esc(b.frase) + '</p>' : '') +
+    '<p>Tipo declarado: ' + esc(tipoNom(p.tipoDecl)) + ' · portafolio: ' + esc(V.cat.portafolioNom[p.portafolio] || '') + '</p><ul class="fb">' + (p.revisionBrief || []).map(function (r) { return '<li>' + (r.ok ? '<span class="tag ok">bien</span> ' : '<span class="tag aviso">mejorar</span> ') + esc(r.texto) + '</li>'; }).join('') + '</ul></div>';
+  if (p.nIdeas || (p.externas || []).length) html += '<div><b>IDEAR</b><p>' + (p.tecnica ? esc(V.cat.tecnicas[p.tecnica].nombre) + ': ' + p.nIdeas + ' ideas del equipo. ' : '') + (p.externas || []).length + ' propuestas externas.</p></div>';
+  (p.fichas || []).forEach(function (f) { html += '<div><b>FICHA · ' + esc(f.nombre) + '</b> <span class="muted">T' + f.t + ' · ' + esc(f.origen) + '</span><p class="muted">' + esc(f.frase || '') + '</p><p>' + PTSK.map(function (k) { return esc(V.cat.ptsNom[k]) + ' ' + (f.pts[k] || 0); }).join(' · ') + '</p><ul class="fb">' + (f.devolucion || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' + (f.test ? '<p>Test: intención declarada ' + f.test.intencion + ' %, rango Bs ' + f.test.vw.pmc.toFixed(2) + '–' + f.test.vw.pme.toFixed(2) + ', calidad corregida ' + Number(f.test.qCorr).toFixed(1) + '.</p>' : '') + '</div>'; });
+  if (p.comparacionTipo) html += '<div><b>EVALUAR · ELECCIÓN</b><p>' + esc(p.comparacionTipo) + '</p>' + (p.justificacion ? '<p class="cita">' + esc(p.justificacion) + '</p>' : '') + '</div>';
+  (p.historial || []).forEach(function (h) { html += '<div><b>T' + h.t + ' · ' + esc(h.fase.toUpperCase()) + '</b><p>' + esc(h.texto) + '</p></div>'; });
+  return html + '</div></details>';
+}
+
+// ---------- Etapa 3: Prototipar, Especificar y Puerta, Piloto, Lanzar, Revisión (v2.0) ----------
+function P3_c() { return V.cat.p3; }
+function P3_bs2(x) { return 'Bs ' + Number(x || 0).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function P3_n(x) { return Math.round(Number(x) || 0).toLocaleString('es-BO'); }
+function P3_porc(p) { var c = P3_c(), t = (p.protoCar || {}).tamano || '330'; return (c.tam[t] || c.tam['330']).porc; }
+function P3_borrador(p, a) {
+  if (p.etapa === 'prototipar') {
+    var V0 = (p.proto && p.proto.versiones) || [], u = V0[V0.length - 1], car = (u && u.car) || {};
+    a.proto = a.proto || { supuesto: 'uso', pregunta: '', formato: 'maqueta', apertura: car.apertura || 'rosca', senal: car.senal || 'nada', tamano: car.tamano || '330', recierre: car.recierre || 'no', desc: '', foto: '', n: 8, lugar: 'En su casa', siguiente: 'probar' };
+  }
+  if (p.etapa === 'especificar') {
+    var e = a.esp = a.esp || {};
+    ['envase', 'base', 'azucar', 'conserv', 'etiqueta', 'prod'].forEach(function (k) { if (!e[k]) e[k] = P3_c().ficha[k].ops[0][0]; });
+    if (e.precioU === undefined) e.precioU = p.vw ? Math.round(p.vw.pme * P3_porc(p) * 0.9 * 10) / 10 : '';
+    if (e.volumen === undefined) e.volumen = p.ref ? p.ref.med : '';
+    if (e.publicidad === undefined) e.publicidad = 20000;
+    e.lienzo = e.lienzo || { soc: ['Distribuidor mayorista'], act: ['Producir', 'Distribuir a tiendas'], rec: ['Planta y línea actual', 'Marca de la empresa'], rel: 'auto', can: ['tienda', 'super'] };
+    if (!Array.isArray(e.causas)) e.causas = [];
+  }
+  if (p.etapa === 'piloto' && p.esp) {
+    var b = a.pil = a.pil || {};
+    b.puntos = b.puntos || {}; (p.esp.lienzo.can || []).forEach(function (c) { if (b.puntos[c] === undefined) b.puntos[c] = 10; });
+    if (b.precioU === undefined) b.precioU = p.esp.caso.precioU; if (b.apoyo === undefined) b.apoyo = 1;
+    if (b.producir === undefined) b.producir = ''; if (b.pronostico === undefined) b.pronostico = ''; if (b.limite === undefined) b.limite = 30;
+  }
+  if (p.etapa === 'lanzar' && p.esp) {
+    var L = a.lan = a.lan || {};
+    if (L.nombre === undefined) L.nombre = p.nombre; if (L.precioU === undefined) L.precioU = p.pil ? p.pil.precioU : p.esp.caso.precioU;
+    if (L.publicidad === undefined) L.publicidad = 25000; if (!L.segPub) L.segPub = p.segmento; if (!Array.isArray(L.canales)) L.canales = (p.esp.lienzo.can || []).slice();
+  }
+}
+function P3_tarjeta(p) {
+  var pid = p.id, a = D.proyectos[pid] || {}, html = '<div class="card proj"><h2>' + esc(p.lan ? p.lan.nombre : p.nombre) + ' <span class="tag">' + esc(segNom(p.segmento)) + '</span> <span class="tag">' + esc(V.cat.portafolioNom[p.portafolio] || '') + '</span> <span class="tag">' + esc(tipoNom(p.tipoReal || p.tipoDecl)) + (p.tipoReal ? ' (tipo real)' : '') + '</span></h2>' + cabecera2(p);
+  if (p.concepto) html += '<p><b>Concepto:</b> ' + esc(p.concepto.nombre) + (p.concepto.desc ? ' · <span class="muted">' + esc(p.concepto.desc) + '</span>' : '') + '</p>';
+  if (p.estado === 'activo') {
+    var et = { prototipar: 'Prototipar', especificar: 'Especificar y presentarse a la Puerta', piloto: 'Piloto (prueba de mercado)', lanzar: 'Lanzar' }[p.etapa];
+    html += '<div class="tarea"><p class="lbl">Tarea de este trimestre · ' + et + '</p>' + ({ prototipar: P3_tProto, especificar: P3_tEsp, piloto: P3_tPil, lanzar: P3_tLan }[p.etapa])(p, a);
+    if (p.etapa !== 'lanzar') html += chkB('proyectos.' + pid + '.acelerar', '<b>Acelerar esta fase</b> (+50 % de costo y semanas; ' + (p.etapa === 'prototipar' ? 'la versión rinde menos, pero si confirma el supuesto pasan a Especificar en el mismo trimestre' : 'se gana tiempo, pero se aprende menos') + ')', 'data-rerender="1"');
+    html += chkB('proyectos.' + pid + '.detener', 'Detener el proyecto (las semanas se liberan; lo invertido no se recupera)') + '</div>';
+  } else html += P3_tLanzado(p, a);
+  html += P3_historial(p);
+  return html + fichaCompleta2(p) + '</div>';
+}
+// ----- Prototipar -----
+function P3_tProto(p, a) {
+  var pid = p.id, c = P3_c(), base = 'proyectos.' + pid + '.proto.', v = a.proto || {}, V0 = (p.proto && p.proto.versiones) || [], u = V0[V0.length - 1], html = '';
+  html += ayuda('Prototipar es dar forma a su idea para aprender cómo la usa el cliente (Brown, 2019). Ustedes diseñan el prototipo; el simulador lo pone en manos de clientes simulados de ' + esc(p.segmento) + ' y les devuelve lo que hicieron y dijeron. Su tipo de innovación exige al menos ' + (p.iterMin || 1) + (p.iterMin > 1 ? ' versiones' : ' versión') + ' que observen el uso (llevan ' + (p.iter || 0) + ').', 5, 'Prototipo');
+  if (u) html += P3_infProto(u, true) + '<label>Qué aprendimos con la versión ' + u.v + ' y qué cambiamos</label>' + txtA('proyectos.' + pid + '.aprendizaje', 'Ejemplo: 7 de 8 lo abrieron solos, pero 3 no encontraron la pestaña. Cambiamos a pestaña de color con flecha.');
+  html += '<label>Siguiente paso</label>' + sel(base + 'siguiente', [['probar', u ? 'Iterar: probar una nueva versión' : 'Probar la primera versión'], ['avanzar', 'Avanzar a Especificar y Puerta'], ['volver', 'Volver a Evaluar (la idea no funciona)']], 'data-rerender="1"');
+  if (v.siguiente === 'avanzar' || v.siguiente === 'volver') return html;
+  html += '<h3>1. Qué queremos aprender</h3><label>El supuesto más riesgoso</label>' + sel(base + 'supuesto', Object.keys(c.sup).map(function (k) { return [k, c.sup[k]]; }), 'data-rerender="1"') +
+    '<label>La pregunta que el prototipo debe responder</label>' + inp(base + 'pregunta', 'text', 'placeholder="¿Pueden abrirlo con una mano y sin explicación, en menos de 30 segundos?"');
+  html += '<h3>2. Diseñar el prototipo</h3><label>Formato (decide qué puede observar el simulador)</label>' + sel(base + 'formato', Object.keys(c.fmt).map(function (k) { return [k, c.fmt[k].nom + ' · ' + c.fmt[k].desc]; }), 'data-rerender="1"');
+  var fm = c.fmt[v.formato || 'maqueta'];
+  if (fm && fm.obs.indexOf(v.supuesto || 'uso') < 0) html += '<p class="msg err">Con ' + esc(fm.nom.toLowerCase()) + ' los clientes no pueden comprobar ese supuesto: la versión solo traerá opiniones y no mejorará el producto.</p>';
+  html += '<div class="grid g2">' + Object.keys(c.car).map(function (k) { return '<div><label>' + esc(c.car[k].nom) + '</label>' + sel(base + k, c.car[k].ops.map(function (o) { return [o[0], o[1]]; })) + '</div>'; }).join('') + '</div>' +
+    '<label>Describan su prototipo en dos líneas</label>' + txtA(base + 'desc', 'Botella de 330 ml con tapa que se levanta con un dedo y rompe el sello sin girar.') +
+    '<label>Enlace a una foto del prototipo que construyeron en clase (opcional)</label>' + inp(base + 'foto', 'text', 'placeholder="https://drive.google.com/…"');
+  html += '<h3>3. Prueba con clientes simulados</h3><div class="grid g2"><div><label>Con cuántas personas</label>' + sel(base + 'n', [['5', '5 personas · Bs 6.000 · 1 semana'], ['8', '8 personas · Bs 8.000 · 1 semana'], ['12', '12 personas · Bs 11.000 · 2 semanas']]) + '</div><div><label>Dónde</label>' + sel(base + 'lugar', [['En su casa', 'En su casa (uso real)'], ['En el lugar donde lo consumiría', 'En el lugar donde lo consumiría'], ['En la tienda', 'En la tienda']]) + '</div></div>' +
+    ayuda('Con pocas personas aparecen la mayoría de los problemas de uso, pero el resultado varía de una prueba a otra (Nielsen y Landauer, 1993). Más personas dan más ideas nuevas.');
+  return html;
+}
+function P3_infProto(u, abierto) {
+  var c = P3_c(), L = { solo: '<span class="tag ok">Solo</span>', ayuda: '<span class="tag aviso">Con ayuda</span>', no: '<span class="tag mal">No pudo</span>', '—': '—' };
+  var h = '<details' + (abierto ? ' open' : '') + '><summary><b>Informe de prueba · versión ' + u.v + ' · T' + u.t + '</b> · ' + esc(c.fmt[u.formato].nom) + ' · ' + u.n + ' personas</summary><div class="informe">';
+  h += '<p class="muted">Pregunta: ' + esc(u.pregunta) + ' · Supuesto: ' + esc(c.sup[u.supuesto]) + '</p>';
+  if (u.formato === 'maqueta') h += '<div class="grid g3"><div class="kpi"><div class="v">' + u.solos + ' de ' + u.n + '</div><div class="l">Lo lograron solos</div></div><div class="kpi"><div class="v">' + (u.ayuda + u.no) + ' de ' + u.n + '</div><div class="l">Con ayuda o no pudieron</div></div><div class="kpi"><div class="v">' + (u.mediana || '—') + ' s</div><div class="l">Tiempo mediano</div></div></div>';
+  h += '<div class="scroll"><table><tr><th>#</th><th>Quién</th><th>Resultado</th><th class="n">Seg.</th><th>Lo que hizo o dijo</th></tr>' + u.filas.map(function (f, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(f.quien) + '</td><td>' + L[f.res] + '</td><td class="n">' + (f.seg || '—') + '</td><td>' + esc(f.frase) + '</td></tr>'; }).join('') + '</table></div>';
+  h += '<p><b>Malla receptora de información</b></p><div class="grid g2">' + [['gusto', 'Lo que gustó'], ['criticas', 'Críticas'], ['preguntas', 'Preguntas'], ['ideas', 'Ideas nuevas']].map(function (q) { return '<div class="malla"><b>' + q[1] + '</b><ul>' + (u.malla[q[0]] || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>'; }).join('') + '</div>';
+  h += '<p class="' + (u.observable ? (u.confirma ? 'msg ok' : 'msg') : 'msg err') + '">' + esc(u.conclusion) + '</p>';
+  if (u.aprendizaje) h += '<p class="cita">Aprendizaje del equipo: ' + esc(u.aprendizaje) + '</p>';
+  return h + '</div></details>';
+}
+// ----- Especificar y Puerta -----
+function P3_ficha(p, e) {
+  var c = P3_c(), car = p.protoCar || { tamano: '330', apertura: 'rosca', senal: 'nada' }, porc = c.tam[car.tamano].porc, porU = 0, porP = 0;
+  Object.keys(c.ficha).forEach(function (k) { var o = c.ficha[k].ops.filter(function (x) { return x[0] === e[k]; })[0] || c.ficha[k].ops[0]; if (o[3] === 'u') porU += o[2]; else porP += o[2]; });
+  porU += (c.costoAp[car.apertura] || 0) + (c.costoSen[car.senal] || 0);
+  var cu = p.cuConcepto || 0;
+  var costoU = porU + (porP + cu) * porc;
+  return { porc: porc, tam: c.tam[car.tamano].nom, costoU: costoU, vida: e.conserv === 'uht' ? 90 : 12, capU: Math.round(c.cap[e.prod || 'linea'] / porc), inversion: e.prod === 'maquina' ? 60000 : 0 };
+}
+function P3_tEsp(p, a) {
+  var pid = p.id, c = P3_c(), base = 'proyectos.' + pid + '.esp.', e = a.esp || {}, F = P3_ficha(p, e), g = V.cat.general, html = '';
+  html += ayuda('Especificar es definir con precisión cómo se fabricará y cuánto costará (Ulrich y Eppinger, 2016). La Puerta es el comité que, con esa información, decide si se autoriza el piloto (Cooper, 1990). Al procesar, la planta piloto revela el costo real (Bs 8.000, 2 semanas).', 5, 'Stage');
+  if (p.acta) html += P3_acta(p.acta, true);
+  var car = p.protoCar || {};
+  html += '<h3>1. Lo que viene del prototipo</h3><p>' + esc(F.tam) + ' · ' + esc((c.car.apertura.ops.filter(function (o) { return o[0] === car.apertura; })[0] || [])[1] || '') + ' · ' + esc((c.car.senal.ops.filter(function (o) { return o[0] === car.senal; })[0] || [])[1] || '') + ' · ajuste del prototipo ' + Math.round((p.protoFit || 0) * 100) + ' %. Estas características quedan fijas.</p>';
+  html += '<h3>2. Ficha técnica</h3><div class="grid g3">' + Object.keys(c.ficha).map(function (k) { return '<div><label>' + esc(c.ficha[k].nom) + '</label>' + sel(base + k, c.ficha[k].ops.map(function (o) { return [o[0], o[1] + ' · ' + P3_bs2(o[3] === 'u' ? o[2] : o[2] * F.porc) + '/u']; }), 'data-rerender="1"') + '</div>'; }).join('') + '</div>';
+  html += '<div class="grid g3"><div class="kpi"><div class="v">' + P3_bs2(F.costoU) + '</div><div class="l">Costo estimado por unidad de ' + esc(F.tam) + ' (' + P3_bs2(F.costoU / F.porc) + ' por porción de 250 ml)</div></div><div class="kpi"><div class="v">' + F.vida + ' días</div><div class="l">Vida útil</div></div><div class="kpi"><div class="v">' + P3_n(F.capU) + '</div><div class="l">Unidades por trimestre que pueden producir</div></div></div>';
+  html += '<h3>3. Caso de negocio</h3><div class="grid g3"><div><label>Precio al público por unidad (Bs)</label>' + inp(base + 'precioU', 'number', 'step="0.1" min="0" data-rerender="1"') + (p.vw ? '<p class="muted">Van Westendorp: aceptable entre ' + P3_bs2(p.vw.pmc * F.porc) + ' y ' + P3_bs2(p.vw.pme * F.porc) + ' por unidad.</p>' : '') + '</div><div><label>Unidades que esperan vender por trimestre</label>' + inp(base + 'volumen', 'number', 'step="500" min="0" data-rerender="1"') + '</div><div><label>Publicidad por trimestre (Bs)</label>' + inp(base + 'publicidad', 'number', 'step="1000" min="0" data-rerender="1"') + '</div></div>';
+  if (p.ref) {
+    var R = p.ref, mx = Math.max(R.p90 * 1.4, Number(e.volumen) || 0, 1), pc = function (x) { return Math.min(100, 100 * x / mx); };
+    html += '<p><b>Clase de referencia:</b> primer trimestre de ' + R.n + ' lanzamientos' + (R.reales ? ' (' + R.reales + ' del curso)' : '') + ': mediana ' + P3_n(R.med) + ' unidades; 8 de cada 10 entre ' + P3_n(R.p10) + ' y ' + P3_n(R.p90) + '.</p><div class="refbar"><span class="rng" style="left:' + pc(R.p10) + '%;width:' + (pc(R.p90) - pc(R.p10)) + '%"></span><span class="med" style="left:' + pc(R.med) + '%"></span><span class="you" style="left:' + pc(Number(e.volumen) || 0) + '%" title="Su pronóstico"></span></div>' + (Number(e.volumen) > R.p90 ? '<p class="msg err">Su pronóstico es más optimista que 9 de cada 10 lanzamientos (Lovallo y Kahneman, 2003).</p>' : '');
+  }
+  var pr = Number(e.precioU) || 0, vol = Number(e.volumen) || 0, pub = Number(e.publicidad) || 0, mu = pr - F.costoU, ut = vol * mu - pub - (g.costoGestionProducto || 0), inv = (g.costoPiloto || 0) * (p.factPiloto || 1) + F.inversion + (g.costoLanzamiento || 0);
+  html += '<table><tr><td>Margen por unidad (precio − costo)</td><td class="n">' + P3_bs2(mu) + '</td></tr><tr><td>Utilidad por trimestre (volumen × margen − publicidad − gestión del producto ' + bs(g.costoGestionProducto) + ')</td><td class="n">' + bs(ut) + '</td></tr><tr><td>Inversión que falta (piloto, máquina si la eligen y lanzamiento; sin lo ya gastado)</td><td class="n">' + bs(inv) + '</td></tr><tr><td>Recuperación</td><td class="n">' + (ut > 0 ? (inv / ut).toFixed(1).replace('.', ',') + ' trimestres' : 'no se recupera') + '</td></tr></table>';
+  html += '<h3>4. Lienzo del modelo de negocio</h3>' + ayuda('Cómo este producto crea, entrega y cobra su valor (Osterwalder y Pigneur, 2010). El segmento, la propuesta de valor, los costos y los ingresos se llenan solos; ustedes eligen los otros cinco bloques. Si cambian la forma de vender o cobrar (app propia o suscripción), cambia el modelo de negocio y con él el tipo de innovación.', 4, 'Lienzo');
+  var lb = base + 'lienzo.', L = e.lienzo || {}, HOY = c.hoy;
+  function cambia(k, val) { var h = HOY[k]; if (Array.isArray(h)) { var x = val || []; return !(x.length === h.length && x.every(function (y) { return h.indexOf(y) >= 0; })); } return val !== h; }
+  function blk(k, tit, cuerpo, hoy) { return '<div class="blk' + (cambia(k, L[k]) ? ' chg' : '') + '"><b>' + tit + (cambia(k, L[k]) ? ' <span class="tag aviso">cambia</span>' : '') + '</b>' + cuerpo + '<span class="muted">Hoy: ' + esc(hoy) + '</span></div>'; }
+  html += '<div class="bmc">' +
+    blk('soc', 'Socios clave', c.lienzo.soc.map(function (o) { return chkA(lb + 'soc', o, esc(o)); }).join(''), HOY.soc.join(', ')) +
+    blk('act', 'Actividades clave', c.lienzo.act.map(function (o) { return chkA(lb + 'act', o, esc(o)); }).join(''), HOY.act.join(', ')) +
+    blk('rec', 'Recursos clave', c.lienzo.rec.map(function (o) { return chkA(lb + 'rec', o, esc(o)); }).join(''), HOY.rec.join(', ')) +
+    '<div class="blk"><b>Propuesta de valor</b><p>' + esc((p.concepto && p.concepto.desc) || (p.concepto && p.concepto.nombre) || '') + '</p></div>' +
+    blk('rel', 'Relación con el cliente', sel(lb + 'rel', Object.keys(c.lienzo.rel).map(function (k) { return [k, c.lienzo.rel[k]]; }), 'data-rerender="1"'), c.lienzo.rel.auto) +
+    blk('can', 'Canales', V.cat.canales.map(function (ch) { return chkA(lb + 'can', ch.id, esc(ch.nombre)); }).join(''), 'tiendas de barrio, supermercados') +
+    '<div class="blk"><b>Segmento</b><p>' + esc(segNom(p.segmento)) + '</p></div>' +
+    '<div class="blk"><b>Estructura de costos</b><p>' + P3_bs2(F.costoU) + ' por unidad · ' + esc((c.ficha.prod.ops.filter(function (o) { return o[0] === e.prod; })[0] || [])[1] || '') + ' · publicidad ' + bs(pub) + '</p></div>' +
+    '<div class="blk"><b>Fuentes de ingresos</b><p>' + (L.rel === 'sus' ? 'Suscripción semanal' : 'Venta por unidad') + ' a ' + P3_bs2(pr) + '</p></div></div>';
+  var mc = L.rel === 'sus' || (L.can || []).indexOf('app') >= 0;
+  html += '<p class="calc">' + (mc ? 'Cambia la forma de vender o de cobrar: <b>su modelo de negocio cambia</b> y el tipo de innovación será ' + (p.tipoReal === 'radical' || p.tipoReal === 'arquitectonica' ? 'arquitectónica' : 'disruptiva') + '.' : 'Los cambios quedan dentro del mismo modelo de venta: <b>el modelo de negocio no cambia</b>.') + '</p>';
+  html += '<h3>5. Pre-mortem</h3>' + ayuda('Imaginen que dentro de un año el producto fracasó. Elijan las 2 causas más probables y cómo las evitarían (Klein, 2007).') +
+    Object.keys(c.riesgos).map(function (k) { return chkA(base + 'causas', k, esc(c.riesgos[k]), 2); }).join('') + '<label>Cómo lo evitaríamos</label>' + txtA(base + 'mitig', 'Ejemplo: haremos el piloto en los canales que más usa el segmento y fijaremos el precio dentro del rango aceptable.');
+  html += chkB(base + 'volverProto', 'Volver a Prototipar en lugar de presentarse a la Puerta');
+  return html;
+}
+function P3_acta(A, abierto) {
+  var V0 = { pasa: ['ok', 'PASA AL PILOTO'], reiterar: ['aviso', 'REITERAR'], detener: ['mal', 'EL COMITÉ RECOMIENDA DETENER'] }[A.veredicto];
+  var h = '<details' + (abierto ? ' open' : '') + '><summary><b>Acta del comité · T' + A.t + '</b> · <span class="tag ' + V0[0] + '">' + V0[1] + '</span></summary><div class="informe">';
+  h += '<p>Planta piloto: costo real ' + P3_bs2(A.costoReal) + ' por unidad (estimado ' + P3_bs2(A.costoEst) + ').</p>';
+  h += '<table><tr><th>Criterio</th><th class="n">Puntaje</th><th>Por qué</th></tr>' + A.criterios.map(function (c) { return '<tr><td>' + esc(c[0]) + '</td><td class="n">' + Number(c[1]).toFixed(1) + '</td><td>' + esc(c[2]) + '</td></tr>'; }).join('') + '</table>';
+  h += '<p>Promedio <b>' + Number(A.promedio).toFixed(1) + '</b> frente al umbral de su Estrategia anual: <b>' + Number(A.umbral).toFixed(1) + '</b>.</p><ul class="fb">' + A.obs.map(function (o) { return '<li>' + esc(o) + '</li>'; }).join('') + '</ul>';
+  return h + '</div></details>';
+}
+// ----- Piloto -----
+function P3_tPil(p, a) {
+  var pid = p.id, c = P3_c(), base = 'proyectos.' + pid + '.pil.', b = a.pil || {}, E = p.esp, html = '';
+  html += ayuda('El piloto es una prueba de mercado: vender en pocos puntos durante un trimestre para medir con clientes reales cuánto se vende y, sobre todo, si vuelven a comprar (Kotler y Keller, 2016).', 6, 'Piloto');
+  if (p.acta) html += P3_acta(p.acta, false);
+  html += '<h3>1. Dónde y a qué precio</h3><div class="grid g3">' + (E.lienzo.can || []).map(function (ch) { return '<div><label>' + esc(canNom(ch)) + ' (puntos de venta)</label>' + inp(base + 'puntos.' + ch, 'number', 'min="0" max="60" data-rerender="1"') + '<p class="muted">' + bs(c.costoPunto[ch] || 500) + ' por punto</p></div>'; }).join('') + '</div>' +
+    '<div class="grid g2"><div><label>Precio de prueba por unidad (Bs)</label>' + inp(base + 'precioU', 'number', 'step="0.1"') + '</div><div><label>Apoyo en el punto de venta</label>' + sel(base + 'apoyo', [['0', 'Ninguno'], ['1', 'Afiche y exhibidor · Bs 3.000'], ['2', 'Degustación los sábados · Bs 8.000']]) + '</div></div>';
+  html += '<h3>2. Cuánto producir y cuánto esperan vender</h3><div class="grid g3"><div><label>Unidades a producir</label>' + inp(base + 'producir', 'number', 'step="250" min="0"') + '<p class="muted">Costo real ' + P3_bs2(E.costoReal) + ' por unidad · vida útil ' + E.vida + ' días</p></div><div><label>Su pronóstico de ventas (unidades)</label>' + inp(base + 'pronostico', 'number', 'step="250" min="0"') + '<p class="muted">Se guarda antes de procesar y se compara con lo real.</p></div><div><label>No lanzaremos si la recompra es menor a (%)</label>' + inp(base + 'limite', 'number', 'min="0" max="100"') + '</div></div>';
+  html += chkB(base + 'saltar', 'Lanzar sin piloto (más rápido, pero con más riesgo de fracaso)');
+  return html;
+}
+function P3_infPil(I, abierto) {
+  var h = '<details' + (abierto ? ' open' : '') + '><summary><b>Informe del piloto · T' + I.t + '</b> · ' + P3_n(I.vendidas) + ' vendidas · recompra ' + I.recompra + ' %</summary><div class="informe">';
+  h += '<div class="grid g4"><div class="kpi"><div class="v">' + P3_n(I.vendidas) + '</div><div class="l">Unidades vendidas</div></div><div class="kpi"><div class="v">' + P3_n(I.compradores) + '</div><div class="l">Compraron por primera vez</div></div><div class="kpi"><div class="v">' + I.recompra + ' %</div><div class="l">Volvieron a comprar</div></div><div class="kpi"><div class="v">' + (I.dif === null ? '—' : (I.dif >= 0 ? '+' : '') + I.dif + ' %') + '</div><div class="l">Real frente a su pronóstico</div></div></div>';
+  h += '<table><tr><th>Canal</th><th class="n">Puntos</th><th class="n">Vendidas</th></tr>' + I.porCanal.map(function (x) { return '<tr><td>' + esc(x.nombre) + '</td><td class="n">' + x.puntos + '</td><td class="n">' + P3_n(x.vendidas) + '</td></tr>'; }).join('') + '</table>';
+  h += '<p class="' + (I.stock.tipo === 'ok' ? 'msg ok' : 'msg err') + '">' + esc(I.stock.texto) + '</p><ul class="fb">' + I.frases.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>';
+  h += '<p class="calc">Proyección para todo el mercado: entre ' + P3_n(I.proyMin) + ' y ' + P3_n(I.proyMax) + ' unidades por trimestre. Costo neto del piloto: ' + bs(I.costo) + '.</p><p class="calc"><b>Conclusión:</b> ' + esc(I.conclusion) + '</p>';
+  return h + '</div></details>';
+}
+// ----- Lanzar -----
+function P3_tLan(p, a) {
+  var pid = p.id, base = 'proyectos.' + pid + '.lan.', L = a.lan || {}, E = p.esp, html = '';
+  if (p.pil) html += P3_infPil(p.pil, true);
+  var top = p.concepto && p.concepto.pts ? Object.keys(p.concepto.pts).sort(function (x, y) { return (p.concepto.pts[y] || 0) - (p.concepto.pts[x] || 0); })[0] : 'conv';
+  html += '<h3>1. Nombre y mensaje</h3><div class="grid g2"><div><label>Nombre comercial</label>' + inp(base + 'nombre') + '</div><div><label>Mensaje publicitario en una frase</label>' + inp(base + 'mensaje', 'text', 'placeholder="Se abre con un dedo. Así de fácil."') + '</div></div>' +
+    ayuda('Su concepto apuesta sobre todo por ' + esc((V.cat.ptsNom[top] || '').toLowerCase()) + ': el mensaje debería decirlo con palabras del cliente.');
+  html += '<h3>2. Precio, publicidad y canales</h3><div class="grid g3"><div><label>Precio por unidad de ' + esc((P3_c().tam[(p.protoCar || {}).tamano || '330'] || {}).nom || '') + ' (Bs)</label>' + inp(base + 'precioU', 'number', 'step="0.1"') + '<p class="muted">El simulador lo convierte a ' + P3_bs2((Number(L.precioU) || 0) / P3_porc(p)) + ' por porción de 250 ml.</p></div><div><label>Publicidad por trimestre (Bs)</label>' + inp(base + 'publicidad', 'number', 'step="1000"') + '</div><div><label>Publicidad dirigida a</label>' + sel(base + 'segPub', V.cat.segmentos.map(function (s) { return [s.id, s.id + ' ' + s.nombre]; })) + '</div></div>' +
+    '<label>Canales</label>' + V.cat.canales.map(function (ch) { return chkA(base + 'canales', ch.id, esc(ch.nombre)); }).join('') +
+    chkB(base + 'reemplaza', 'Reemplaza a la leche saborizada (solo si el proyecto mejora el producto actual; si no, conviven)') +
+    '<p class="muted">Costo del lanzamiento: ' + bs(V.cat.general.costoLanzamiento) + ' más la implementación del concepto' + (E.inversion ? ' y la máquina nueva (' + bs(E.inversion) + ')' : '') + '.</p>' +
+    chkB(base + 'confirmar', '<b>Confirmar el lanzamiento este trimestre</b>') + chkB(base + 'volverPiloto', 'Hacer otro piloto antes de lanzar');
+  return html;
+}
+// ----- Lanzado: resultados y revisión -----
+function P3_tLanzado(p, a) {
+  var html = '', c = P3_c();
+  if (p.etapa === 'detenido') return '<p class="muted">Proyecto detenido en T' + (p.fin || '') + '.</p>';
+  if (p.lan) html += '<p><b>Lanzado en T' + p.lan.t + '</b> como “' + esc(p.lan.nombre) + '” · mensaje: “' + esc(p.lan.mensaje) + '”' + (p.lan.mensajeOk ? '' : ' <span class="tag aviso">no habla del beneficio principal</span>') + ' · ' + P3_bs2(p.lan.precioU) + ' por unidad.</p>';
+  if (!p.resLanz) return html + '<p class="muted">Los resultados del primer trimestre en el mercado llegarán al procesar el próximo trimestre.</p>';
+  var R = p.resLanz;
+  html += '<div class="grid g4"><div class="kpi"><div class="v">' + P3_n(R.unidades) + '</div><div class="l">Unidades vendidas (T' + R.t + ')</div></div><div class="kpi"><div class="v">' + String(R.cuota).replace('.', ',') + ' %</div><div class="l">Participación en ' + esc(p.segmento) + '</div></div><div class="kpi"><div class="v">' + bs(R.utilidad) + '</div><div class="l">Utilidad del trimestre</div></div><div class="kpi"><div class="v">' + P3_n(R.canib) + '</div><div class="l">Canibalización (unidades que salieron de su leche saborizada)</div></div></div>';
+  if (p.reaccion) html += '<p class="msg">' + esc(p.reaccion.comp) + ' bajó su precio en T' + p.reaccion.t + ' en respuesta a su lanzamiento.</p>';
+  if (p.aar) {
+    html += '<h3>Revisión después de la acción · T' + p.aar.t + '</h3><ul class="fb">' + p.aar.devolucion.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>';
+    return html;
+  }
+  var base = 'proyectos.' + p.id + '.aar.';
+  html += '<div class="tarea"><p class="lbl">Tarea disponible · Revisión después de la acción</p>' + ayuda('Cierren el proyecto comparando lo que esperaban con lo que pasó (Garvin, 2000). Costo ' + bs(V.cat.general.costoRevision) + '. Sube la madurez en innovación como máximo un nivel por año.', 9, 'Revisión') +
+    '<h3>1 y 2. ¿Qué esperábamos? ¿Qué pasó?</h3><div class="scroll"><table><tr><th>Lo que esperaban</th><th>Dónde lo dijeron</th><th class="n">Esperado</th><th class="n">Real</th><th class="n">Diferencia</th></tr>' + (p.tablaAAR || []).map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td><td class="n">' + esc(String(r[2])) + '</td><td class="n">' + esc(String(r[3])) + '</td><td class="n">' + esc(String(r[4])) + '</td></tr>'; }).join('') + '</table></div>' +
+    '<h3>3. ¿Por qué hubo diferencia? (máximo 3 causas)</h3>' + Object.keys(c.causas).map(function (k) { return chkA(base + 'causas', k, esc(c.causas[k]), 3); }).join('') + '<label>Explíquenlo con datos</label>' + txtA(base + 'porque', 'Pronosticamos 12.000 y vendimos 9.800…') +
+    '<h3>4. ¿Qué haremos distinto?</h3><label>¿Cómo clasifican el resultado? (Edmondson, 2011)</label>' + sel(base + 'tipo', [['', 'Elijan…']].concat(Object.keys(c.tipoFr).map(function (k) { return [k, c.tipoFr[k]]; }))) +
+    '<label>En este producto, desde el próximo trimestre</label>' + txtA(base + 'd1', '') + '<label>En los próximos proyectos</label>' + txtA(base + 'd2', '') +
+    chkB(base + 'referencia', 'Nos comprometemos a partir de la clase de referencia en la próxima Puerta') + '</div>';
+  return html;
+}
+function P3_historial(p) {
+  var V0 = (p.proto && p.proto.versiones) || [], h = '';
+  if (p.etapa !== 'prototipar') V0.forEach(function (u) { h += P3_infProto(u, false); });
+  if (p.acta && p.etapa !== 'especificar' && p.etapa !== 'piloto') h += P3_acta(p.acta, false);
+  if (p.pil && p.etapa !== 'lanzar') h += P3_infPil(p.pil, false);
+  return h ? '<div class="hist3">' + h + '</div>' : '';
+}
+</script>

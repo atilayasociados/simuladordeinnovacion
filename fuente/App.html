@@ -1,0 +1,623 @@
+<script>
+// ===================== Simulador de Innovación — cliente =====================
+var TOK = null, ROL = null, V = null, D = null, TAB = 'panel', ADM = null, ATAB = 'partida', estTimer = null, EST = null;
+var $ = function (id) { return document.getElementById(id); };
+function esc(s) { return String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function bs(n) { return 'Bs ' + Math.round(Number(n) || 0).toLocaleString('es-BO'); }
+function kbs(n) { return Math.round((Number(n) || 0) / 1000).toLocaleString('es-BO'); }
+function pct(n) { return (n === null || n === undefined || n === '') ? '—' : (Number(n).toFixed(1) + ' %'); }
+function call(fn) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return new Promise(function (ok, ko) { google.script.run.withSuccessHandler(ok).withFailureHandler(function (e) { ko(e && e.message ? e.message : String(e)); })[fn].apply(null, args); });
+}
+function aviso(txt, tipo) { var d = document.createElement('div'); d.className = 'msg ' + (tipo || 'ok'); d.textContent = txt; $('app').prepend(d); setTimeout(function () { d.remove(); }, 9000); window.scrollTo(0, 0); }
+function getP(o, path) { return path.split('.').reduce(function (a, k) { return a && a[k] !== undefined ? a[k] : undefined; }, o); }
+function setP(o, path, v) { var ks = path.split('.'), a = o; for (var i = 0; i < ks.length - 1; i++) { if (typeof a[ks[i]] !== 'object' || a[ks[i]] === null) a[ks[i]] = {}; a = a[ks[i]]; } a[ks[ks.length - 1]] = v; }
+
+// ---------- ingreso: ver AccesoUI.html (v2.3) ----------
+function pantallaLogin(modo) {
+  if (TOK) { try { call('apiAXSalir', TOK).catch(function () { }); } catch (e) { } }
+  TOK = null; ROL = null; V = null; ADM = null; SIMID = null;
+  document.body.classList.remove('ax-doc');
+  $('nav').style.display = 'none'; $('pie').style.display = 'none'; $('meta').innerHTML = ''; $('titulo').textContent = 'Simulador de Innovación'; $('app').innerHTML = '';
+  AX_mostrar(modo || 'ingresar');
+}
+
+// ---------- equipo ----------
+function cargar() {
+  $('app').innerHTML = '<p class="muted">Cargando…</p>';
+  call('apiEstado', TOK).then(function (v) {
+    V = v; D = v.borrador ? JSON.parse(JSON.stringify(v.borrador)) : {};
+    delete D._estado; delete D._fecha;
+    prepararBorrador();
+    if (TAB === 'inicio') TAB = V.estado.hist.length ? 'panel' : 'caso';
+    render(); estimar();
+  }).catch(function (e) { $('app').innerHTML = '<div class="msg err">' + esc(e) + '</div>'; if (/sesión/.test(e)) setTimeout(pantallaLogin, 1500); });
+}
+function prepararBorrador() {
+  D.noticias = D.noticias || {}; D.proyectos = D.proyectos || {}; D.productos = D.productos || {}; D.respuestas = D.respuestas || {}; D.decInformes = D.decInformes || {};
+  (V.estado.informes || []).forEach(function (i) { if (i.requiere && i.t === V.partida.t - 1 && D.decInformes[i.id] === undefined && i.decision) D.decInformes[i.id] = i.decision; });
+  D.investigacion = D.investigacion || { metodos: [], segmentos: [] };
+  D.investigacion.metodos = D.investigacion.metodos || []; D.investigacion.segmentos = D.investigacion.segmentos || [];
+  D.nuevosProyectos = D.nuevosProyectos || [];
+  D._ini = D._ini || {};
+  var O = V.estado.org;
+  if (V.flags.anualEditable && D.anual && D.anual.nucleo === undefined) { D.anual.nucleo = O.nucleo; D.anual.adyacente = O.adyacente; D.anual.transf = O.transf; D.anual.postura = O.postura; }
+  if (V.flags.anualEditable && !D.anual) D.anual = { p4: JSON.parse(JSON.stringify(O.p4)), nucleo: O.nucleo, adyacente: O.adyacente, transf: O.transf, postura: O.postura, estructura: O.estructura, tiempoLibre: O.tiempoLibre, incentivo: O.incentivo, politica: O.politica, composicion: O.composicion, capacitacion: false, umbral: O.umbral, hipotesis: '' };
+  V.estado.productos.forEach(function (p) {
+    if (!D.productos[p.id]) D.productos[p.id] = { precio: p.precio, comunicacion: p.comunicacion || 0, segPub: p.segPub || 'todos', promo: 0, pronostico: '', canales: p.canales.slice(), retirar: false };
+    var dp = D.productos[p.id]; if (dp.segPub === undefined) dp.segPub = p.segPub || 'todos'; if (dp.promo === undefined) dp.promo = 0;
+  });
+  V.estado.proyectos.forEach(function (p) {
+    if (p.estado !== 'activo') return;
+    var a = D.proyectos[p.id] = D.proyectos[p.id] || {};
+    a.validar = a.validar || [];
+    if (!a.prototipo) a.prototipo = { fidelidad: 'baja', iteraciones: p.etapa === 'prototipo' ? 1 : 0 };
+    if (!a.lanzar) a.lanzar = { nombre: p.ideaSel ? p.ideaSel.nombre : p.nombre, precio: '', canales: [], proteccion: 'ninguna', comunicacion: 20000 };
+  });
+  if (typeof prepararBorrador2 === 'function') prepararBorrador2();
+}
+function decisionLimpia() {
+  var d = JSON.parse(JSON.stringify(D));
+  Object.keys(d.proyectos).forEach(function (pid) {
+    var a = d.proyectos[pid];
+    a.iniciativas = Object.keys((D._ini || {})[pid] || {}).map(function (id) { return { id: id, premio: D._ini[pid][id] }; });
+    if (!a.lanzarOn) delete a.lanzar; else if (a.lanzar && (!a.lanzar.canales || !a.lanzar.canales.length)) a.lanzar.canales = null;
+    if (!a.prototipo || !(Number(a.prototipo.iteraciones) > 0)) delete a.prototipo;
+    if (!a.seleccionar) delete a.seleccionar;
+    delete a.lanzarOn;
+  });
+  if (!V.flags.anualEditable) delete d.anual;
+  delete d._ini;
+  if (typeof limpiar2 === 'function') limpiar2(d);
+  return d;
+}
+function estimar() {
+  clearTimeout(estTimer);
+  estTimer = setTimeout(function () {
+    if (!V || V.partida.finalizada) return;
+    call('apiEstimar', TOK, decisionLimpia()).then(function (e) { EST = e; pie(); }).catch(function () { });
+  }, 500);
+}
+function guardar(enviar) {
+  call('apiGuardar', TOK, decisionLimpia(), enviar).then(function (e) {
+    EST = e; pie(); aviso(enviar ? 'Decisiones enviadas. Puedes seguir modificándolas hasta que el docente cierre el trimestre.' : 'Borrador guardado.');
+    V.borrador = { _estado: e.estado }; pie();
+  }).catch(function (e) { aviso(e, 'err'); });
+}
+function pie() {
+  if (!V || V.partida.finalizada || ROL !== 'equipo' || menuDe(TAB)[0] !== 'decidir' || V.partida.estado !== 'abierto') { $('pie').style.display = 'none'; return; }
+  $('pie').style.display = 'flex';
+  var abierto = V.partida.estado === 'abierto';
+  var e = EST || { costo: 0, semanas: 0, saldo: V.estado.saldo, semanasDisp: V.cat.general.semanasTrimestre, avisos: [] };
+  var est = V.borrador && V.borrador._estado ? '<span class="tag ' + (V.borrador._estado === 'enviado' ? 'ok' : 'aviso') + '">' + esc(V.borrador._estado) + '</span>' : '<span class="tag">sin guardar</span>';
+  $('pie').innerHTML = '<div class="est">Costo estimado de innovación: <b>' + bs(e.costo) + '</b> de ' + bs(e.saldo) + ' · Semanas-persona: <b>' + e.semanas + '</b> de ' + e.semanasDisp + ' ' + est +
+    (e.avisos && e.avisos.length ? '<div class="avisos">⚠ ' + e.avisos.map(esc).join('<br>⚠ ') + '</div>' : '') + '</div>' +
+    '<div class="inline">' + (abierto ? '<button class="btn sec" onclick="guardar(false)">Guardar borrador</button><button class="btn" onclick="guardar(true)">Enviar decisiones</button>' : '<span class="tag aviso">Trimestre cerrado por el docente</span>') +
+    '<button class="btn sec" onclick="cargar()">Actualizar</button></div>';
+}
+
+var MENUS = [
+  ['situacion', 'Situación', [['caso', 'El caso'], ['panel', 'Situación actual'], ['mercado', 'Mercado y competencia'], ['equipo', 'Mi equipo']]],
+  ['decidir', 'Decidir', [['ronda', 'Qué decidir en esta ronda'], ['entorno', '1. Entorno'], ['anual', '2. Estrategia anual'], ['investigacion', '3. Investigación'], ['proyectos', '4. Proyectos'], ['productos', '5. Productos'], ['pares', 'Evaluar a otros equipos'], ['hipotesis', '6. Hipótesis y envío']]],
+  ['resultados', 'Resultados', [['resumen', 'Resumen del trimestre'], ['informes', 'Informes de investigación'], ['evaluaciones', 'Evaluación de sus conceptos'], ['resultados', 'Estados financieros e indicadores']]],
+  ['aprender', 'Aprender', [['temas', 'Temas de innovación'], ['glosario', 'Glosario'], ['bitacora', 'Mi bitácora']]]
+];
+function menuDe(t) { for (var i = 0; i < MENUS.length; i++) for (var j = 0; j < MENUS[i][2].length; j++) if (MENUS[i][2][j][0] === t) return MENUS[i]; return MENUS[0]; }
+function irTab(t) { TAB = t; render(); window.scrollTo(0, 0); }
+function render() {
+  var p = V.partida, M = menuDe(TAB);
+  $('titulo').textContent = p.nombre || 'Simulador de Innovación';
+  $('meta').innerHTML = '<span>' + esc(V.usuario.nombre) + ' · ' + esc(V.equipo.nombre) + '</span><span>' + esc(p.sigla || '') + '</span><span>' + (p.finalizada ? 'Partida terminada' : 'Trimestre ' + p.t + ' de ' + p.total + ' (año ' + (Math.floor((p.t - 1) / 4) + 1) + ')') + '</span><span>' + (p.estado === 'abierto' ? 'Abierto' : 'Cerrado') + '</span><span>Presupuesto: ' + bs(V.estado.saldo) + '</span><a href="#" style="color:#fff" onclick="pantallaLogin();return false">Salir</a>';
+  $('nav').style.display = 'block';
+  $('nav').innerHTML = '<div class="menu">' + MENUS.map(function (m) { return '<button class="' + (M[0] === m[0] ? 'on' : '') + '" onclick="irTab(\'' + m[2][0][0] + '\')">' + m[1] + '</button>'; }).join('') + '</div>' +
+    '<div class="sub">' + M[2].map(function (t) { return '<button class="' + (TAB === t[0] ? 'on' : '') + '" onclick="irTab(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('') + '</div>';
+  var f = { caso: vCaso, panel: vPanel, mercado: vMercado, equipo: vEquipo, ronda: vRonda, entorno: vEntorno, anual: vAnual, investigacion: vInvestigacion, proyectos: vProyectos2, productos: vProductos, hipotesis: vHipotesis, resumen: vResumen, informes: vInformes, pares: P4_vPares, evaluaciones: P4_vEvaluaciones, resultados: vResultados, temas: vTemas, glosario: vGlosario, bitacora: vBitacora }[TAB] || vCaso;
+  var cerrado = M[0] === 'decidir' && (V.partida.estado !== 'abierto' || p.finalizada);
+  var html = cerrado ? vDecidirCerrado() : f();
+  if (M[0] === 'decidir' && TAB !== 'ronda' && !cerrado) {
+    var L = M[2], k = L.map(function (t) { return t[0]; }).indexOf(TAB);
+    html += '<div class="inline" style="justify-content:space-between">' + (k > 1 ? '<button class="btn sec" onclick="irTab(\'' + L[k - 1][0] + '\')">← ' + L[k - 1][1] + '</button>' : '<span></span>') + (k < L.length - 1 ? '<button class="btn sec" onclick="irTab(\'' + L[k + 1][0] + '\')">' + L[k + 1][1] + ' →</button>' : '') + '</div>';
+  }
+  $('app').innerHTML = html;
+  if (TAB === 'bitacora') cargarBitacora(); if (TAB === 'equipo') cargarMiEquipo();
+  if (TAB === 'pares' && !cerrado) P4_cargarPares(); if (TAB === 'evaluaciones') P4_cargarMias();
+  pie();
+}
+
+// enlaces de formularios
+document.addEventListener('change', function (ev) {
+  var el = ev.target; if (!D || ROL !== 'equipo') return;
+  if (el.dataset.p) {
+    var v = el.type === 'checkbox' ? el.checked : (el.type === 'number' ? (el.value === '' ? '' : Number(el.value)) : el.value);
+    setP(D, el.dataset.p, v);
+  } else if (el.dataset.arr) {
+    var arr = getP(D, el.dataset.arr); if (!Array.isArray(arr)) { arr = []; setP(D, el.dataset.arr, arr); }
+    var i = arr.indexOf(el.value);
+    if (el.checked && i < 0) arr.push(el.value); if (!el.checked && i >= 0) arr.splice(i, 1);
+    if (el.dataset.max && arr.length > Number(el.dataset.max)) { arr.splice(arr.indexOf(el.value), 1); el.checked = false; aviso('Máximo ' + el.dataset.max + ' opciones.', 'err'); }
+  } else if (el.dataset.ini) {
+    var pid = el.dataset.ini, id = el.value; D._ini[pid] = D._ini[pid] || {};
+    if (el.checked) { if (Object.keys(D._ini[pid]).length >= 3) { el.checked = false; aviso('Máximo 3 iniciativas por proyecto y trimestre.', 'err'); return; } D._ini[pid][id] = 'medio'; }
+    else delete D._ini[pid][id];
+  } else if (el.dataset.premio) {
+    var pr = el.dataset.premio.split('|'); D._ini[pr[0]] = D._ini[pr[0]] || {}; if (D._ini[pr[0]][pr[1]] !== undefined) D._ini[pr[0]][pr[1]] = el.value;
+  } else if (el.dataset.not) { D.noticias[el.dataset.not] = el.value; }
+  else if (el.dataset.resp) { D.respuestas[el.dataset.resp] = el.value; }
+  else return;
+  if (el.dataset.rerender) render();
+  estimar();
+});
+function inp(path, tipo, attrs) { var v = getP(D, path); return '<input type="' + (tipo || 'text') + '" data-p="' + path + '" value="' + esc(v === undefined ? '' : v) + '" ' + (attrs || '') + '>'; }
+function sel(path, opts, attrs) { var v = getP(D, path); return '<select data-p="' + path + '" ' + (attrs || '') + '>' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (String(v) === String(o[0]) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>'; }
+function chkB(path, txt, attrs) { return '<label class="chk"><input type="checkbox" data-p="' + path + '"' + (getP(D, path) ? ' checked' : '') + ' ' + (attrs || '') + '><span>' + txt + '</span></label>'; }
+function chkA(path, val, txt, max) { var a = getP(D, path) || []; return '<label class="chk"><input type="checkbox" data-arr="' + path + '" value="' + esc(val) + '"' + (a.indexOf(val) >= 0 ? ' checked' : '') + (max ? ' data-max="' + max + '"' : '') + '><span>' + txt + '</span></label>'; }
+function txtA(path, ph) { return '<textarea data-p="' + path + '" placeholder="' + esc(ph || '') + '">' + esc(getP(D, path) || '') + '</textarea>'; }
+function segNom(id) { var s = V.cat.segmentos.filter(function (x) { return x.id === id; })[0]; return s ? s.id + ' ' + s.nombre : id; }
+function canNom(id) { var c = V.cat.canales.filter(function (x) { return x.id === id; })[0]; return c ? c.nombre : id; }
+function ultimo() { var h = V.estado.hist; return h.length ? h[h.length - 1] : null; }
+
+// ---------- Panel ----------
+function vPanel() {
+  var h = ultimo(), O = V.estado.org, html = '';
+  if (V.partida.finalizada) html += '<div class="card"><h2>Partida terminada</h2><p>Revisa tus resultados finales en la pestaña Resultados y completa tu bitácora.</p></div>';
+  html += '<div class="card"><h2>Mandato del directorio</h2><p><b>' + esc(V.equipo.mandato.nombre) + '.</b> ' + esc(V.equipo.mandato.texto) + '</p></div>';
+  html += '<div class="grid g4">' + [
+    ['Ventas último trimestre', h ? bs(h.ventas) : '—'], ['Utilidad neta', h ? bs(h.utilidadNeta) : '—'], ['Caja', h ? bs(h.caja) : bs(400000)],
+    ['Participación de mercado', h ? pct(h.cuotaTotal) : pct(11.2 / nEmp())], ['Índice de vitalidad', h ? pct(h.vitalidad) : '0 %'], ['Clima creativo', h ? h.clima : '—'],
+    ['Presupuesto disponible', bs(V.estado.saldo)], ['Madurez en innovación', O.madurez + ' de 5']
+  ].map(function (k) { return '<div class="kpi"><div class="v">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('') + '</div>';
+  html += '<div class="card" style="margin-top:14px"><h2>Este trimestre</h2><ul class="fb">' + avisosRonda().map(function (a) { return '<li>' + a + '</li>'; }).join('') + '</ul><div class="inline"><button class="btn" onclick="irTab(\'ronda\')">Ir a Decidir</button>' + (h ? '<button class="btn sec" onclick="irTab(\'resumen\')">Ver qué pasó el trimestre anterior</button>' : '') + '</div></div>';
+  html += '<div class="card"><h2>Tus productos</h2>' + tablaProductos() + '</div>';
+  var act = V.estado.proyectos.filter(function (p) { return p.estado === 'activo'; });
+  html += '<div class="card"><h2>Tus proyectos de innovación</h2>' + (act.length ? '<table><tr><th>Proyecto</th><th>Segmento</th><th>Etapa</th><th class="n">Iteraciones</th></tr>' + act.map(function (p) { return '<tr><td>' + esc(p.nombre) + '</td><td>' + esc(segNom(p.segmento)) + '</td><td>' + esc((ETAPAS.filter(function (e) { return e[0] === p.etapa; })[0] || [0, p.etapa])[1]) + '</td><td class="n">' + p.iter + '</td></tr>'; }).join('') + '</table>' : '<p class="muted">No tienes proyectos activos. Puedes crearlos en Decidir → 4. Proyectos.</p>') + '</div>';
+  return html;
+}
+function tablaProductos() {
+  var ps = V.estado.productos, A = V.cat.attrs;
+  return '<div class="scroll"><table><tr><th>Producto</th>' + Object.keys(A).map(function (k) { return '<th class="n">' + A[k] + '</th>'; }).join('') + '<th class="n">Precio</th><th class="n">Costo</th><th>Canales</th><th>Modelo</th><th class="n">Conocimiento de marca</th></tr>' +
+    ps.map(function (p) { return '<tr><td>' + esc(p.nombre) + (p.desde > V.partida.t - 1 && !p.legado ? ' <span class="tag">nuevo</span>' : '') + '</td>' + Object.keys(A).map(function (k) { return '<td class="n">' + Number(p.attrs[k]).toFixed(1) + '</td>'; }).join('') + '<td class="n">' + Number(p.precio).toFixed(2) + '</td><td class="n">' + Number(p.costUnit).toFixed(2) + '</td><td>' + p.canales.map(canNom).join(', ') + '</td><td>' + (p.modelo === 'suscripcion' ? 'Suscripción' : 'Venta') + '</td><td class="n">' + Math.round(p.AW * 100) + ' %</td></tr>'; }).join('') + '</table></div><p class="muted">Atributos en escala 0–10. Precio y costo en Bs por porción.</p>';
+}
+function grafico() {
+  var H = V.estado.hist; if (!H.length) return '';
+  var W = 700, Hh = 200, pad = 40, ser = [['Ventas', H.map(function (h) { return h.ventas; }), '#1F3864'], ['Ventas sin innovar', H.map(function (h) { return h.twin.ventas; }), '#9AA5B8'], ['Utilidad neta', H.map(function (h) { return h.utilidadNeta; }), '#1E7B46'], ['Utilidad sin innovar', H.map(function (h) { return h.twin.utilidadNeta; }), '#A7D3B8']];
+  var all = [].concat.apply([], ser.map(function (s) { return s[1]; })), mx = Math.max.apply(null, all.concat([1])), mn = Math.min.apply(null, all.concat([0]));
+  var n = Math.max(2, H.length), x = function (i) { return pad + i * (W - pad - 10) / (n - 1); }, y = function (v) { return Hh - 20 - (v - mn) * (Hh - 40) / (mx - mn || 1); };
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + Hh + '" width="100%" role="img" aria-label="Gráfico de ventas y utilidad"><line x1="' + pad + '" y1="' + y(0) + '" x2="' + (W - 10) + '" y2="' + y(0) + '" stroke="#ccc"/>';
+  ser.forEach(function (s) { svg += '<polyline fill="none" stroke="' + s[2] + '" stroke-width="2" ' + (/sin/.test(s[0]) ? 'stroke-dasharray="4 3"' : '') + ' points="' + s[1].map(function (v, i) { return x(i) + ',' + y(v); }).join(' ') + '"/>'; });
+  H.forEach(function (h, i) { svg += '<text x="' + x(i) + '" y="' + (Hh - 4) + '" text-anchor="middle">T' + h.t + '</text>'; });
+  svg += '<text x="2" y="' + (y(mx) + 4) + '">' + kbs(mx) + 'k</text><text x="2" y="' + (y(0) + 4) + '">0</text></svg>';
+  return svg + '<div class="inline muted">' + ser.map(function (s) { return '<span><span style="display:inline-block;width:12px;height:3px;background:' + s[2] + ';vertical-align:middle"></span> ' + s[0] + '</span>'; }).join(' ') + '</div>';
+}
+
+// ---------- Entorno ----------
+function vEntorno() {
+  var g = V.cat.general;
+  var html = '<div class="card"><h2>Noticias del trimestre</h2><p>Para cada noticia hagan dos cosas: <b>clasifíquenla</b> (oportunidad, amenaza o ruido) y <b>elijan una respuesta</b>. Algunas son ruido. Las marcadas como "anticipada" llegan antes gracias a su vigilancia.</p>' +
+    ayuda('<b>Ignorar</b>: sin costo; si la señal era real, la enfrentan sin preparación. <b>Vigilar</b>: sin costo; el trimestre siguiente reciben un dato adicional. <b>Preparar</b>: ' + bs(g.costoPreparar) + '; si la señal era real, reduce el golpe de la amenaza o adelanta el beneficio de la oportunidad; si era ruido, el dinero se pierde.', 4, 'Señal') ;
+  if (!V.noticias.length) html += '<p class="muted">No hay noticias.</p>';
+  V.noticias.forEach(function (n) {
+    var r = D.respuestas[n.id] || 'ignorar';
+    html += '<div style="padding:8px 0;border-bottom:1px solid #eee"><div>' + esc(n.texto) + (n.anticipada ? ' <span class="tag ok">anticipada</span>' : '') + '</div><div class="inline" style="margin-top:4px"><b class="muted">Es:</b>' +
+      ['oportunidad', 'amenaza', 'ruido'].map(function (o) { return '<label class="chk"><input type="radio" name="n_' + n.id + '" data-not="' + n.id + '" value="' + o + '"' + (D.noticias[n.id] === o ? ' checked' : '') + '> ' + o.charAt(0).toUpperCase() + o.slice(1) + '</label>'; }).join('') +
+      '<b class="muted" style="margin-left:12px">Respuesta:</b>' + [['ignorar', 'Ignorar'], ['vigilar', 'Vigilar'], ['preparar', 'Preparar (' + bs(g.costoPreparar) + ')']].map(function (o) { return '<label class="chk"><input type="radio" name="r_' + n.id + '" data-resp="' + n.id + '" value="' + o[0] + '"' + (r === o[0] ? ' checked' : '') + '> ' + o[1] + '</label>'; }).join('') + '</div></div>';
+  });
+  html += '</div>';
+  var sg = V.estado.seguimiento || [];
+  if (sg.length) html += '<div class="card"><h2>Lo que averiguaron de las noticias que vigilaron</h2><ul class="fb">' + sg.map(function (x) { return '<li><b>' + esc(x.texto) + '</b><br>' + esc(x.dato) + '</li>'; }).join('') + '</ul></div>';
+  var ev = V.estado.noticiasEval || [];
+  if (ev.length) html += '<div class="card"><h2>Su lectura del trimestre anterior</h2><table><tr><th>Noticia</th><th>Su clasificación</th><th>Lo que era</th><th>Su respuesta</th><th></th></tr>' + ev.map(function (e) { return '<tr><td>' + esc(e.texto) + '</td><td>' + esc(e.clasif) + '</td><td>' + esc(e.real === 'ambas' ? 'oportunidad y amenaza' : e.real) + '</td><td>' + esc(e.resp || 'ignorar') + '</td><td>' + (e.ok ? '<span class="tag ok">acierto</span>' : '<span class="tag mal">error</span>') + '</td></tr>'; }).join('') + '</table></div>';
+  if (V.flags.c4Disponible) html += '<div class="card"><h2>Respuesta a la startup de bebidas vegetales</h2><p>Puedes responder una sola vez entre T10 y T16.</p>' + sel('respuestaC4', [['', 'No responder por ahora'], ['alianza', 'Alianza (' + bs(V.cat.general.costoAlianzaC4) + ' de caja)'], ['adquisicion', 'Adquisición (' + bs(V.cat.general.costoAdquisicionC4) + ' de caja)']]) + '<p class="muted">También puedes competir con tus propios productos o con una unidad autónoma (Estrategia anual).</p></div>';
+  if (V.flags.licitacion) html += '<div class="card"><h2>Licitación de alimentación escolar y universitaria</h2>' + chkB('licitacion', 'Postular (requisito: un producto con saludable ≥ 6 y nutrición ≥ 6)') + '</div>';
+  return html;
+}
+
+// ---------- ayudas contextuales ----------
+function irAprender(n) { UABIERTA = n; TAB = 'temas'; render(); window.scrollTo(0, 0); }
+function irGlosario(t) { GFILTRO = t; TAB = 'glosario'; render(); window.scrollTo(0, 0); }
+function ayuda(texto, unidad, termino) {
+  return '<p class="ayuda">' + texto + (unidad ? ' <a href="#" onclick="irAprender(' + unidad + ');return false">Aprender: unidad ' + unidad + ' →</a>' : '') + (termino ? ' <a href="#" onclick="irGlosario(\'' + termino + '\');return false">Glosario: ' + termino + ' →</a>' : '') + '</p>';
+}
+
+// ---------- Estrategia anual ----------
+function vAnual() {
+  var O = V.estado.org;
+  if (!V.flags.anualEditable) {
+    return '<div class="card"><h2>Estrategia vigente del año</h2><p class="muted">Se decide al inicio de cada año (T1, T5, T9, T13, T17).</p><table>' +
+      [['4P', 'Producto ' + O.p4.producto + ' %, Proceso ' + O.p4.proceso + ' %, Posición ' + O.p4.posicion + ' %, Paradigma ' + O.p4.paradigma + ' %'], ['Portafolio (núcleo / adyacente / transformacional)', O.nucleo + ' % / ' + O.adyacente + ' % / ' + O.transf + ' %'], ['Postura de innovación', (V.cat.posturas[O.postura] || [O.postura])[0]], ['Estructura', O.estructura === 'autonoma' ? 'Unidad autónoma' : 'Integrada'], ['Tiempo libre', O.tiempoLibre + ' %'], ['Incentivo', O.incentivo], ['Política ante el fracaso', O.politica], ['Composición de equipos', O.composicion], ['Umbral de la puerta', O.umbral], ['Motivación intrínseca', O.MI], ['Autoeficacia creativa', O.AE]]
+        .map(function (r) { return '<tr><th>' + r[0] + '</th><td>' + esc(r[1]) + '</td></tr>'; }).join('') + '</table></div>' + tarjetaCoherencia();
+  }
+  var g = V.cat.general;
+  return '<div class="card"><h2>Cómo pensar la estrategia del año</h2><p>Estas decisiones valen para los cuatro trimestres del año. No hay una respuesta correcta única: deben ser <b>coherentes</b> con su mandato, con lo que saben del mercado y con su presupuesto. Debajo de cada casilla se explica qué significa y qué efecto tiene.</p></div>' +
+    '<div class="card"><h2>Bloque A. Estrategia y portafolio</h2><div class="grid g2"><div>' +
+    '<h3>Distribución del esfuerzo en las 4P (suma 100 %)</h3>' + ayuda('¿En qué quieren innovar? <b>Producto</b>: lo que venden. <b>Proceso</b>: cómo lo producen o entregan. <b>Posición</b>: a quién y con qué mensaje lo ofrecen. <b>Paradigma</b>: el modelo de negocio (por ejemplo, suscripción). El porcentaje decide qué tipo de ideas aparecerán en sus proyectos.', 1, '4P') + '<div class="grid g4">' +
+    [['producto', 'Producto'], ['proceso', 'Proceso'], ['posicion', 'Posición'], ['paradigma', 'Paradigma (modelo de negocio)']].map(function (k) { return '<div><label>' + k[1] + '</label>' + inp('anual.p4.' + k[0], 'number', 'min=0 max=100') + '</div>'; }).join('') +
+    '</div></div><div>' +
+    '<h3>Portafolio de innovación (suma 100 %)</h3>' + ayuda('Según Nagji y Tuff (2012). <b>Núcleo</b>: mejorar lo que ya venden a sus clientes actuales. <b>Adyacente</b>: llevar lo que saben hacer a clientes o usos nuevos (universitarios, oficinistas, deportistas). <b>Transformacional</b>: crear ofertas y mercados que todavía no existen. Muchas empresas exitosas reparten cerca de 70 / 20 / 10, pero depende de la estrategia. Con menos de 20 % en adyacente + transformacional no podrán crear proyectos para S2, S3 o S4.', 1, 'Portafolio') + '<div class="grid g4"><div><label>Núcleo</label>' + inp('anual.nucleo', 'number', 'min=0 max=100') + '</div><div><label>Adyacente</label>' + inp('anual.adyacente', 'number', 'min=0 max=100') + '</div><div><label>Transformacional</label>' + inp('anual.transf', 'number', 'min=0 max=100') + '</div></div>' +
+    '<h3>Postura de innovación</h3>' + ayuda('Según Freeman y Soete (1997): la actitud de la empresa frente a la innovación. El informe de coherencia revisará si sus decisiones corresponden a la postura que eligen.', 1, 'Postura') + sel('anual.postura', Object.keys(V.cat.posturas).map(function (k) { return [k, V.cat.posturas[k][0] + ': ' + V.cat.posturas[k][1]]; })) + '</div></div>' +
+    '<label>Estructura para proyectos radicales</label>' + ayuda('<b>Integrada</b>: los proyectos radicales compiten por recursos con el negocio actual y el comité los evalúa con más exigencia. <b>Unidad autónoma</b>: un equipo separado con sus propias reglas; protege lo radical y ayuda a responder a un disruptor.', 8, 'Ambidestreza') + sel('anual.estructura', [['integrada', 'Integrada a la línea principal'], ['autonoma', 'Unidad autónoma (' + bs(g.costoUnidadAutonoma) + ' por año)']]) +
+    '</div><div class="card"><h2>Bloque B. Organización y clima creativo</h2><div class="grid g2"><div>' +
+    '<label>Tiempo libre para proyectos propios</label>' + ayuda('Porcentaje del tiempo que el personal puede dedicar a ideas propias, como el 15 % de 3M. Sube la motivación intrínseca y la calidad de las ideas, pero tiene costo.', 2, 'Motivación') + sel('anual.tiempoLibre', [[0, '0 %'], [10, '10 %'], [15, '15 %'], [20, '20 %']]) + '<p class="muted">Cuesta ' + bs(g.costoTiempoLibrePunto) + ' por punto % y trimestre.</p>' +
+    '<label>Tipo de incentivo</label>' + ayuda('El reconocimiento refuerza la motivación intrínseca. Los premios en dinero altos pueden reducirla y vuelven las ideas más parecidas entre sí.', 2) + sel('anual.incentivo', [['reconocimiento', 'Reconocimiento (Bs 5.000 al año)'], ['bajo', 'Monetario bajo (Bs 15.000 al año)'], ['alto', 'Monetario alto (Bs 40.000 al año)']]) +
+    '<label>Política ante el fracaso</label>' + ayuda('Qué pasa cuando un proyecto falla. <b>Sanción</b> hace que el equipo evite riesgos. <b>Aprendizaje celebrado</b> sube la autoeficacia creativa y la seguridad psicológica.', 2, 'Seguridad') + sel('anual.politica', [['sancion', 'Sanción'], ['neutral', 'Neutral'], ['aprendizaje', 'Aprendizaje celebrado']]) +
+    '</div><div><label>Composición de equipos</label>' + ayuda('Equipos con perfiles distintos (marketing, planta, ventas, finanzas) o con externos generan ideas más variadas: más ideas malas, pero también más ideas excepcionales.', 2) + sel('anual.composicion', [['homogenea', 'Homogénea'], ['multifuncional', 'Multifuncional (marketing, planta, ventas, finanzas)'], ['externos', 'Con miembros externos']]) +
+    '<label>Umbral de la puerta (stage-gate)</label>' + ayuda('Puntaje mínimo que debe alcanzar un proyecto para pasar a piloto o lanzamiento. <b>Estricto</b> evita lanzar proyectos débiles, pero detiene más. <b>Laxo</b> deja pasar casi todo.', 5, 'Stage') + sel('anual.umbral', [['estricto', 'Estricto (7,0)'], ['moderado', 'Moderado (6,0)'], ['laxo', 'Laxo (5,0)']]) +
+    chkB('anual.capacitacion', 'Capacitación en Design Thinking este año (' + bs(g.costoCapacitacion) + ', 2 semanas-persona)') + ayuda('Entrena al equipo en empatía, prototipos y pruebas con usuarios: sube la autoeficacia y la calidad de las ideas durante el año.', 3, 'Design') + '</div></div>' +
+    '<label>Hipótesis anual del equipo (obligatoria)</label>' + ayuda('Escriban qué esperan lograr este año y por qué esta estrategia los llevará ahí. Al cierre del año la contrastarán en la bitácora.', 9) + txtA('anual.hipotesis', 'Ejemplo: con 30 % radical y una unidad autónoma lanzaremos un producto para universitarios antes de T8.') + '</div>';
+}
+
+// ---------- Investigación ----------
+function vInvestigacion() {
+  var E = V.estado, pres = V.estado.presupuestoAnual || 400000;
+  var QUE = {
+    encuesta: ['Informe con la importancia que declaran los clientes de los segmentos elegidos, con margen de error.', 'Rápida y barata, pero subestima las necesidades latentes.'],
+    observacion: ['Informe cualitativo: persona, citas, recorrido del cliente, mapa de empatía y la necesidad latente. Mejora la calidad de las ideas para esos segmentos.', 'Es la fase "Empatizar" del Design Thinking.'],
+    extremos: ['Informe de tendencias: qué necesidad puede volverse común, con la fuerza de la señal y su horizonte.', 'Sirve para anticiparse; confírmenla con vigilancia.'],
+    lideres: ['2 conceptos de alta calidad para el proyecto que indiquen abajo.', 'Requiere un proyecto activo.'],
+    industria: ['Participación de cada empresa (incluidas las del curso) en rangos y tamaño de cada segmento, con un trimestre de retraso.', 'Es la única forma de saber cómo les va a las otras empresas del curso.'],
+    competidores: ['Lo observable de cada rival en el punto de venta: precio, envase, mensaje, canales y presencia.', 'No revela la calidad real ni los proyectos de los rivales.'],
+    vigilancia: ['Boletín de señales PESTELDC con su nivel de confianza, cada trimestre durante 4 trimestres. Las noticias reales llegan un trimestre antes.', 'Algunas señales resultarán ruido.'],
+    percepcion: ['Mapa perceptual y curva de valor de las marcas en los segmentos elegidos, junto al valor real de su producto.', 'Muestra si el cliente percibe lo que ustedes ofrecen.']
+  };
+
+  var html = '<div class="card"><h2>Investigación de este trimestre: empatizar con el cliente</h2><p>Al inicio no saben qué valora realmente cada segmento: investigar es la forma de averiguarlo antes de gastar en proyectos. Cada estudio llega como un informe cuando el docente procesa el trimestre, en <b>Resultados → Informes de investigación</b>. Allí deben escribir qué decisión toman con cada dato.</p>' +
+    ayuda('Cada método cuesta dinero y semanas-persona del equipo. Su presupuesto de innovación del año es ' + bs(pres) + ' y tienen 12 semanas-persona por trimestre: el pie de la pantalla les avisa si se pasan.', 3, 'latente') +
+    '<div class="scroll"><table><tr><th></th><th>Método</th><th>Qué recibirán</th><th class="n">Costo</th><th class="n">% del presupuesto del año</th><th class="n">Semanas</th></tr>' +
+    V.cat.metodos.map(function (m) {
+      var a = D.investigacion.metodos.indexOf(m.id) >= 0, q = QUE[m.id] || [m.desc, ''], rep = (E.ultMetodo || {})[m.id] === V.partida.t - 1, c = m.costo * (rep ? 1 + (V.cat.general.recargoRepeticion || 0.5) : 1);
+      return '<tr><td><input type="checkbox" data-arr="investigacion.metodos" value="' + m.id + '"' + (a ? ' checked' : '') + '></td><td><b>' + esc(m.nombre) + '</b><br><span class="muted">Familia ' + esc(m.fam || '') + '</span></td><td>' + esc(q[0]) + (q[1] ? '<br><span class="muted">' + esc(q[1]) + '</span>' : '') + '</td><td class="n">' + bs(c) + (rep ? '<br><span class="tag aviso">+50 % por repetir</span>' : '') + '</td><td class="n">' + (100 * c / pres).toFixed(1) + ' %</td><td class="n">' + m.sem + '</td></tr>';
+    }).join('') + '</table></div>' +
+    '<div class="grid g2" style="margin-top:10px"><div><h3>Segmentos a estudiar (máximo 2)</h3>' + ayuda('La encuesta, la observación y el estudio de percepción estudian solo los segmentos marcados aquí. Repetir un mismo método en el trimestre siguiente cuesta 50 % más.') + V.cat.segmentos.map(function (s) { return chkA('investigacion.segmentos', s.id, esc(s.id + ' ' + s.nombre), 2); }).join('') + '</div><div>';
+  var act = E.proyectos.filter(function (p) { return p.estado === 'activo'; });
+  html += '<h3>Proyecto que recibe las ideas de usuarios líderes</h3>';
+  if (act.length) html += ayuda('Si contratan "Usuarios líderes", elijan a qué proyecto se suman sus 2 ideas. Conviene un proyecto del mismo segmento que estudian.', 3, 'Usuario líder') + sel('investigacion.proyectoLideres', [['', 'Elegir un proyecto…']].concat(act.map(function (p) { return [p.id, p.nombre + ' (' + p.segmento + ')']; })));
+  else html += '<p class="muted">Todavía no tienen proyectos activos, por eso esta lista está vacía. Los usuarios líderes aportan ideas a un proyecto ya existente: creen primero un proyecto en <a href="#" onclick="irTab(\'proyectos\');return false">4. Proyectos</a> y contraten este método en el trimestre siguiente.</p>';
+  html += '</div></div></div>';
+  html += '<div class="card"><h2>Plan sugerido para el primer año</h2><ul class="fb"><li><b>T1:</b> encuesta de S1 y S2 (Bs 12.000) y estudio de la industria (Bs 18.000): 7,5 % del presupuesto.</li><li><b>T2:</b> observación del segmento donde quieran innovar (Bs 30.000), para descubrir necesidades latentes.</li><li><b>T3 o T4:</b> usuarios líderes para su proyecto principal (Bs 20.000), análisis de competidores antes de fijar precios (Bs 14.000) y, tras lanzar, percepción de marcas (Bs 16.000).</li></ul><p class="muted">Investigar todo en un solo trimestre costaría Bs 147.000 (37 % del año) y 21 semanas-persona: no alcanza. Es mejor repartirlo y ligar cada estudio a una decisión.</p></div>';
+  return html;
+}
+
+// ---------- Mercado y competencia ----------
+function vMercado() {
+  var E = V.estado, html = '<div class="card"><h2>Empresas de la industria</h2>' + tablaEmpresas() + '<p class="muted">Las ventas y la participación de las otras empresas del curso no son públicas: se conocen con el "Estudio de la industria" y lo que ofrecen, con el "Análisis de competidores" (Decidir → 3. Investigación).</p></div>';
+  html += '<div class="card"><h2>Lo que sabemos de cada segmento</h2><div class="scroll"><table><tr><th>Segmento</th><th class="n">Tamaño del mercado</th><th class="n">Crecimiento por trimestre</th><th class="n">Precio de referencia</th><th>Conocimiento (calidad del insight)</th><th>Pesos observados</th></tr>' +
+    V.cat.segmentos.map(function (s) {
+      var k = E.conocimiento.pesos[s.id], iq = E.iq[s.id] || 0;
+      var pes = k ? Object.keys(k.pesos).map(function (a) { return (a === 'precio' ? 'Precio' : V.cat.attrs[a]) + ' ' + k.pesos[a]; }).join(', ') + ' <span class="muted">(' + esc(k.metodo) + ', T' + k.t + ')</span>' : '<span class="muted">Sin investigar</span>';
+      var lat = E.conocimiento.latentes && E.conocimiento.latentes[s.id] ? '<br><span class="tag ok">Necesidad latente: ' + E.conocimiento.latentes[s.id].join(', ') + '</span>' : '';
+      return '<tr><td>' + esc(s.id + ' ' + s.nombre) + (s.nuevo ? ' <span class="tag">nuevo para la empresa</span>' : '') + '</td><td class="n">' + Math.round(s.part * 100) + ' %</td><td class="n">' + (s.g * 100).toFixed(0) + ' %</td><td class="n">Bs ' + s.pref.toFixed(2) + '</td><td><div class="bar"><i style="width:' + Math.round(iq * 100) + '%"></i></div><span class="muted">' + Math.round(iq * 100) + ' %</span></td><td>' + pes + lat + '</td></tr>';
+    }).join('') + '</table></div>' + (E.conocimiento.tendencia ? '<p><b>Tendencia:</b> ' + esc(E.conocimiento.tendencia) + '</p>' : '') + '</div>';
+  var infs = (E.informes || []).filter(function (i) { return i.datos; });
+  ['industria', 'competidores', 'percepcion'].forEach(function (mid) {
+    var u = infs.filter(function (i) { return i.metodo === mid; }).sort(function (a, b) { return b.t - a.t; })[0];
+    if (u) html += '<div class="card"><h2>' + esc(u.nombre) + ' (T' + u.t + ')</h2>' + hallazgos(u) + '<p class="muted">Dato de T' + u.t + (u.t < V.partida.t - 2 ? ': tiene más de un trimestre de antigüedad.' : '.') + ' Informe completo en Resultados → Informes de investigación.</p></div>';
+  });
+  if (E.conocimiento.competidores && E.conocimiento.competidores.lista) {
+    var C = E.conocimiento.competidores;
+    html += '<div class="card"><h2>Competidores (análisis de T' + C.t + ')</h2><table><tr><th>Competidor</th>' + Object.keys(V.cat.attrs).map(function (a) { return '<th class="n">' + V.cat.attrs[a] + '</th>'; }).join('') + '<th class="n">Precio</th></tr>' +
+      C.lista.map(function (c) { return '<tr><td>' + esc(c.nombre) + '</td>' + Object.keys(V.cat.attrs).map(function (a) { return '<td class="n">' + Number(c.attrs[a]).toFixed(1) + '</td>'; }).join('') + '<td class="n">' + c.precio.toFixed(2) + '</td></tr>'; }).join('') + '</table></div>';
+  }
+  html += '<div class="card"><h2>Canales de venta</h2><table><tr><th>Canal</th><th class="n">Costo de presencia por trimestre</th></tr>' + V.cat.canales.map(function (c) { return '<tr><td>' + esc(c.nombre) + '</td><td class="n">' + (c.costo ? bs(c.costo) : 'Incluido') + '</td></tr>'; }).join('') + '</table><p class="muted">Cada canal llega mejor a ciertos segmentos. Descubrir esa afinidad es parte de tu investigación.</p></div>';
+  html += '<div class="card"><h2>Tus productos frente al mercado</h2>' + tablaProductos() + '</div>';
+  return html;
+}
+
+// ---------- Proyectos ----------
+var ETAPAS = [['ideacion', 'Ideación y selección'], ['prototipo', 'Prototipo y validación'], ['lanzado', 'Lanzado']];
+var ENFOQUES = {
+  incremental: ['Incremental', 'Mejorar el producto actual para sus clientes (nuevo sabor, envase, menos azúcar). Menos riesgo, resultados más rápidos.'],
+  radical: ['Radical', 'Crear un producto nuevo y distinto, con nuevas características o un nuevo modelo. Más riesgo y más potencial.'],
+  disruptiva: ['Disruptiva', 'Un producto más simple, práctico y barato para quienes hoy no compran o compran poco (por ejemplo, universitarios u oficinistas), que luego puede crecer hacia los demás.']
+};
+var FASES_DT = [['Empatizar', 'Investigación del segmento (paso 3)'], ['Definir', 'El reto "¿Cómo podríamos…?"'], ['Idear', 'Iniciativas para generar ideas'], ['Evaluar', 'Validar ideas y elegir una'], ['Prototipar', 'Iteraciones de prototipo'], ['Implementar', 'Piloto y lanzamiento']];
+function vProyectos() {
+  var E = V.estado, g = V.cat.general, O = E.org, html = '';
+  var act = E.proyectos.filter(function (p) { return p.estado === 'activo'; });
+  html += '<div class="card"><h2>Cómo funciona un proyecto de innovación</h2><p>Cada proyecto sigue las fases del <b>Design Thinking</b> y avanza un poco cada trimestre:</p><div class="etapas">' + FASES_DT.map(function (f, i) { return '<span class="hecho" title="' + esc(f[1]) + '">' + (i + 1) + '. ' + f[0] + '</span>'; }).join('') + '</div>' +
+    '<ol><li><b>Empatizar:</b> investiguen el segmento en el paso 3.</li><li><b>Definir:</b> al crear el proyecto escriben el reto y eligen el tipo de innovación.</li><li><b>Idear:</b> eligen hasta 3 iniciativas (talleres, concursos, startups) que generan ideas; las verán al recibir los resultados.</li><li><b>Evaluar:</b> validan las ideas más prometedoras y eligen una.</li><li><b>Prototipar:</b> iteran el prototipo; cada iteración mejora el producto.</li><li><b>Implementar:</b> si supera la puerta, hacen un piloto y lo lanzan.</li></ol>' +
+    ayuda('Un proyecto completo suele tomar de 3 a 5 trimestres.', 5, 'Design') + '</div>';
+  html += '<div class="card"><h2>Su gestión de la creatividad hoy</h2><div class="grid g4">' + [['Motivación intrínseca', Number(O.MI).toFixed(2)], ['Autoeficacia creativa', Number(O.AE).toFixed(2)], ['Diversidad del equipo', Number(O.DIV).toFixed(2)], ['Madurez en innovación', O.madurez + ' de 5']].map(function (k) { return '<div class="kpi"><div class="v" style="font-size:18px">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('') + '</div>' +
+    ayuda('La calidad de las ideas que generen depende de estos índices: con más motivación y autoeficacia las ideas son mejores; con más diversidad, más variadas. Se gestionan en la Estrategia anual (tiempo libre, incentivos, política ante el fracaso, composición y capacitación). Escala de 0 a 1.', 2) + '</div>';
+  html += '<div class="card"><h2>Nuevo proyecto</h2><p class="muted">Máximo ' + g.maxProyectos + ' proyectos activos. Tienen ' + act.length + '.</p>' +
+    '<div class="grid g2"><div><label>Nombre del proyecto</label><input type="text" id="npNom" placeholder="Ejemplo: Desayuno rápido universitario"></div><div><label>Segmento objetivo</label><select id="npSeg">' + V.cat.segmentos.map(function (s) { return '<option value="' + s.id + '">' + esc(s.id + ' ' + s.nombre) + '</option>'; }).join('') + '</select></div></div>' +
+    '<label>Reto de diseño: ¿Cómo podríamos…?</label><input type="text" id="npReto" placeholder="Ejemplo: ¿Cómo podríamos ofrecer a los universitarios un desayuno nutritivo que puedan tomar camino a clases?">' +
+    ayuda('Definan el problema desde la necesidad del cliente, no desde el producto. Un buen reto orienta toda la búsqueda de ideas.', 3, 'Insight') +
+    '<label>Tipo de innovación que buscan</label>' + Object.keys(ENFOQUES).map(function (k, i) { return '<label class="chk"><input type="radio" name="npEnf" value="' + k + '"' + (i === 0 ? ' checked' : '') + '><span><b>' + ENFOQUES[k][0] + ':</b> ' + esc(ENFOQUES[k][1]) + '</span></label>'; }).join('') +
+    ayuda('El tipo orienta qué ideas aparecerán. La disrupción no se "declara": se logra entrando por donde los líderes no atienden y mejorando después.', 1, 'Disrupción') +
+    '<div style="margin-top:8px"><button class="btn sec" onclick="agregarProyecto()">Agregar proyecto</button></div>' +
+    (D.nuevosProyectos.length ? '<p>Se crearán al procesar el trimestre: ' + D.nuevosProyectos.map(function (n, i) { return '<span class="tag">' + esc(n.nombre) + ' · ' + n.segmento + ' · ' + (ENFOQUES[n.enfoque] || ['?'])[0] + ' <a href="#" onclick="D.nuevosProyectos.splice(' + i + ',1);render();estimar();return false">×</a></span>'; }).join(' ') + '</p>' : '') +
+    '<p class="muted">Un proyecto nuevo empieza en la fase Idear. Pueden elegir sus iniciativas recién en el trimestre siguiente, cuando el proyecto ya exista.</p></div>';
+  if (!E.proyectos.length) html += '<div class="card"><p class="muted">Todavía no tienen proyectos.</p></div>';
+  E.proyectos.slice().reverse().forEach(function (p) { html += tarjetaProyecto(p); });
+  var term = E.proyectos.filter(function (p) { return p.estado !== 'activo' && !p.revisado; });
+  if (term.length) html += '<div class="card"><h2>Revisión post-proyecto</h2>' + ayuda('Analizar qué funcionó y qué no en un proyecto terminado eleva la madurez en gestión de la innovación (máximo un nivel por año). Costo ' + bs(g.costoRevision) + ', 2 semanas.', 9) + sel('revision', [['', 'No hacer revisión']].concat(term.map(function (p) { return [p.id, p.nombre]; }))) + '</div>';
+  return html;
+}
+function agregarProyecto() {
+  var nom = $('npNom').value.trim(), reto = $('npReto').value.trim(), enf = (document.querySelector('input[name="npEnf"]:checked') || {}).value || 'incremental';
+  if (!nom) { aviso('Escriban un nombre para el proyecto.', 'err'); return; }
+  if (reto.length < 15) { aviso('Escriban el reto de diseño: "¿Cómo podríamos…?" (al menos 15 caracteres).', 'err'); return; }
+  D.nuevosProyectos.push({ nombre: nom, base: enf === 'incremental' ? 'P0' : 'nuevo', enfoque: enf, reto: reto, segmento: $('npSeg').value }); render(); estimar();
+}
+
+function tarjetaProyecto(p) {
+  var pid = p.id, a = D.proyectos[pid] || {}, umb = V.cat.umbrales[V.estado.org.umbral];
+  var idx = ETAPAS.map(function (e) { return e[0]; }).indexOf(p.etapa);
+  var html = '<div class="card proj"><h2>' + esc(p.nombre) + ' <span class="tag">' + (ENFOQUES[p.enfoque] ? 'Innovación ' + ENFOQUES[p.enfoque][0].toLowerCase() : (p.base === 'nuevo' ? 'Producto nuevo' : 'Mejora del producto actual')) + '</span> <span class="tag">' + esc(segNom(p.segmento)) + '</span> ' + (p.estado !== 'activo' ? '<span class="tag ' + (p.etapa === 'lanzado' ? (p.falla ? 'aviso' : 'ok') : 'mal') + '">' + (p.etapa === 'lanzado' ? (p.falla ? 'Lanzado con bajo desempeño' : 'Lanzado') : 'Detenido') + '</span>' : '') + '</h2>';
+  html += '<div class="etapas">' + ETAPAS.map(function (e, i) { return '<span class="' + (i === idx ? 'on' : (i < idx || p.etapa === 'lanzado' ? 'hecho' : '')) + '">' + e[1] + '</span>'; }).join('') + '</div>';
+  if (p.reto) html += '<p><b>Reto:</b> ' + esc(p.reto) + '</p>';
+  if (p.estado === 'activo') html += '<p class="ayuda"><b>Qué hacer ahora:</b> ' + (p.etapa === 'ideacion' ? (p.pool.length ? 'Fase Evaluar. Revisen las ideas: la calidad sin validar tiene un margen de error de ±1,5; validen las más prometedoras (' + bs(V.cat.general.costoValidacion) + ' c/u) y elijan una. Si ninguna convence, generen más ideas.' : 'Fase Idear. Elijan hasta 3 iniciativas para generar ideas. Las comunitarias dan muchas ideas de calidad variable; los especialistas, pocas y más parejas.') : 'Fase Prototipar. Iteren el prototipo para subir su calidad; cuando el puntaje supere la puerta, hagan un piloto y luego lancen.') + ' <a href="#" onclick="irAprender(5);return false">Aprender: unidad 5 →</a></p>';
+  if (p.ideaSel) html += '<p><b>Idea elegida:</b> ' + esc(p.ideaSel.nombre) + ' <span class="muted">(' + esc(p.ideaSel.tipo) + ', novedad ' + p.ideaSel.novedad + '/5, riesgo ' + p.ideaSel.riesgo + '/9). ' + esc(p.ideaSel.efectos || '') + '</span></p>';
+  if (p.iter > 0) html += '<div class="grid g4">' + [['Iteraciones', p.iter + ' de 4'], ['Calidad observada del prototipo', p.calObs], ['Factibilidad', p.fact], ['Viabilidad', p.viab], ['Puntaje de puerta', p.puerta + ' (umbral ' + umb + ')']].map(function (k) { return '<div class="kpi"><div class="v" style="font-size:16px">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('') + '</div>';
+  if (p.piloto) html += '<p>Piloto (T' + p.piloto.t + '): con buena difusión alcanzaría cerca de <b>' + p.piloto.cuotaEstimada + ' %</b> de cuota en ' + p.segmento + '.</p>';
+  if (p.pool.length) {
+    html += '<h3>Ideas del proyecto (' + p.pool.length + ')</h3><div class="scroll"><table><tr><th>Idea</th><th>Tipo (4P)</th><th>Novedad</th><th>Fuente</th><th class="n">Calidad observada (1–9)</th><th>Validada</th>' + (p.etapa === 'ideacion' && p.estado === 'activo' ? '<th>Validar</th><th>Elegir</th>' : '') + '</tr>' +
+      p.pool.slice().sort(function (x, y) { return y.qObs - x.qObs; }).map(function (it) {
+        return '<tr><td><b>' + esc(it.nombre) + '</b><br><span class="muted">' + esc(it.desc) + (it.validada ? '<br>' + esc(it.efectos) : '') + '</span></td><td>' + esc(it.tipo) + '</td><td>' + (it.novedad <= 2 ? 'Incremental' : (it.novedad >= 4 ? 'Radical' : 'Intermedia')) + ' (' + it.novedad + '/5)</td><td>' + esc(it.fuente) + '</td><td class="n">' + Number(it.qObs).toFixed(1) + (it.validada ? '' : ' ±1,5') + '</td><td>' + (it.validada ? '<span class="tag ok">sí</span>' : '—') + '</td>' +
+          (p.etapa === 'ideacion' && p.estado === 'activo' ? '<td>' + (it.validada ? '' : '<input type="checkbox" data-arr="proyectos.' + pid + '.validar" value="' + it.pid + '"' + ((a.validar || []).indexOf(it.pid) >= 0 ? ' checked' : '') + '>') + '</td><td><input type="radio" name="sel_' + pid + '" data-p="proyectos.' + pid + '.seleccionar" value="' + it.pid + '"' + (a.seleccionar === it.pid ? ' checked' : '') + '></td>' : '') + '</tr>';
+      }).join('') + '</table></div>';
+  }
+  if (p.estado !== 'activo') return html + '</div>';
+  var g = V.cat.general;
+  if (p.etapa === 'ideacion') {
+    html += '<h3>Generar ideas (hasta 3 iniciativas)</h3>' + ayuda('Cada iniciativa es una forma real de gestionar la creatividad: con especialistas internos, con emprendedores de la propia empresa, abriendo la convocatoria a la comunidad o trabajando con socios externos (innovación abierta). En los concursos, un premio medio suele dar mejores resultados que uno alto.', 5, 'abierta') + '<div class="scroll"><table><tr><th></th><th>Iniciativa</th><th>Modo</th><th>Qué obtienen</th><th class="n">Costo</th><th class="n">Semanas</th><th>Premio</th></tr>' +
+      V.cat.iniciativas.map(function (ini) {
+        var on = D._ini[pid] && D._ini[pid][ini.id] !== undefined;
+        return '<tr><td><input type="checkbox" data-ini="' + pid + '" value="' + ini.id + '"' + (on ? ' checked' : '') + '></td><td>' + esc(ini.nombre) + '</td><td>' + esc(ini.modo) + '</td><td>' + ini.n0 + ' ideas, ' + (ini.mu0 >= 6 ? 'calidad alta' : (ini.mu0 >= 5 ? 'calidad media' : 'calidad baja')) + ', ' + (ini.s0 >= 1.5 ? 'muy variadas' : (ini.s0 >= 1.1 ? 'algo variadas' : 'parejas')) + '</td><td class="n">' + bs(ini.costo) + '</td><td class="n">' + ini.sem + '</td><td>' + (ini.premio ? '<select data-premio="' + pid + '|' + ini.id + '">' + ['bajo', 'medio', 'alto'].map(function (pr) { return '<option value="' + pr + '"' + ((on ? D._ini[pid][ini.id] === pr : pr === 'medio') ? ' selected' : '') + '>' + pr + ' (+' + bs(V.cat.premios[pr].costo) + ')</option>'; }).join('') + '</select>' : '—') + '</td></tr>';
+      }).join('') + '</table></div>';
+    if (p.pool.length) html += '<p class="muted">Validar cuesta ' + bs(g.costoValidacion) + ' por idea (2 semanas por lote). Puedes elegir una idea marcada o:</p>' + '<label class="chk"><input type="radio" name="sel_' + pid + '" data-p="proyectos.' + pid + '.seleccionar" value="mejorValidada"' + (a.seleccionar === 'mejorValidada' ? ' checked' : '') + '> Elegir automáticamente la mejor idea validada (después de validar este trimestre)</label>' + '<label class="chk"><input type="radio" name="sel_' + pid + '" data-p="proyectos.' + pid + '.seleccionar" value=""' + (!a.seleccionar ? ' checked' : '') + '> Todavía no elegir</label>';
+    if (p.pool.length) html += '<h3>Si eliges una idea, iniciar el prototipo en este mismo trimestre</h3>' + protoForm(pid, true);
+  }
+  if (p.etapa === 'prototipo') {
+    html += '<h3>Más iteraciones del prototipo</h3>' + protoForm(pid, false);
+    html += '<div class="grid g2"><div>' + chkB('proyectos.' + pid + '.piloto', 'Hacer un piloto este trimestre (' + bs(g.costoPiloto) + ', 4 semanas). Reduce el riesgo de fracaso y acelera la adopción.') + '</div><div>' + chkB('proyectos.' + pid + '.detener', '<span style="color:#B42318">Detener el proyecto</span>') + '</div></div>';
+    html += chkB('proyectos.' + pid + '.lanzarOn', '<b>Lanzar al mercado</b> (' + bs(g.costoLanzamiento) + ' + costo de implementación de la idea' + (p.base === 'nuevo' ? '; inversión de escalamiento ' + bs(g.capexEscalamiento) + ' de caja' : '') + ')', 'data-rerender="1"');
+    if (a.lanzarOn) {
+      html += '<div class="grid g4"><div><label>Nombre comercial</label>' + inp('proyectos.' + pid + '.lanzar.nombre') + '</div><div><label>Precio (Bs por porción)</label>' + inp('proyectos.' + pid + '.lanzar.precio', 'number', 'step=0.1 min=0.5') + '</div><div><label>Protección</label>' + sel('proyectos.' + pid + '.lanzar.proteccion', [['ninguna', 'Ninguna'], ['velocidad', 'Velocidad de mercado'], ['secreto', 'Secreto industrial'], ['patente', 'Patente (' + bs(g.costoPatente) + ', solo novedad ≥ 4)'], ['activos', 'Activos complementarios']]) + '</div><div><label>Comunicación por trimestre (Bs)</label>' + inp('proyectos.' + pid + '.lanzar.comunicacion', 'number', 'min=0 max=80000 step=1000') + '</div></div>' +
+        '<label>Canales (si no eliges, se usan los del producto actual)</label><div class="inline">' + V.cat.canales.map(function (c) { return chkA('proyectos.' + pid + '.lanzar.canales', c.id, esc(c.nombre) + (c.costo ? ' (' + bs(c.costo) + '/trim.)' : '')); }).join('') + '</div>' +
+        '<p class="muted">Cada producto nuevo activo tiene un costo de gestión de ' + bs(g.costoGestionProducto) + ' por trimestre.</p>';
+    }
+  }
+  return html + '</div>';
+}
+function protoForm(pid, opcional) {
+  var F = V.cat.fidelidades;
+  return '<div class="grid g4"><div><label>Fidelidad</label>' + sel('proyectos.' + pid + '.prototipo.fidelidad', Object.keys(F).map(function (k) { return [k, F[k].nombre + ' — ' + bs(F[k].costo) + ', ' + F[k].sem + ' sem. por iteración, máx. ' + F[k].max]; })) + '</div><div><label>Iteraciones este trimestre</label>' + sel('proyectos.' + pid + '.prototipo.iteraciones', (opcional ? [[0, 'Ninguna']] : []).concat([[1, '1'], [2, '2'], [3, '3']])) + '</div></div>';
+}
+
+// ---------- Productos ----------
+function vProductos() {
+  var g = V.cat.general;
+  var html = '<div class="card"><h2>Negocio actual: mientras innovan, la empresa sigue vendiendo</h2><p>Cada trimestre deciden 7 variables por producto. La publicidad mantiene el conocimiento de la marca: con menos de Bs 10.000 por trimestre, la gente empieza a olvidarla.</p>' + tablaProductos() + '</div>';
+  V.estado.productos.forEach(function (p) {
+    var pref = 'productos.' + p.id;
+    var ph = (p.pronHist || []).slice(-1)[0];
+    html += '<div class="card"><h2>' + esc(p.nombre) + '</h2><div class="grid g4">' +
+      '<div><label>1. Precio (Bs por porción; cambio máximo ±30 %)</label>' + inp(pref + '.precio', 'number', 'step=0.05') + '</div>' +
+      '<div><label>2. Publicidad por trimestre (Bs)</label>' + inp(pref + '.comunicacion', 'number', 'min=0 max=80000 step=1000') + '</div>' +
+      '<div><label>3. Publicidad dirigida a</label>' + sel(pref + '.segPub', [['todos', 'Todo el mercado']].concat(V.cat.segmentos.map(function (s) { return [s.id, s.id + ' ' + s.nombre]; }))) + '</div>' +
+      '<div><label>4. Promoción en el punto de venta (Bs, 0 a ' + kbs(g.promoMax) + ' mil)</label>' + inp(pref + '.promo', 'number', 'min=0 max=' + g.promoMax + ' step=1000') + '</div></div>' +
+      ayuda('La publicidad dirigida a un segmento atrae más a ese segmento y un poco menos a los demás. La promoción (degustaciones, exhibidores, descuentos) sube las ventas solo en este trimestre. Ambas son gastos comerciales: no salen del presupuesto de innovación.', 0) +
+      '<label>5. Canales</label><div class="inline">' + V.cat.canales.map(function (c) { return (p.legado && (c.id === 'tienda' || c.id === 'super')) ? '<label class="chk"><input type="checkbox" checked disabled> ' + esc(c.nombre) + '</label>' : chkA(pref + '.canales', c.id, esc(c.nombre) + (c.costo ? ' (' + bs(c.costo) + '/trim.)' : '')); }).join('') + '</div>' +
+      '<div class="grid g4"><div><label>6. Pronóstico de ventas (porciones del trimestre)</label>' + inp(pref + '.pronostico', 'number', 'min=0 step=10000') + (ph ? '<p class="muted">T' + ph.t + ': pronosticaron ' + ph.pron.toLocaleString('es-BO') + ', vendieron ' + ph.real.toLocaleString('es-BO') + '.</p>' : '<p class="muted">Se compara con lo que vendan.</p>') + '</div>' +
+      (p.legado ? '<div><label>7. Retirar</label><p class="muted">El producto original no se puede retirar.</p></div>' : '<div><label>7. Retirar</label>' + chkB(pref + '.retirar', 'Retirar del mercado') + '</div>') + '</div></div>';
+  });
+  return html;
+}
+
+// ---------- Hipótesis ----------
+function vHipotesis() {
+  return '<div class="card"><h2>Hipótesis del trimestre</h2><p class="muted">Obligatoria para enviar. Escríbela antes de decidir: luego la contrastarás con los resultados en la Bitácora.</p><label>¿Qué esperamos que pase con nuestras decisiones y por qué?</label>' + txtA('hipotesis', 'Ejemplo: si observamos a los universitarios descubriremos necesidades que la encuesta no muestra, y las ideas de nuestro proyecto serán de mayor calidad.') +
+    '<label>Resultado esperado (medible)</label>' + inp('esperado', 'text', 'placeholder="Ejemplo: calidad media de ideas mayor a 6; cuota en S2 sobre 5 %"') + '</div>';
+}
+
+// ---------- Resultados ----------
+function vResultados() {
+  var H = V.estado.hist; if (!H.length) return '<div class="card"><p class="muted">Aún no hay resultados procesados.</p></div>';
+  var cols = H, html = '';
+  function fila(nom, f, fmtf, neg) { return '<tr><th>' + nom + '</th>' + cols.map(function (h) { var v = f(h); return '<td class="n">' + (fmtf ? fmtf(v) : kbs(v)) + '</td>'; }).join('') + '</tr>'; }
+  var cab = '<tr><th>Miles de Bs</th>' + cols.map(function (h) { return '<th class="n">T' + h.t + '</th>'; }).join('') + '</tr>';
+  html += '<div class="card"><h2>Estado de resultados</h2><div class="scroll"><table>' + cab +
+    fila('Ventas', function (h) { return h.ventas; }) + fila('Costo de ventas', function (h) { return -h.costoVentas; }) + fila('Utilidad bruta', function (h) { return h.utilidadBruta; }) +
+    fila('Gastos operativos fijos', function (h) { return -h.gastosFijos; }) + fila('Gastos comerciales', function (h) { return -h.gastosComerciales; }) + fila('Gastos de innovación', function (h) { return -h.gastosInnovacion; }) +
+    fila('Otros gastos', function (h) { return -h.otrosGastos; }) + fila('Amortización de intangibles', function (h) { return -h.amortizacion; }) + fila('Bajas de desarrollo', function (h) { return -h.bajas; }) + fila('Intereses', function (h) { return -h.intereses; }) +
+    fila('Utilidad antes de impuestos', function (h) { return h.utilidadAntesImp; }) + fila('Impuesto (IUE 25 %)', function (h) { return -h.impuesto; }) + fila('<b>Utilidad neta</b>', function (h) { return h.utilidadNeta; }) +
+    fila('Utilidad neta sin innovar', function (h) { return h.twin.utilidadNeta; }) + '</table></div></div>';
+  html += '<div class="card"><h2>Flujo de efectivo</h2><div class="scroll"><table>' + cab + fila('Flujo operativo', function (h) { return h.flujoOperativo; }) + fila('Flujo de inversión', function (h) { return h.flujoInversion; }) + fila('Flujo de financiamiento', function (h) { return h.flujoFinanciamiento; }) + fila('Caja final', function (h) { return h.caja; }) + fila('Caja sin innovar', function (h) { return h.twin.caja; }) + '</table></div></div>';
+  var b = H[H.length - 1].balance;
+  html += '<div class="card"><h2>Balance general (cierre T' + H[H.length - 1].t + ', miles de Bs)</h2><div class="grid g2"><table>' + [['Caja', b.caja], ['Cuentas por cobrar', b.cxc], ['Inventarios', b.inventarios], ['Activo fijo neto', b.activoFijo], ['Intangibles', b.intangibles], ['Desarrollo en curso', b.desarrolloEnCurso], ['<b>Total activo</b>', b.totalActivo]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + kbs(r[1]) + '</td></tr>'; }).join('') + '</table><table>' + [['Proveedores', b.proveedores], ['Deuda de largo plazo', b.deuda], ['Préstamo de emergencia', b.emergencia], ['Capital', b.capital], ['Resultados acumulados', b.resultados], ['<b>Total pasivo y patrimonio</b>', b.totalPasivoPatrimonio]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + kbs(r[1]) + '</td></tr>'; }).join('') + '</table></div></div>';
+  html += '<div class="card"><h2>Mercado e indicadores</h2><div class="scroll"><table>' + cab.replace('Miles de Bs', 'Indicador') +
+    V.cat.segmentos.map(function (s) { return fila('Cuota ' + s.id, function (h) { return h.cuotas[s.id]; }, pct); }).join('') + fila('Cuota total', function (h) { return h.cuotaTotal; }, pct) + fila('Cuota total sin innovar', function (h) { return h.twin.cuotaTotal; }, pct) +
+    fila('Índice de vitalidad', function (h) { return h.vitalidad; }, pct) + fila('Intensidad de innovación', function (h) { return h.intensidad; }, pct) + fila('Gasto en innovación (miles)', function (h) { return h.gastoInnovTotal; }) +
+    fila('Motivación intrínseca', function (h) { return h.MI; }, function (v) { return Number(v).toFixed(2); }) + fila('Autoeficacia creativa', function (h) { return h.AE; }, function (v) { return Number(v).toFixed(2); }) + fila('Clima creativo', function (h) { return h.clima; }, function (v) { return v; }) + fila('Madurez', function (h) { return h.madurez; }, function (v) { return v; }) +
+    fila('Acierto en noticias', function (h) { return h.aciertoNoticias; }, pct) + fila('Semanas-persona usadas', function (h) { return h.semanasUsadas; }, function (v) { return v; }) + '</table></div></div>';
+  var ul = H[H.length - 1];
+  html += '<div class="card"><h2>Ventas por producto (T' + ul.t + ')</h2><table><tr><th>Producto</th><th class="n">Ventas</th><th class="n">Porciones</th><th class="n">Margen</th>' + V.cat.segmentos.map(function (s) { return '<th class="n">' + s.id + '</th>'; }).join('') + '</tr>' + ul.productos.map(function (p) { return '<tr><td>' + esc(p.nombre) + '</td><td class="n">' + bs(p.ventas) + '</td><td class="n">' + Math.round(p.unidades).toLocaleString('es-BO') + '</td><td class="n">' + pct(p.margen) + '</td>' + V.cat.segmentos.map(function (s) { return '<td class="n">' + pct(p.cuotas[s.id]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>';
+  return html;
+}
+
+
+function nEmp() { return (V.empresas && V.empresas.length) || 1; }
+function tablaEmpresas() {
+  var E = (V.empresas || []).slice(), conDatos = false;
+  if (conDatos) E.sort(function (a, b) { return (b.cuota || 0) - (a.cuota || 0); });
+  return '<div class="scroll"><table><tr><th>Empresa</th><th class="n">Ventas último trimestre</th><th class="n">Participación de mercado</th><th class="n">Productos en el mercado</th></tr>' + E.map(function (e) { return '<tr><td>' + esc(e.nombre) + (e.yo ? ' <span class="tag">su empresa</span>' : '') + '</td><td class="n">' + (e.ventas === null ? '—' : bs(e.ventas)) + '</td><td class="n">' + (e.cuota === null ? pct(11.2 / nEmp()) : pct(e.cuota)) + '</td><td class="n">' + (e.productos === null ? '1' : e.productos) + '</td></tr>'; }).join('') + '</table></div>' + (conDatos ? '' : '<p class="muted">Todas parten iguales. Los datos se actualizan cuando el docente procesa cada trimestre.</p>');
+}
+function vDecidirCerrado() {
+  if (V.partida.finalizada) return '<div class="card"><h2>La partida terminó</h2><p>Ya no hay decisiones por tomar. Revise sus resultados finales y complete su bitácora en Aprender.</p></div>';
+  return '<div class="card"><h2>El trimestre ' + V.partida.t + ' aún no está abierto</h2><p>La hoja de decisiones se habilita cuando el docente abre el trimestre. Mientras tanto, lean la <b>Situación</b> de su empresa, revisen sus <b>Resultados</b> y estudien los temas de <b>Aprender</b>.</p><div class="inline"><button class="btn sec" onclick="irTab(\'caso\')">Ir a Situación</button><button class="btn sec" onclick="irTab(\'temas\')">Ir a Aprender</button><button class="btn" onclick="cargar()">Ya abrió: actualizar</button></div></div>';
+}
+
+// ---------- Situación: el caso ----------
+function vCaso() {
+  var S = V.cat.segmentos, g = V.cat.general;
+  var html = '<div class="card"><h2>' + esc(V.equipo.nombre) + ': la situación en la que se encuentran</h2>' +
+    '<p>Su equipo dirige la innovación de <b>' + esc(V.equipo.nombre) + '</b>, una de las <b>' + nEmp() + ' empresas lácteas cruceñas</b> que compiten en esta industria' + (nEmp() > 1 ? ' (las demás son las empresas de los otros equipos del curso)' : '') + '. Todas parten en igualdad de condiciones: mismo producto, mismo presupuesto y misma participación. Su producto principal es la <b>Leche saborizada de 1 litro</b>, que se vende en tiendas de barrio y supermercados a Bs 9 el litro (Bs 2,25 por porción de 250 ml). Es un producto querido por su sabor, pero poco práctico, poco saludable y sin atributos de sostenibilidad.</p>' +
+    '<p>El producto está en su <b>fase de madurez</b>: las familias con niños, que son la mitad del mercado, compran cada vez menos, mientras crecen los segmentos que la empresa casi no atiende (universitarios, oficinistas y consumidores saludables). Hoy la empresa vende alrededor de <b>Bs 2 millones por trimestre</b>, con una participación de mercado cercana al ' + pct(11.2 / nEmp()) + ', y gana dinero, pero si no cambia nada sus ventas y utilidades irán cayendo año tras año.</p>' +
+    '<p>El directorio les entrega un <b>presupuesto anual de innovación</b> (Bs 400.000 el primer año), un equipo con <b>' + g.semanasTrimestre + ' semanas-persona por trimestre</b> y un encargo: <b>renovar el portafolio de la empresa en cinco años</b> sin poner en riesgo su caja. El presupuesto de cada año siguiente dependerá de los resultados que logren.</p></div>';
+  html += '<div class="card"><h2>El encargo del directorio (su mandato)</h2><p><b>' + esc(V.equipo.mandato.nombre) + '.</b> ' + esc(V.equipo.mandato.texto) + '</p><p class="muted">El mandato define cómo el directorio evaluará sus proyectos: cuánto valora la novedad, el riesgo, el tiempo, el costo y el ajuste al cliente.</p></div>';
+  html += P4_lienzoActual();
+  html += '<div class="card"><h2>El mercado de bebidas lácteas</h2><p>El mercado vende unos 8 millones de porciones por trimestre y está formado por cinco segmentos. Conocen su tamaño y su crecimiento, pero <b>no saben qué valora realmente cada uno</b>: descubrirlo es su primera tarea.</p><div class="scroll"><table><tr><th>Segmento</th><th class="n">Tamaño del mercado</th><th class="n">Crecimiento por trimestre</th><th class="n">Precio que suele pagar</th><th>Situación de la empresa</th></tr>' +
+    S.map(function (s) { return '<tr><td>' + esc(s.id + ' ' + s.nombre) + '</td><td class="n">' + Math.round(s.part * 100) + ' %</td><td class="n">' + (s.g > 0 ? '+' : '') + (s.g * 100).toFixed(0) + ' %</td><td class="n">Bs ' + s.pref.toFixed(2) + '</td><td>' + (s.nuevo ? 'Casi no lo atiende' : 'Cliente tradicional') + '</td></tr>'; }).join('') + '</table></div></div>';
+  html += '<div class="card"><h2>Las empresas que compiten con ustedes</h2><p>El producto más innovador y mejor adaptado a cada segmento es el que el mercado acepta: lo que gane una empresa lo pierden las demás.</p>' + tablaEmpresas() + '</div>';
+  html += '<div class="card"><h2>Otros competidores del mercado</h2><ul class="fb"><li><b>Líder nacional:</b> la marca más grande del país, fuerte en familias y adultos mayores, con precio parecido al suyo.</li><li><b>Marca regional:</b> compite con precio bajo; suele copiar rápido lo que funciona.</li><li><b>Importados premium:</b> productos caros, saludables y prácticos, fuertes en oficinistas y deportistas.</li><li><b>Nuevos entrantes:</b> el sector observa a emprendimientos de bebidas vegetales que venden por aplicaciones. Hoy no son una amenaza… todavía.</li></ul></div>';
+  html += '<div class="card"><h2>Punto de partida financiero (miles de Bs)</h2><div class="grid g2"><table>' + [['Caja', 400], ['Cuentas por cobrar', 600], ['Inventarios', 500], ['Activo fijo neto', 2500], ['<b>Total activo</b>', 4000]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + r[1].toLocaleString('es-BO') + '</td></tr>'; }).join('') + '</table><table>' + [['Proveedores', 700], ['Deuda de largo plazo', 1300], ['Capital', 1500], ['Resultados acumulados', 500], ['<b>Total pasivo y patrimonio</b>', 4000]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + r[1].toLocaleString('es-BO') + '</td></tr>'; }).join('') + '</table></div><p class="muted">Gastos fijos de operación: Bs 500.000 por trimestre. Si la caja se vuelve negativa, el banco otorga un préstamo de emergencia con interés alto.</p></div>';
+  html += '<div class="card"><h2>Cinco años, veinte trimestres</h2><table><tr><th>Año</th><th>Trimestres</th><th>Lo que suele estar en juego</th></tr>' +
+    [['1', 'T1–T4', 'Diagnóstico: conocer a los clientes, definir el problema y lograr una primera mejora rápida.'], ['2', 'T5–T8', 'Exploración: apuestas hacia segmentos nuevos.'], ['3', 'T9–T12', 'Lanzamiento y escalamiento: capturar el valor de lo desarrollado; los competidores reaccionan.'], ['4', 'T13–T16', 'Turbulencia: el mercado puede cambiar las reglas del juego.'], ['5', 'T17–T20', 'Renovación y legado: dejar una empresa preparada para el futuro.']]
+      .map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>'; }).join('') + '</table><p class="muted">La estrategia y la organización se deciden al inicio de cada año (T1, T5, T9, T13 y T17).</p></div>';
+  html += '<div class="card"><h2>Cómo se evalúa su gestión</h2><p>Al final se comparan las empresas de todos los equipos con estos indicadores.</p><table>' + [['Valor de la empresa al final (utilidades descontadas y valor terminal)', '30 %'], ['Índice de vitalidad (ventas de productos nuevos) en los años 3 a 5', '20 %'], ['Participación en los segmentos que crecen', '15 %'], ['Resiliencia ante cambios fuertes del mercado', '15 %'], ['Madurez en gestión de la innovación', '10 %'], ['Clima creativo promedio', '10 %']].map(function (r) { return '<tr><td>' + r[0] + '</td><td class="n">' + r[1] + '</td></tr>'; }).join('') + '</table><p class="muted">Sus resultados se comparan siempre con una “empresa gemela” que no innova: la diferencia es el valor que ustedes crearon.</p></div>';
+  html += '<div class="card"><h2>Cómo se juega cada ronda</h2><ol><li><b>Situación:</b> lean dónde está la empresa y qué saben del mercado.</li><li><b>Decidir:</b> clasifiquen las noticias, definan la estrategia (al inicio del año), investiguen, avancen sus proyectos, ajusten sus productos, escriban su hipótesis y envíen.</li><li><b>Resultados:</b> cuando el docente procese el trimestre, revisen qué pasó y por qué.</li><li><b>Aprender:</b> relacionen lo que pasó con la teoría y escriban su bitácora.</li></ol><button class="btn" onclick="irTab(\'ronda\')">Empezar a decidir</button></div>';
+  return html;
+}
+
+// ---------- Decidir: guía de la ronda ----------
+function avisosRonda() {
+  var a = [], f = V.flags;
+  if (V.partida.finalizada) return ['La partida terminó. Revisa tus resultados finales y completa tu bitácora.'];
+  if (V.partida.estado !== 'abierto') a.push('El trimestre está <b>cerrado</b>: puedes preparar tus decisiones, pero solo se enviarán cuando el docente lo abra.');
+  if (f.anualEditable) a.push('<b>Inicio de año:</b> este trimestre deben definir la estrategia anual y el clima de la organización.');
+  if (f.c4Disponible) a.push('Puedes responder a la startup de bebidas vegetales (alianza o adquisición) en 1. Entorno.');
+  if (f.licitacion) a.push('Este trimestre se abre la <b>licitación</b> de alimentación escolar y universitaria (1. Entorno).');
+  var pendI = (V.estado.informes || []).filter(function (i) { return i.requiere && i.t === V.partida.t - 1; }).length;
+  if (pendI) a.push('Recibieron <b>' + pendI + ' informe(s) de investigación</b>. Antes de enviar, escriban qué decisión toman con cada uno en <a href="#" onclick="irTab(\'informes\');return false">Resultados → Informes de investigación</a>.');
+  a.push('Presupuesto de innovación disponible: <b>' + bs(V.estado.saldo) + '</b>.');
+  return a;
+}
+function vRonda() {
+  var E = V.estado, act = E.proyectos.filter(function (p) { return p.estado === 'activo'; });
+  var nCl = V.noticias.filter(function (n) { return D.noticias[n.id]; }).length;
+  var nInv = (D.investigacion.metodos || []).length;
+  var filas = [
+    ['entorno', '1. Entorno', 'Clasificar cada noticia como oportunidad, amenaza o ruido.' + (V.flags.c4Disponible ? ' Decidir si responden a la startup.' : '') + (V.flags.licitacion ? ' Decidir si postulan a la licitación.' : ''), 'Obligatorio', nCl + ' de ' + V.noticias.length + ' clasificadas', V.noticias.length && nCl === V.noticias.length],
+    ['anual', '2. Estrategia anual', V.flags.anualEditable ? 'Distribuir el esfuerzo en las 4P, el grado de novedad, la red de valor, la estructura y el clima creativo.' : 'No se decide en este trimestre: se muestra la estrategia vigente.', V.flags.anualEditable ? 'Obligatorio' : 'No corresponde', V.flags.anualEditable ? (D.anual && D.anual.hipotesis ? 'Con hipótesis anual' : 'Falta la hipótesis anual') : '—', !V.flags.anualEditable || !!(D.anual && D.anual.hipotesis)],
+    ['investigacion', '3. Investigación', 'Elegir métodos para conocer a los clientes y el entorno, y los segmentos a estudiar.', 'Opcional', nInv ? nInv + ' método(s) elegido(s)' : 'Ninguno', nInv > 0],
+    ['proyectos', '4. Proyectos', 'Crear proyectos y avanzarlos: generar ideas, validar, seleccionar, prototipar, pilotear y lanzar.', 'Recomendado', act.length + ' activo(s)' + (D.nuevosProyectos.length ? ' + ' + D.nuevosProyectos.length + ' nuevo(s)' : ''), act.length + D.nuevosProyectos.length > 0],
+    ['productos', '5. Productos', 'Ajustar precio, comunicación y canales de los productos en el mercado.', 'Opcional', E.productos.length + ' producto(s)', true],
+    ['hipotesis', '6. Hipótesis y envío', 'Escribir qué esperan que pase y por qué; luego enviar las decisiones.', 'Obligatorio', D.hipotesis ? 'Escrita' : 'Falta', !!D.hipotesis]
+  ];
+  var html = '<div class="card"><h2>Decisiones del trimestre ' + V.partida.t + '</h2><ul class="fb">' + avisosRonda().map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' +
+    '<div class="scroll"><table><tr><th>Paso</th><th>Qué deciden</th><th>Carácter</th><th>Estado</th><th></th></tr>' + filas.map(function (f) { return '<tr><td><b>' + f[1] + '</b></td><td>' + f[2] + '</td><td>' + f[3] + '</td><td>' + (f[5] ? '<span class="tag ok">' + esc(f[4]) + '</span>' : '<span class="tag aviso">' + esc(f[4]) + '</span>') + '</td><td><button class="btn sec" onclick="irTab(\'' + f[0] + '\')">Abrir</button></td></tr>'; }).join('') + '</table></div>' +
+    '<p class="muted">El pie de la pantalla muestra en todo momento el costo y las semanas-persona que consumen sus decisiones. Pueden guardar un borrador y enviar cuantas veces quieran hasta que el docente cierre el trimestre; vale el último envío.</p><button class="btn" onclick="irTab(\'entorno\')">Comenzar por el paso 1 →</button></div>';
+  return html;
+}
+
+// ---------- Resultados: resumen ----------
+function vResumen() {
+  var h = ultimo(), html = '';
+  if (!h) return '<div class="card"><h2>Resumen del trimestre</h2><p class="muted">Aún no hay resultados. Aparecerán cuando el docente procese el primer trimestre.</p></div>';
+  html += '<div class="grid g4">' + [['Ventas T' + h.t, bs(h.ventas)], ['Ventas sin innovar', bs(h.twin.ventas)], ['Utilidad neta', bs(h.utilidadNeta)], ['Utilidad sin innovar', bs(h.twin.utilidadNeta)], ['Caja', bs(h.caja)], ['Cuota total', pct(h.cuotaTotal)], ['Índice de vitalidad', pct(h.vitalidad)], ['Clima creativo', h.clima]].map(function (k) { return '<div class="kpi"><div class="v">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('') + '</div>';
+  html += '<div class="card" style="margin-top:14px"><h2>Cómo quedaron las empresas</h2>' + tablaEmpresas() + '</div>';
+  html += '<div class="card"><h2>Qué pasó y por qué</h2>' + (V.estado.feedback && V.estado.feedback.length ? '<ul class="fb">' + V.estado.feedback.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' : '<p class="muted">Sin comentarios.</p>') + '</div>';
+  html += tarjetaCoherencia();
+  html += '<div class="card"><h2>Ventas y utilidad frente a la empresa que no innova</h2>' + grafico() + '</div>';
+  var ev = V.estado.noticiasEval || [];
+  if (ev.length) html += '<div class="card"><h2>Tu lectura del entorno en el trimestre anterior</h2><table><tr><th>Noticia</th><th>Tu clasificación</th><th>Lo que era</th><th></th></tr>' + ev.map(function (e) { return '<tr><td>' + esc(e.texto) + '</td><td>' + esc(e.clasif) + '</td><td>' + esc(e.real === 'ambas' ? 'oportunidad y amenaza' : e.real) + '</td><td>' + (e.ok ? '<span class="tag ok">acierto</span>' : '<span class="tag mal">error</span>') + '</td></tr>'; }).join('') + '</table></div>';
+  html += '<div class="inline"><button class="btn sec" onclick="irTab(\'resultados\')">Ver estados financieros</button><button class="btn" onclick="irTab(\'bitacora\')">Escribir la bitácora</button></div>';
+  return html;
+}
+
+// ---------- Mi equipo ----------
+function vEquipo() { return AX_vEquipo(); }
+function cargarMiEquipo() { AX_cargarMiEquipo(); }
+
+// ---------- Bitácora ----------
+function vBitacora() {
+  var t = V.partida.t - 1;
+  if (t < 1) return '<div class="card"><p class="muted">La bitácora se escribe después de recibir los resultados del primer trimestre.</p></div>';
+  return '<div class="card"><h2>Bitácora del trimestre ' + t + '</h2><label>¿Qué decidimos?</label><textarea id="b1"></textarea><label>¿Qué pasó?</label><textarea id="b2"></textarea><label>¿Por qué pasó? (contrasta con tu hipótesis)</label><textarea id="b3"></textarea><label>¿Qué principio de innovación lo explica?</label><textarea id="b4"></textarea><div style="margin-top:10px"><button class="btn" onclick="guardarBitacora()">Guardar bitácora</button></div></div><div class="card"><h2>Bitácoras anteriores</h2><div id="blist" class="muted">Cargando…</div></div>' + decisionesInvestigacion();
+}
+function decisionesInvestigacion() {
+  var L = (V.estado.informes || []).filter(function (i) { return i.requiere && i.decision; }).sort(function (a, b) { return b.t - a.t; });
+  if (!L.length) return '';
+  return '<div class="card"><h2>Decisiones tomadas con la investigación</h2><table><tr><th>Informe</th><th>Decisión del equipo</th></tr>' + L.map(function (i) { return '<tr><td>T' + i.t + ' · ' + esc(i.nombre) + (i.segs && i.segs.length ? ' (' + esc(i.segs.join(', ')) + ')' : '') + '</td><td>' + esc(i.decision) + '</td></tr>'; }).join('') + '</table></div>';
+}
+function cargarBitacora() {
+  call('apiMiBitacora', TOK).then(function (L) {
+    if (!$('blist')) return;
+    var t = V.partida.t - 1, act = L.filter(function (b) { return Number(b.trimestre) === t; })[0];
+    if (act && $('b1')) { $('b1').value = act.decidimos || ''; $('b2').value = act.paso || ''; $('b3').value = act.porque || ''; $('b4').value = act.principio || ''; }
+    $('blist').innerHTML = L.length ? L.sort(function (a, b) { return b.trimestre - a.trimestre; }).map(function (b) { return '<div style="border-bottom:1px solid #eee;padding:6px 0"><b>T' + b.trimestre + '</b>' + (b.nota !== '' && b.nota !== undefined ? ' <span class="tag ok">Nota: ' + esc(b.nota) + '</span>' : '') + (b.autor ? ' <span class="muted">por ' + esc(b.autor) + '</span>' : '') + '<br>' + esc(b.porque) + '<br><i>' + esc(b.principio) + '</i>' + (b.comentario ? '<br><span class="tag">Docente: ' + esc(b.comentario) + '</span>' : '') + '</div>'; }).join('') : 'Sin registros.';
+  });
+}
+function guardarBitacora() {
+  call('apiBitacora', TOK, { decidimos: $('b1').value, paso: $('b2').value, porque: $('b3').value, principio: $('b4').value }).then(function () { aviso('Bitácora guardada.'); cargarBitacora(); }).catch(function (e) { aviso(e, 'err'); });
+}
+
+// ===================== Docente =====================
+var ATABS = [['simulaciones', 'Simulaciones'], ['partida', 'Partida'], ['equipos', 'Equipos'], ['ranking', 'Ranking'], ['textos', 'Textos y calificación'], ['debriefing', 'Guía de debriefing'], ['resultados', 'Resultados de la clase'], ['bitacoras', 'Bitácoras']];
+var SIMS = null, SIMID = null;
+function cargarAdmin() {
+  call('apiAdmin', TOK, 'simulaciones').then(function (r) {
+    SIMS = r;
+    if (!SIMID && r.lista.length) SIMID = r.lista[r.lista.length - 1].simId;
+    if (SIMID && !r.lista.some(function (x) { return x.simId === SIMID; })) SIMID = r.lista.length ? r.lista[r.lista.length - 1].simId : null;
+    if (SIMID && ['simulaciones', 'docentes', 'cuenta'].indexOf(ATAB) < 0) return call('apiAdmin', TOK, 'resumen', { simId: SIMID }).then(function (x) { ADM = x; renderAdmin(); });
+    ADM = null; renderAdmin();
+  }).catch(function (e) { aviso(e, 'err'); });
+}
+function renderAdmin() {
+  var sim = SIMS.lista.filter(function (s) { return s.simId === SIMID; })[0];
+  $('titulo').textContent = 'Simulador de Innovación · Panel docente';
+  document.body.classList.add('ax-doc');
+  var yo = SIMS.yo || {};
+  $('meta').innerHTML = '<span class="ax-who"><b>' + esc(yo.nombre || '') + '</b> · ' + esc(yo.rol || '') + '</span>' + (sim ? '<span>' + esc(sim.nombre) + ' (' + esc(sim.codigo) + ')</span><span>' + (sim.t > SIMS.total ? 'Terminada' : 'T' + sim.t + ' · ' + sim.estado) + '</span>' : '<span>Sin simulación seleccionada</span>') + '<a href="#" class="ax-salir" onclick="pantallaLogin();return false">Salir</a>';
+  $('nav').style.display = 'flex'; $('pie').style.display = 'none';
+  var tabs = ATABS.concat(yo.superadmin ? [['docentes', 'Docentes']] : []).concat([['cuenta', 'Mi cuenta']]);
+  $('nav').innerHTML = tabs.map(function (t) { return '<button class="' + (ATAB === t[0] ? 'on' : '') + '" onclick="irA(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
+  if (['simulaciones', 'docentes', 'cuenta'].indexOf(ATAB) < 0 && !ADM) { $('app').innerHTML = '<div class="card"><p>Primero cree o seleccione una simulación en la pestaña Simulaciones.</p></div>'; return; }
+  var f = { docentes: AX_aDocentes, cuenta: AX_aCuenta, simulaciones: aSimulaciones, partida: aPartida, equipos: AX_aEquipos, ranking: aRanking, textos: P4_aTextos, debriefing: P4_aDebrief, resultados: aResultados, bitacoras: aBitacoras }[ATAB];
+  $('app').innerHTML = f();
+  if (ATAB === 'ranking') cargarRanking(); if (ATAB === 'resultados') cargarResultadosClase(); if (ATAB === 'bitacoras') cargarBitacorasClase(); if (ATAB === 'textos') P4_cargarTextos(); if (ATAB === 'equipos') AX_cargarEquipos(); if (ATAB === 'docentes') AX_cargarDocentes(); if (ATAB === 'cuenta') AX_cargarCuenta();
+}
+function irA(t) { ATAB = t; cargarAdmin(); }
+function elegirSim(id) { SIMID = id; ATAB = 'partida'; cargarAdmin(); }
+function adm(accion, datos, recargar) {
+  datos = datos || {}; if (!datos.simId) datos.simId = SIMID;
+  return call('apiAdmin', TOK, accion, datos).then(function (r) { if (r && r.mensaje) aviso(r.mensaje, r.ok === false ? 'err' : 'ok'); if (r && r.simId && accion === 'crearSimulacion') SIMID = r.simId; if (recargar !== false) cargarAdmin(); return r; }).catch(function (e) { aviso(e, 'err'); });
+}
+function optMandatos(sel) { return '<option value="aleatorio"' + (sel === 'aleatorio' ? ' selected' : '') + '>Aleatorio para cada equipo</option>' + SIMS.mandatos.map(function (m) { return '<option value="' + m.id + '"' + (sel === m.id ? ' selected' : '') + '>' + esc(m.id + ' — ' + m.nombre) + '</option>'; }).join(''); }
+function aSimulaciones() {
+  var h = '<div class="card"><h2>Simulaciones</h2>' + (SIMS.lista.length ? '<div class="scroll"><table><tr><th>Simulación</th><th>Materia</th>' + (SIMS.yo && SIMS.yo.superadmin ? '<th>Docente</th>' : '') + '<th>Código para estudiantes</th><th>Acceso</th><th>Trimestre</th><th>Estado</th><th>Registro</th><th class="n">Equipos</th><th class="n">Estudiantes</th><th></th></tr>' + SIMS.lista.map(function (s) { return '<tr><td>' + esc(s.nombre) + '</td><td>' + esc(s.sigla) + '</td>' + (SIMS.yo && SIMS.yo.superadmin ? '<td>' + esc(s.docente) + '</td>' : '') + '<td><span class="ax-codigo">' + esc(s.codigo) + '</span> <button class="btn sec" onclick="AX_copiar(\'' + esc(s.codigo) + '\')">Copiar</button> <button class="btn sec" onclick="AX_cambiarCodigo(\'' + s.simId + '\',\'' + esc(s.codigo) + '\')">Cambiar</button></td><td>' + (s.acceso === 'cerrada' ? '<span class="tag mal">cerrada</span> <button class="btn sec" onclick="adm(\'acceso\',{simId:\'' + s.simId + '\',valor:\'activa\'})">Activar</button>' : '<span class="tag ok">activa</span> <button class="btn sec" onclick="adm(\'acceso\',{simId:\'' + s.simId + '\',valor:\'cerrada\'})">Cerrar</button>') + '</td><td>' + (s.t > SIMS.total ? 'Terminada' : 'T' + s.t) + '</td><td>' + esc(s.estado) + '</td><td>' + (s.registroAbierto ? '<span class="tag ok">abierto</span>' : '<span class="tag">cerrado</span>') + '</td><td class="n">' + s.equipos + '</td><td class="n">' + s.integrantes + '</td><td><button class="btn ' + (s.simId === SIMID ? '' : 'sec') + '" onclick="elegirSim(\'' + s.simId + '\')">' + (s.simId === SIMID ? 'Seleccionada' : 'Administrar') + '</button></td></tr>'; }).join('') + '</table></div>' : '<p class="muted">Aún no hay simulaciones.</p>') + '</div>';
+  h += '<div class="card"><h2>Nueva simulación</h2><div class="grid g4"><div><label>Nombre</label><input type="text" id="snom" placeholder="Innovación — Grupo T"></div><div><label>Materia (sigla)</label><input type="text" id="ssig" placeholder="COM505T"></div><div><label>Máximo de integrantes por equipo</label><select id="smax">' + [1, 2, 3, 4, 5].map(function (n) { return '<option' + (n === 5 ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></div><div><label>Mandato del directorio</label><select id="smand">' + optMandatos('MA') + '</select></div></div><div style="margin-top:10px"><button class="btn" onclick="adm(\'crearSimulacion\',{nombre:$(\'snom\').value,sigla:$(\'ssig\').value,maxIntegrantes:$(\'smax\').value,mandato:$(\'smand\').value})">Crear simulación y generar código</button></div><p class="muted">El sistema genera un código como INN-A2B3. Compártalo con los estudiantes junto con el enlace del simulador: con él registran su equipo e ingresan.</p></div>';
+  return h;
+}
+function aPartida() {
+  var p = ADM.partida, env = ADM.equipos.filter(function (e) { return e.envio === 'enviado'; }).length;
+  return '<div class="card"><h2>Parámetros de configuración</h2><div class="grid g4"><div class="kpi"><div class="v" style="letter-spacing:3px">' + esc(p.codigo) + '</div><div class="l">Código para los estudiantes</div></div><div class="kpi"><div class="v">' + (p.t > ADM.total ? 'Fin' : 'T' + p.t) + '</div><div class="l">Trimestre actual</div></div><div class="kpi"><div class="v">' + esc(p.estado) + '</div><div class="l">Estado del trimestre</div></div><div class="kpi"><div class="v">' + env + ' / ' + ADM.equipos.length + '</div><div class="l">Equipos que enviaron</div></div></div>' +
+    '<div class="grid g4" style="margin-top:10px"><div><label>Nombre</label><input type="text" id="pnom" value="' + esc(p.nombre) + '"></div><div><label>Sigla</label><input type="text" id="psig" value="' + esc(p.sigla) + '"></div><div><label>Máximo de integrantes</label><select id="pmax">' + [1, 2, 3, 4, 5].map(function (n) { return '<option' + (n === p.maxIntegrantes ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></div><div><label>Mandato' + (p.t > 1 ? ' (fijo desde T2)' : '') + '</label><select id="pmand"' + (p.t > 1 ? ' disabled' : '') + '>' + optMandatos(p.mandato) + '</select></div></div>' +
+    '<div class="grid g2" style="margin-top:10px"><div><label>Código de la simulación (4 a 12 letras, números o guiones)</label><input type="text" id="pcod" value="' + esc(p.codigo) + '" maxlength="12" style="text-transform:uppercase;letter-spacing:2px"></div><div class="muted" style="align-self:end">Si lo cambia, avise a los equipos: lo necesitan para registrarse y para ingresar.</div></div>' +
+    '<label class="chk" style="margin-top:8px"><input type="checkbox" id="preg"' + (p.registroAbierto ? ' checked' : '') + '> Registro de equipos abierto (los estudiantes pueden registrarse y agregar integrantes)</label>' +
+    '<div style="margin-top:8px"><button class="btn sec" onclick="adm(\'editarSimulacion\',{codigo:$(\'pcod\').value,nombre:$(\'pnom\').value,sigla:$(\'psig\').value,maxIntegrantes:$(\'pmax\').value,registroAbierto:$(\'preg\').checked' + (p.t > 1 ? '' : ',mandato:$(\'pmand\').value') + '})">Guardar parámetros</button></div></div>' +
+    '<div class="card"><h2>Control del trimestre</h2><div class="inline"><button class="btn sec" onclick="adm(\'abrir\')">Abrir trimestre</button><button class="btn sec" onclick="adm(\'cerrar\')">Cerrar trimestre</button><button class="btn" onclick="if(confirm(\'¿Procesar el trimestre ' + p.t + ' para todos los equipos de esta simulación?\'))adm(\'procesar\')">Procesar trimestre ' + p.t + '</button><button class="btn sec" onclick="if(confirm(\'¿Deshacer el último trimestre procesado?\'))adm(\'retroceder\')">Deshacer último procesamiento</button></div>' +
+    '<p class="muted">Flujo sugerido: los equipos se registran con el código → cierre el registro → abra el T1 → los equipos envían → cierre → procese (abre el siguiente trimestre) → debriefing.</p></div>' +
+    '<div class="card"><h2>Reiniciar simulación</h2><p class="muted">Borra decisiones, estados, resultados y bitácoras de esta simulación. Conserva equipos e integrantes.</p><div class="inline"><input type="text" id="conf" placeholder="Escriba REINICIAR" style="max-width:220px"><label class="chk"><input type="checkbox" id="nsem"> Nueva semilla</label><button class="btn peligro" onclick="adm(\'reiniciar\',{confirmar:$(\'conf\').value,nuevaSemilla:$(\'nsem\').checked})">Reiniciar</button></div></div>';
+}
+function aRanking() { return '<div class="card"><h2>Ranking y debriefing</h2><div id="rk" class="muted">Cargando…</div></div>'; }
+function cargarRanking() {
+  call('apiAdmin', TOK, 'ranking', { simId: SIMID }).then(function (r) {
+    if (!r.filas.length) { $('rk').innerHTML = 'Aún no hay trimestres procesados.'; return; }
+    $('rk').innerHTML = '<p>Indicadores al cierre de T' + r.t + '. Puntaje: valor 30 %, vitalidad 20 %, cuota en segmentos en crecimiento 15 %, resiliencia ante la disrupción 15 %, madurez 10 %, clima 10 % (normalizados en la clase).</p><div class="scroll"><table><tr><th>#</th><th>Equipo</th><th class="n">Puntaje</th><th class="n">Valor de la empresa (miles)</th><th class="n">Valor sin innovar</th><th class="n">Utilidad acumulada</th><th class="n">Utilidad sin innovar</th><th class="n">ROI de innovación</th><th class="n">Vitalidad media</th><th class="n">Cuota S2/S4</th><th class="n">Resiliencia (Δ cuota T13–T16)</th><th class="n">Madurez</th><th class="n">Clima</th></tr>' +
+      r.filas.map(function (d, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(d.nombre) + '</td><td class="n"><b>' + d.puntaje + '</b></td><td class="n">' + kbs(d.valor) + '</td><td class="n">' + kbs(d.valorSinInnovar) + '</td><td class="n">' + kbs(d.utilidadAcum) + '</td><td class="n">' + kbs(d.utilidadSinInnovar) + '</td><td class="n">' + d.roi + '</td><td class="n">' + pct(d.vitalidad) + '</td><td class="n">' + pct(d.cuotaCrecimiento) + '</td><td class="n">' + d.resiliencia + '</td><td class="n">' + d.madurez + '</td><td class="n">' + d.clima + '</td></tr>'; }).join('') + '</table></div><p class="muted">Preguntas para el debriefing: ¿qué decisiones explican la diferencia entre el primero y el último? ¿Quién recuperó primero la inversión frente a la empresa que no innovó? ¿Qué equipo leyó mejor las señales del disruptor?</p>';
+  }).catch(function (e) { $('rk').innerHTML = esc(e); });
+}
+function aResultados() { return '<div class="card"><h2>Resultados de la clase por trimestre</h2><div id="rc" class="muted">Cargando…</div><p class="muted">Los mismos datos están en la hoja "Resultados" para exportarlos.</p></div>'; }
+function cargarResultadosClase() {
+  call('apiAdmin', TOK, 'resultados', { simId: SIMID }).then(function (L) {
+    if (!L.length) { $('rc').innerHTML = 'Sin resultados.'; return; }
+    var cols = ['equipo', 'trimestre', 'ventas', 'utilidadNeta', 'caja', 'cuotaTotal', 'vitalidad', 'clima', 'madurez', 'gastoInnovacion', 'ventasSinInnovar', 'utilidadSinInnovar'];
+    $('rc').innerHTML = '<div class="scroll"><table><tr>' + cols.map(function (c) { return '<th>' + c + '</th>'; }).join('') + '</tr>' + L.sort(function (a, b) { return a.trimestre - b.trimestre || String(a.equipo).localeCompare(b.equipo); }).map(function (r) { return '<tr>' + cols.map(function (c) { return '<td class="n">' + esc(typeof r[c] === 'number' && Math.abs(r[c]) > 999 ? Math.round(r[c]).toLocaleString('es-BO') : r[c]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>';
+  });
+}
+function aBitacoras() { return '<div class="card"><h2>Bitácoras</h2><div id="bc" class="muted">Cargando…</div></div>'; }
+function cargarBitacorasClase() {
+  call('apiAdmin', TOK, 'bitacoras', { simId: SIMID }).then(function (L) {
+    if (!L.length) { $('bc').innerHTML = 'Sin bitácoras.'; return; }
+    var nom = {}; ADM.equipos.forEach(function (e) { nom[e.equipoId] = e.nombre; });
+    $('bc').innerHTML = L.sort(function (a, b) { return b.trimestre - a.trimestre; }).map(function (b) {
+      return '<div style="border-bottom:1px solid #eee;padding:8px 0"><b>' + esc(nom[b.equipoId] || b.equipoId) + ' · T' + b.trimestre + '</b><br><b>Decidimos:</b> ' + esc(b.decidimos) + '<br><b>Pasó:</b> ' + esc(b.paso) + '<br><b>Por qué:</b> ' + esc(b.porque) + '<br><b>Principio:</b> ' + esc(b.principio) +
+        '<div class="inline" style="margin-top:6px"><input type="number" id="nt' + b._row + '" value="' + esc(b.nota) + '" placeholder="Nota" style="max-width:90px"><input type="text" id="cm' + b._row + '" value="' + esc(b.comentario) + '" placeholder="Comentario"><button class="btn sec" onclick="adm(\'calificarBitacora\',{row:' + b._row + ',nota:$(\'nt' + b._row + '\').value,comentario:$(\'cm' + b._row + '\').value},false)">Guardar</button></div></div>';
+    }).join('');
+  });
+}
+
+</script>

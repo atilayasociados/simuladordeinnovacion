@@ -1,0 +1,249 @@
+<script>
+// ===================== Simulador de Innovación — contenidos de "Aprender" =====================
+// Síntesis propias de la literatura citada. Cada tema indica dónde se vive en el simulador.
+var REFS = {
+  freeman: 'Freeman, C., & Soete, L. (1997). <i>The economics of industrial innovation</i> (3rd ed.). MIT Press.',
+  amab82: 'Amabile, T. M. (1982). Social psychology of creativity: A consensual assessment technique. <i>Journal of Personality and Social Psychology, 43</i>(5), 997–1013.',
+  dean06: 'Dean, D. L., Hender, J. M., Rodgers, T. L., & Santanen, E. L. (2006). Identifying quality, novel, and creative ideas: Constructs and scales for idea evaluation. <i>Journal of the Association for Information Systems, 7</i>(10), 646–699.',
+  crook: 'Crookall, D. (2010). Serious games, debriefing, and simulation/gaming as a discipline. <i>Simulation &amp; Gaming, 41</i>(6), 898–920.',
+  tidd: 'Tidd, J., & Bessant, J. (2021). <i>Managing innovation: Integrating technological, market and organizational change</i> (7th ed.). Wiley.',
+  oslo: 'OECD & Eurostat. (2018). <i>Oslo Manual 2018: Guidelines for collecting, reporting and using data on innovation</i> (4th ed.). OECD Publishing.',
+  hend: 'Henderson, R. M., & Clark, K. B. (1990). Architectural innovation: The reconfiguration of existing product technologies and the failure of established firms. <i>Administrative Science Quarterly, 35</i>(1), 9–30.',
+  chris: 'Christensen, C. M. (1997). <i>The innovator\'s dilemma: When new technologies cause great firms to fail</i>. Harvard Business School Press.',
+  chrisr: 'Christensen, C. M., & Raynor, M. E. (2003). <i>The innovator\'s solution: Creating and sustaining successful growth</i>. Harvard Business School Press.',
+  amab: 'Amabile, T. M. (1996). <i>Creativity in context: Update to The social psychology of creativity</i>. Westview Press.',
+  keys: 'Amabile, T. M., Conti, R., Coon, H., Lazenby, J., & Herron, M. (1996). Assessing the work environment for creativity. <i>Academy of Management Journal, 39</i>(5), 1154–1184.',
+  deci: 'Deci, E. L., & Ryan, R. M. (1985). <i>Intrinsic motivation and self-determination in human behavior</i>. Plenum Press.',
+  kelley: 'Kelley, T., & Kelley, D. (2013). <i>Creative confidence: Unleashing the creative potential within us all</i>. Crown Business.',
+  tier: 'Tierney, P., & Farmer, S. M. (2002). Creative self-efficacy: Its potential antecedents and relationship to creative performance. <i>Academy of Management Journal, 45</i>(6), 1137–1148.',
+  edm: 'Edmondson, A. (1999). Psychological safety and learning behavior in work teams. <i>Administrative Science Quarterly, 44</i>(2), 350–383.',
+  sawyer: 'Sawyer, R. K., & Henriksen, D. (2024). <i>Explaining creativity: The science of human innovation</i> (3rd ed.). Oxford University Press.',
+  brown: 'Brown, T. (2019). <i>Change by design: How design thinking transforms organizations and inspires innovation</i> (Rev. ed.). Harper Business.',
+  vh86: 'von Hippel, E. (1986). Lead users: A source of novel product concepts. <i>Management Science, 32</i>(7), 791–805.',
+  vh05: 'von Hippel, E. (2005). <i>Democratizing innovation</i>. MIT Press.',
+  day: 'Day, G. S., & Schoemaker, P. J. H. (2006). <i>Peripheral vision: Detecting the weak signals that will make or break your company</i>. Harvard Business School Press.',
+  pisano: 'Pisano, G. P. (2015). You need an innovation strategy. <i>Harvard Business Review, 93</i>(6), 44–54.',
+  nagji: 'Nagji, B., & Tuff, G. (2012). Managing your innovation portfolio. <i>Harvard Business Review, 90</i>(5), 66–74.',
+  march: 'March, J. G. (1991). Exploration and exploitation in organizational learning. <i>Organization Science, 2</i>(1), 71–87.',
+  chesb: 'Chesbrough, H. W. (2003). <i>Open innovation: The new imperative for creating and profiting from technology</i>. Harvard Business School Press.',
+  terw: 'Terwiesch, C., & Ulrich, K. T. (2009). <i>Innovation tournaments: Creating and selecting exceptional opportunities</i>. Harvard Business Press.',
+  giro: 'Girotra, K., Terwiesch, C., & Ulrich, K. T. (2010). Idea generation and the quality of the best idea. <i>Management Science, 56</i>(4), 591–605.',
+  cooper: 'Cooper, R. G. (1990). Stage-gate systems: A new tool for managing new products. <i>Business Horizons, 33</i>(3), 44–54.',
+  thomke: 'Thomke, S. H. (2003). <i>Experimentation matters: Unlocking the potential of new technologies for innovation</i>. Harvard Business School Press.',
+  ries: 'Ries, E. (2011). <i>The lean startup</i>. Crown Business.',
+  kotler: 'Kotler, P., & Keller, K. L. (2016). <i>Marketing management</i> (15th ed.). Pearson.',
+  coonak: 'Cooper, L. G., & Nakanishi, M. (1988). <i>Market-share analysis: Evaluating competitive marketing effectiveness</i>. Kluwer Academic.',
+  teece86: 'Teece, D. J. (1986). Profiting from technological innovation: Implications for integration, collaboration, licensing and public policy. <i>Research Policy, 15</i>(6), 285–305.',
+  teece10: 'Teece, D. J. (2010). Business models, business strategy and innovation. <i>Long Range Planning, 43</i>(2–3), 172–194.',
+  oster: 'Osterwalder, A., & Pigneur, Y. (2010). <i>Business model generation</i>. Wiley.',
+  rogers: 'Rogers, E. M. (2003). <i>Diffusion of innovations</i> (5th ed.). Free Press.',
+  bass: 'Bass, F. M. (1969). A new product growth for model consumer durables. <i>Management Science, 15</i>(5), 215–227.',
+  oreilly: 'O\'Reilly, C. A., & Tushman, M. L. (2004). The ambidextrous organization. <i>Harvard Business Review, 82</i>(4), 74–81.',
+  brealey: 'Brealey, R. A., Myers, S. C., & Allen, F. (2020). <i>Principles of corporate finance</i> (13th ed.). McGraw-Hill Education.',
+  kolb: 'Kolb, D. A. (1984). <i>Experiential learning: Experience as the source of learning and development</i>. Prentice Hall.',
+  eberle: 'Eberle, B. (1996). <i>Scamper: Games for imagination development</i>. Prufrock Press.',
+  michalko: 'Michalko, M. (2006). <i>Thinkertoys: A handbook of creative-thinking techniques</i> (2nd ed.). Ten Speed Press.',
+  zwicky: 'Zwicky, F. (1969). <i>Discovery, invention, research through the morphological approach</i>. Macmillan.',
+  moore: 'Moore, G. A. (1991). <i>Crossing the chasm</i>. HarperBusiness.',
+  chris16: 'Christensen, C. M., Hall, T., Dillon, K., & Duncan, D. S. (2016). <i>Competing against luck: The story of innovation and customer choice</i>. Harper Business.',
+  houde: 'Houde, S., & Hill, C. (1997). What do prototypes prototype? En M. Helander, T. K. Landauer y P. Prabhu (Eds.), <i>Handbook of human-computer interaction</i> (2.ª ed., pp. 367–381). Elsevier.',
+  nielsen: 'Nielsen, J., & Landauer, T. K. (1993). A mathematical model of the finding of usability problems. <i>Proceedings of the INTERACT \'93 and CHI \'93 Conference on Human Factors in Computing Systems</i> (pp. 206–213). ACM.',
+  dschool: 'Hasso Plattner Institute of Design at Stanford. (2010). <i>Bootcamp bootleg</i>. Stanford University.',
+  klein: 'Klein, G. (2007). Performing a project premortem. <i>Harvard Business Review, 85</i>(9), 18–19.',
+  lovallo: 'Lovallo, D., & Kahneman, D. (2003). Delusions of success: How optimism undermines executives\' decisions. <i>Harvard Business Review, 81</i>(7), 56–63.',
+  garvin: 'Garvin, D. A. (2000). <i>Learning in action: A guide to putting the learning organization to work</i>. Harvard Business School Press.',
+  edm11: 'Edmondson, A. C. (2011). Strategies for learning from failure. <i>Harvard Business Review, 89</i>(4), 48–55.',
+  staw: 'Staw, B. M. (1976). Knee-deep in the big muddy: A study of escalating commitment to a chosen course of action. <i>Organizational Behavior and Human Performance, 16</i>(1), 27–44.',
+  pugh: 'Pugh, S. (1991). <i>Total design: Integrated methods for successful product engineering</i>. Addison-Wesley.',
+  kano: 'Kano, N., Seraku, N., Takahashi, F., & Tsuji, S. (1984). Attractive quality and must-be quality. <i>Journal of the Japanese Society for Quality Control, 14</i>(2), 39–48.',
+  vanw: 'Van Westendorp, P. H. (1976). NSS Price Sensitivity Meter: A new approach to study consumer perception of prices. <i>Proceedings of the 29th ESOMAR Congress</i> (pp. 139–167). ESOMAR.',
+  jamieson: 'Jamieson, L. F., & Bass, F. M. (1989). Adjusting stated intention measures to predict trial purchase of new products. <i>Journal of Marketing Research, 26</i>(3), 336–345.',
+  ulrich: 'Ulrich, K. T., & Eppinger, S. D. (2016). <i>Product design and development</i> (6th ed.). McGraw-Hill Education.',
+  schon: 'Schön, D. A. (1983). <i>The reflective practitioner: How professionals think in action</i>. Basic Books.'
+};
+
+var UNIDADES = [
+  { n: 1, titulo: 'La innovación como proceso estratégico', pregunta: '¿Qué tipo de innovación necesita hoy su empresa y por qué?', temas: [
+    { t: '¿Qué es innovar?', x: 'Innovar es convertir ideas en valor: un producto, proceso o modelo nuevo o mejorado que llega al mercado o se usa en la organización. La diferencia con la invención es la implementación: una idea brillante que nadie adopta no es innovación.', s: 'Solo cuenta lo que se lanza o se implementa: un proyecto que no supera las puertas no genera ventas.', r: ['tidd', 'oslo'] },
+    { t: 'Las 4P de la innovación', x: 'La innovación puede ocurrir en el producto (qué ofrecemos), el proceso (cómo lo hacemos), la posición (a quién y en qué contexto lo ofrecemos) y el paradigma (el modelo mental o de negocio). Las empresas suelen concentrarse en el producto y descuidan las otras tres.', s: 'Estrategia anual: la distribución del esfuerzo en las 4P decide qué tipo de ideas aparecen en sus iniciativas.', r: ['tidd'] },
+    { t: 'Incremental, radical y arquitectónica', x: 'La innovación incremental mejora lo existente con bajo riesgo; la radical cambia de forma profunda la oferta o la tecnología, con más riesgo y más potencial. La innovación arquitectónica recombina componentes conocidos de una forma nueva, y suele tomar por sorpresa a las empresas establecidas.', s: 'Estrategia anual: la mezcla incremental/radical; las ideas tienen distinto nivel de novedad y riesgo.', r: ['tidd', 'hend'] },
+    { t: 'El proceso de innovación como embudo', x: 'Innovar es un proceso que se gestiona: buscar señales, seleccionar las mejores opciones, implementarlas y capturar su valor. Muchas ideas entran al embudo y pocas salen; la tarea del gestor es reducir la incertidumbre en cada etapa con el menor costo posible.', s: 'Proyectos: ideación y selección → prototipo y validación → lanzamiento, con un máximo de 3 proyectos activos.', r: ['tidd'] },
+    { t: 'El costo de no innovar', x: 'Todo producto recorre un ciclo de vida: introducción, crecimiento, madurez y declive. Una empresa que solo explota su producto maduro puede ser rentable a corto plazo, pero pierde relevancia cuando cambian los clientes o la tecnología.', s: 'La “empresa gemela” que no innova aparece en Resultados: compare sus ventas y utilidades con las suyas.', r: ['tidd', 'chris'] }
+  ] },
+  { n: 2, titulo: 'Personas, creatividad y clima', pregunta: '¿Qué condiciones de trabajo hicieron que sus ideas fueran mejores o peores?', temas: [
+    { t: 'Los componentes de la creatividad', x: 'La creatividad individual surge de la combinación de tres componentes: experticia en el campo, habilidades de pensamiento creativo y motivación por la tarea. El entorno social puede potenciarlos o apagarlos.', s: 'La calidad media de las ideas depende de la motivación, la capacitación y el conocimiento de los clientes.', r: ['amab', 'sawyer'] },
+    { t: 'Motivación intrínseca y recompensas', x: 'Las personas son más creativas cuando trabajan por el interés y el reto de la tarea. Las recompensas monetarias grandes y condicionadas pueden desplazar esa motivación; el reconocimiento y la autonomía tienden a reforzarla.', s: 'Estrategia anual: el tipo de incentivo. Los premios de los concursos siguen una U invertida: el premio medio suele rendir más que el alto.', r: ['amab', 'deci'] },
+    { t: 'Autoeficacia y confianza creativa', x: 'La autoeficacia creativa es la creencia de una persona en su capacidad para producir ideas valiosas. Se fortalece con experiencias de logro, práctica guiada y entornos que no castigan el error; quienes la tienen proponen y se arriesgan más.', s: 'Índice de autoeficacia: sube con la capacitación en Design Thinking y con una política de aprendizaje ante el fracaso.', r: ['kelley', 'tier'] },
+    { t: 'Clima creativo y seguridad psicológica', x: 'El clima es lo que las personas perciben sobre cómo se trabaja: libertad, recursos, apoyo de la dirección, tiempo y tolerancia al error. Cuando el equipo siente que puede equivocarse sin ser castigado, experimenta y aprende más.', s: 'Estrategia anual: tiempo libre, política ante el fracaso e incentivos definen el índice de clima creativo.', r: ['keys', 'edm'] },
+    { t: 'Diversidad y equipos multifuncionales', x: 'Los equipos que combinan conocimientos distintos generan ideas más variadas y detectan antes los problemas de implementación. La diversidad aumenta la dispersión de las ideas: hay más ideas malas, pero también más ideas excepcionales.', s: 'Estrategia anual: composición homogénea, multifuncional o con miembros externos.', r: ['sawyer', 'tidd'] }
+  ] },
+  { n: 3, titulo: 'Descubrir oportunidades', pregunta: '¿Qué aprendieron de sus clientes que no sabían al empezar?', temas: [
+    { t: 'Necesidades declaradas y latentes', x: 'Lo que los clientes dicen que quieren no siempre coincide con lo que valoran al decidir. Las necesidades latentes son aquellas que no expresan, a veces porque no imaginan que puedan resolverse; son una fuente importante de innovación.', s: 'La encuesta muestra pesos declarados; la observación revela los pesos reales y las necesidades latentes.', r: ['brown', 'kelley'] },
+    { t: 'Observación y empatía', x: 'El Design Thinking parte de comprender a las personas en su contexto: observar qué hacen, qué improvisan y dónde se frustran. La empatía permite descubrir problemas que ninguna encuesta preguntó.', s: 'Investigación: observación y etnografía cuesta más y toma más semanas, pero mejora la calidad del insight.', r: ['brown'] },
+    { t: 'Usuarios líderes y extremos', x: 'Los usuarios líderes enfrentan hoy necesidades que el mercado tendrá mañana y a menudo ya crearon soluciones propias. Los usuarios extremos (los que usan mucho o casi nada un producto) muestran con claridad problemas que en el usuario promedio pasan desapercibidos.', s: 'Investigación: usuarios líderes aportan ideas de alta calidad; usuarios extremos revelan una tendencia futura.', r: ['vh86', 'vh05'] },
+    { t: 'Definir bien el problema', x: 'La calidad de una solución depende de cómo se formuló el problema. Reformular, es decir, preguntar “¿cómo podríamos…?” desde la necesidad del usuario y no desde el producto, abre opciones que el planteamiento inicial ocultaba.', s: 'Al crear un proyecto eligen la base (mejorar el producto actual o uno nuevo) y el segmento objetivo.', r: ['brown', 'sawyer'] },
+    { t: 'Vigilancia del entorno: señales y ruido', x: 'Las oportunidades y amenazas se anuncian con señales débiles en la periferia: cambios regulatorios, tecnologías, nuevos competidores. El reto es distinguir las señales del ruido y actuar antes que los demás.', s: 'Entorno: clasificar noticias como oportunidad, amenaza o ruido; la vigilancia tecnológica anticipa noticias reales.', r: ['day', 'tidd'] }
+  ] },
+  { n: 4, titulo: 'Estrategia de innovación', pregunta: '¿Su estrategia anual fue coherente con su mandato y con lo que sabían del mercado?', temas: [
+    { t: 'Estrategia de innovación', x: 'Una estrategia de innovación define qué tipo de innovación persigue la empresa, cómo crea valor para los clientes y cómo lo captura, y cómo asigna recursos entre opciones. Sin ella, los proyectos compiten sin criterio y el esfuerzo se dispersa.', s: 'Estrategia anual: las decisiones del bloque A deben ser coherentes entre sí y con el mandato.', r: ['pisano', 'tidd'] },
+    { t: 'El portafolio de innovación', x: 'Conviene distribuir el esfuerzo entre iniciativas del núcleo (mejorar lo actual para los clientes actuales), adyacentes (llevar lo que se sabe a nuevos mercados) y transformacionales (crear algo nuevo para mercados nuevos). El equilibrio depende de la industria y de la situación de la empresa.', s: 'La combinación de incremental/radical y clientes actuales/segmentos nuevos forma su portafolio.', r: ['nagji'] },
+    { t: 'Postura frente a la innovación', x: 'Freeman y Soete describen seis posturas que puede adoptar una empresa: ofensiva (busca llegar primero con lo nuevo y para eso investiga y desarrolla por delante de los demás), defensiva (no quiere ser la primera, pero sí no quedarse atrás: mejora rápido lo que otros abren), imitativa (copia lo que ya funciona con menor costo), dependiente (innova solo cuando un cliente o socio se lo pide), tradicional (casi no cambia su producto) y oportunista (aprovecha nichos que otros no ven). Ninguna es correcta por sí sola: lo que importa es que las decisiones sean coherentes con la postura elegida.', s: 'Estrategia anual: eligen su postura y el informe de coherencia les avisa si sus decisiones la contradicen (por ejemplo, una postura ofensiva sin investigación).', r: ['freeman', 'tidd'] },
+    { t: 'Explorar y explotar', x: 'Las organizaciones deben explotar lo que ya saben hacer para generar caja y, a la vez, explorar nuevas posibilidades para el futuro. Explotar da resultados seguros y rápidos; explorar es incierto y lento, y por eso tiende a quedar relegado.', s: 'Proyectos incrementales dan caja pronto; los radicales tardan más y fallan más, pero son los que renuevan el portafolio.', r: ['march'] },
+    { t: 'Asignación de recursos', x: 'En las empresas establecidas los recursos van a lo que piden los clientes actuales y a lo que promete márgenes conocidos. Por eso las oportunidades nuevas, pequeñas al inicio, reciben poco apoyo aunque sean estratégicas.', s: 'Presupuesto de innovación y semanas-persona son limitados; el presupuesto del año siguiente depende de sus resultados.', r: ['chris', 'tidd'] },
+    { t: 'Mandato y tolerancia al riesgo', x: 'La dirección define cuánto riesgo acepta y qué problemas considera prioritarios. Ese marco cambia cuáles ideas son “buenas”: la misma idea puede ser excelente para un directorio ambicioso y mala para uno conservador.', s: 'Su mandato pondera novedad, riesgo, tiempo, costo y ajuste para calcular la calidad de cada idea.', r: ['tidd'] }
+  ] },
+  { n: 5, titulo: 'Generar, seleccionar y desarrollar', pregunta: '¿Eligieron la mejor idea disponible? ¿Qué evidencia tenían para hacerlo?', temas: [
+    { t: 'Fuentes y modos de innovación', x: 'Las ideas pueden venir de especialistas internos, de intraemprendedores, de comunidades abiertas o de redes de socios (proveedores, startups, universidades). La innovación abierta propone aprovechar el conocimiento externo en lugar de depender solo del laboratorio propio.', s: 'Proyectos: ocho iniciativas con distinto número, calidad media y dispersión de ideas.', r: ['chesb', 'terw'] },
+    { t: 'Cantidad, calidad y la idea extraordinaria', x: 'Lo que importa no es la calidad promedio de las ideas sino la calidad de la mejor. Generar más ideas y con mayor variedad aumenta la probabilidad de encontrar una excepcional, siempre que luego se sepa reconocerla.', s: 'Las iniciativas de comunidad generan muchas ideas dispersas; las de especialistas, pocas y más parejas.', r: ['giro', 'terw'] },
+    { t: 'Definir: el brief y el trabajo por hacer', x: 'Un proyecto empieza con un problema bien planteado. El “trabajo por hacer” describe qué progreso busca el cliente en una situación concreta (cuando…, quiero…, para…). El reto “¿Cómo podríamos…?” formula la necesidad sin traer la solución, y el insight debe apoyarse en evidencia de la investigación.', s: 'Proyectos → Definir: brief con trabajo por hacer, evidencia, reto revisado automáticamente, criterio de éxito y las dos preguntas de Pisano.', r: ['chris16', 'brown', 'pisano'] },
+    { t: 'Técnicas para idear: SCAMPER, flor de loto y análisis morfológico', x: 'SCAMPER aplica siete preguntas a un producto existente y da sobre todo mejoras incrementales. La flor de loto rodea el reto con ocho temas y desarrolla ideas en cada uno: aumenta cantidad y variedad. El análisis morfológico divide el producto en parámetros y combina opciones: produce combinaciones nuevas, muchas poco viables. Conviene idear primero en forma individual y luego votar en grupo.', s: 'Proyectos → Idear: cada integrante llena la plantilla de la técnica con su PIN; el equipo vota y arma fichas de concepto.', r: ['eberle', 'michalko', 'zwicky'] },
+    { t: 'Ficha y test de concepto', x: 'Un concepto describe qué es el producto, para quién y por qué es mejor que la alternativa. El test de concepto lo muestra a clientes y mide la intención de compra, que siempre exagera la compra real, el rango de precio aceptable (medidor de Van Westendorp) y el tipo de cada atributo según Kano: básico, de desempeño o de entusiasmo.', s: 'Proyectos → fichas de concepto con 10 puntos y precio objetivo; el test devuelve intención, curvas de precio, Kano y frases de clientes.', r: ['moore', 'vanw', 'kano', 'jamieson'] },
+    { t: 'Elegir con la matriz de Pugh', x: 'La matriz de Pugh compara cada concepto con una referencia, criterio por criterio: +1 si es mejor, 0 si es igual, −1 si es peor. La suma ordena las alternativas, pero también importan los −1 en criterios críticos y la posibilidad de combinar las fortalezas de dos conceptos.', s: 'Proyectos → Evaluar: matriz con cinco criterios, justificación con datos, opción de combinar y comparación entre el tipo declarado y el tipo real.', r: ['pugh', 'ulrich'] },
+    { t: 'Prototipar: una pregunta hecha con las manos', x: 'Prototipar es dar forma tangible a una idea para aprender, no para impresionar: rápido, tosco y barato. Se parte del supuesto más riesgoso y se elige un formato que permita observarlo: una maqueta física muestra cómo se usa; un envase falso, si se entiende; un guion gráfico, si encaja en el día del cliente. Con 5 a 8 personas aparecen la mayoría de los problemas de uso. La malla receptora ordena lo observado en lo que gustó, críticas, preguntas e ideas nuevas.', s: 'Proyectos → Prototipar: supuesto, pregunta, formato, características del prototipo y prueba con clientes simulados que devuelve un informe por persona y la malla receptora.', r: ['brown', 'kelley', 'houde', 'nielsen', 'dschool'] },
+    { t: 'Especificar y pasar la Puerta', x: 'Especificar es escribir la receta exacta del producto: materiales, proceso, costo por unidad, vida útil y capacidad. En la Puerta un comité revisa con criterios conocidos el atractivo para el cliente, el ajuste estratégico, la viabilidad técnica, la rentabilidad y el riesgo, y decide si sigue, se corrige o se detiene. Dos herramientas reducen el optimismo: la clase de referencia, que compara el pronóstico con lanzamientos parecidos, y el pre-mortem, que imagina el fracaso antes de que ocurra. Lo ya gastado no cuenta para decidir.', s: 'Proyectos → Especificar y Puerta: ficha técnica, caso de negocio, clase de referencia, lienzo, pre-mortem y acta del comité.', r: ['ulrich', 'cooper', 'lovallo', 'klein', 'staw'] },
+    { t: 'El lienzo del modelo de negocio', x: 'El lienzo describe en nueve bloques cómo un negocio crea, entrega y cobra valor: segmento, propuesta de valor, canales, relación con el cliente, ingresos, recursos, actividades, socios y costos. Compararlo con el negocio actual muestra si la innovación cambia el modelo de negocio, que es una de las dos preguntas del mapa de Pisano.', s: 'Proyectos → Especificar: cuatro bloques automáticos, cinco que elige el equipo y comparación con el negocio actual.', r: ['oster', 'pisano'] },
+    { t: 'Piloto, lanzamiento y canibalización', x: 'El piloto vende en pocos puntos durante poco tiempo para medir cuánto se vende y si el cliente vuelve a comprar: la recompra dice más que la primera compra. El lanzamiento es la apuesta completa en producción, comunicación y distribución. Un producto nuevo puede quitarle ventas a uno propio (canibalización) y provocar la reacción de los rivales.', s: 'Proyectos → Piloto y Lanzar: puntos de venta, producción, pronóstico, límite de recompra, mensaje, canales y resultados del primer trimestre.', r: ['kotler', 'cooper'] },
+    { t: 'Revisión después de la acción y tipos de fracaso', x: 'La revisión después de la acción responde cuatro preguntas: qué esperábamos, qué pasó, por qué hubo diferencia y qué haremos distinto. No todos los fracasos son iguales: algunos son evitables, otros vienen de la complejidad y otros son experimentos que dejan aprendizaje.', s: 'Proyectos → Revisión: tabla esperado frente a real, causas, clasificación del resultado y compromisos para el próximo proyecto.', r: ['garvin', 'edm11'] },
+    { t: 'Selección y puertas (stage-gate)', x: 'El sistema de etapas y puertas divide el desarrollo en fases separadas por evaluaciones. En cada puerta se decide continuar, corregir o detener con criterios explícitos, para no seguir invirtiendo en proyectos débiles.', s: 'Estrategia anual: umbral de la puerta (estricto, moderado o laxo). El puntaje combina calidad, factibilidad y viabilidad.', r: ['cooper'] },
+    { t: 'Prototipar e iterar', x: 'Un prototipo es una forma barata de aprender: hace tangible la idea para probarla con usuarios. Los prototipos simples permiten iterar rápido al principio; los de alta fidelidad sirven cuando ya se sabe qué construir.', s: 'Proyectos: fidelidad del prototipo (baja, media, alta) y número de iteraciones por trimestre.', r: ['brown', 'kelley'] },
+    { t: 'Validar y pilotear antes de escalar', x: 'Experimentar temprano reduce el costo de equivocarse: se prueban los supuestos más riesgosos con el mínimo producto necesario y se aprende antes de comprometer la inversión grande.', s: 'Validar ideas reduce el error de su calidad observada; el piloto reduce la probabilidad de fracaso al lanzar.', r: ['thomke', 'ries'] }
+  ] },
+  { n: 6, titulo: 'Mercado y competencia', pregunta: '¿Por qué ganaron o perdieron participación en cada segmento?', temas: [
+    { t: 'Segmentación y propuesta de valor', x: 'Un mercado está formado por grupos con necesidades, disposición a pagar y hábitos distintos. Elegir a qué segmento servir y con qué propuesta de valor es una decisión estratégica, no solo comercial.', s: 'Cinco segmentos con tamaño, crecimiento y preferencias propias; cada proyecto apunta a uno.', r: ['kotler'] },
+    { t: 'Cómo eligen los consumidores', x: 'Los modelos de atracción explican la participación de mercado como la proporción entre lo atractivo que es un producto (sus atributos, su precio, su presencia) y lo atractivo de todas las alternativas, incluida la opción de no comprar.', s: 'Su cuota en cada segmento depende de los atributos, el precio, los canales y el conocimiento de marca frente a los competidores.', r: ['coonak'] },
+    { t: 'Precio y elasticidad', x: 'La elasticidad mide cuánto cambia la demanda cuando cambia el precio. Los segmentos sensibles al precio castigan las subidas; los segmentos que valoran otros atributos aceptan precios más altos si perciben más valor.', s: 'Productos: el precio afecta de forma distinta a cada segmento.', r: ['kotler'] },
+    { t: 'Reacción competitiva e imitación', x: 'Los competidores no se quedan quietos: ajustan precios, mejoran productos y copian lo que funciona. La ventaja de una innovación dura lo que tardan los demás en imitarla.', s: 'Los competidores reaccionan a sus resultados; la marca regional puede lanzar clones de sus productos exitosos.', r: ['tidd', 'teece86'] },
+    { t: 'Oportunidades y amenazas en movimiento', x: 'El análisis del entorno no es una foto fija: regulaciones, costos, tecnologías y competidores cambian con el tiempo. Lo que hoy es una amenaza puede convertirse en oportunidad para quien se anticipe.', s: 'Las noticias de cada trimestre anuncian eventos (regulación, divisas, licitaciones, sostenibilidad) que afectan el mercado.', r: ['day', 'tidd'] }
+  ] },
+  { n: 7, titulo: 'Captura de valor', pregunta: '¿Quién se quedó con el valor que crearon: ustedes, los imitadores o los canales?', temas: [
+    { t: 'El modelo de negocio', x: 'El modelo de negocio describe cómo la empresa crea, entrega y captura valor: a qué clientes sirve, con qué propuesta, por qué canales y con qué fuentes de ingreso y estructura de costos. Innovar en el modelo puede valer más que innovar en el producto.', s: 'Al lanzar eligen modelo (venta o suscripción), canales y precio.', r: ['oster', 'teece10'] },
+    { t: 'Apropiabilidad', x: 'Crear valor no garantiza capturarlo. La capacidad de apropiarse de los beneficios depende de la protección (patentes, secreto, marcas), de la facilidad de imitación y del control de activos complementarios como la distribución o la producción.', s: 'Lanzamiento: protección (ninguna, secreto o patente) retrasa la imitación de la marca regional.', r: ['teece86'] },
+    { t: 'Difusión de las innovaciones', x: 'Los productos nuevos se adoptan de forma gradual: primero unos pocos innovadores y luego la mayoría, impulsada por la imitación y la recomendación. La velocidad depende de la ventaja percibida, la compatibilidad, la simplicidad y la comunicación.', s: 'El conocimiento de marca de un producto nuevo crece trimestre a trimestre según la comunicación.', r: ['rogers', 'bass'] },
+    { t: 'Canales y lanzamiento', x: 'Un buen producto puede fracasar si no llega al lugar donde su cliente compra. Los canales tienen costo y alcanzan mejor a unos segmentos que a otros, por lo que deben elegirse según el cliente objetivo.', s: 'Canales: tiendas, supermercados, kioscos universitarios, máquinas expendedoras, app propia y apps de delivery.', r: ['kotler'] },
+    { t: 'Escalar y costear', x: 'Pasar del piloto a la producción en volumen exige inversión y cambia la estructura de costos. Un margen atractivo en el prototipo puede desaparecer si el costo unitario o los gastos de gestión del nuevo producto no se controlan.', s: 'Cada producto nuevo tiene costo por porción, inversión de escalamiento y costo fijo trimestral de gestión.', r: ['tidd'] }
+  ] },
+  { n: 8, titulo: 'Innovación disruptiva', pregunta: '¿Vieron venir al disruptor? ¿Qué hicieron y qué deberían haber hecho?', temas: [
+    { t: 'Innovación sostenedora y disruptiva', x: 'La innovación sostenedora mejora los productos en lo que los mejores clientes ya valoran. La disruptiva llega con un producto inferior en esas dimensiones, pero más simple, barato o accesible, y atrae a clientes que el líder no atiende.', s: 'La startup de bebidas vegetales entra con atributos distintos a los que valora su cliente tradicional.', r: ['chris'] },
+    { t: 'Entrada por abajo y mercados nuevos', x: 'Los disruptores suelen empezar en la gama baja o con no consumidores, donde el líder no quiere competir. Desde ahí mejoran año tras año hasta que su producto es suficientemente bueno para los clientes principales.', s: 'El disruptor mejora cada trimestre y luego invade segmentos tradicionales.', r: ['chrisr'] },
+    { t: 'El dilema del innovador', x: 'Las empresas establecidas fracasan ante la disrupción no por incompetencia, sino por hacer lo “correcto”: escuchar a sus mejores clientes y priorizar los márgenes altos. Su red de valor las lleva a ignorar los mercados pequeños donde nace la amenaza.', s: 'Reaccionar tarde es tentador porque, al principio, el disruptor casi no afecta sus ventas.', r: ['chris'] },
+    { t: 'Respuestas ante la disrupción', x: 'Las opciones incluyen crear una unidad independiente que compita con las reglas del nuevo mercado, aliarse con el disruptor o adquirirlo. Cada una tiene costo, riesgo y efectos distintos sobre la organización principal.', s: 'Entorno: alianza o adquisición de la startup; Estrategia anual: unidad autónoma.', r: ['chris', 'chrisr'] },
+    { t: 'La organización ambidiestra', x: 'Una organización ambidiestra separa las unidades que exploran de las que explotan, con estructuras, procesos y culturas propias, pero las integra en la dirección para compartir recursos y visión.', s: 'La unidad autónoma protege a los proyectos radicales de la lógica de la línea principal.', r: ['oreilly', 'march'] }
+  ] },
+  { n: 9, titulo: 'Evaluación y aprendizaje', pregunta: '¿Qué harían distinto si empezaran de nuevo, y qué principio lo explica?', temas: [
+    { t: 'Medir la innovación', x: 'Medir permite gestionar. Indicadores como el índice de vitalidad (ventas de productos recientes sobre ventas totales) y la intensidad de innovación (gasto en innovación sobre ventas) muestran si la empresa se renueva y cuánto invierte para lograrlo.', s: 'Resultados: índice de vitalidad e intensidad de innovación por trimestre.', r: ['tidd', 'oslo'] },
+    { t: 'El valor financiero de innovar', x: 'Una innovación vale lo que aportan sus flujos futuros descontados, no lo que gana en el primer trimestre. El valor terminal reconoce que una empresa con un portafolio renovado seguirá generando resultados después del horizonte analizado.', s: 'El valor de la empresa combina utilidades descontadas y valor terminal al final de T20.', r: ['brealey'] },
+    { t: 'Leer los estados financieros de la innovación', x: 'Los gastos de innovación reducen la utilidad de hoy para crear ingresos mañana. Los desarrollos en curso y los intangibles aparecen en el balance, y la caja indica si la empresa puede sostener su apuesta.', s: 'Resultados: estado de resultados, flujo de efectivo y balance general trimestrales.', r: ['brealey', 'tidd'] },
+    { t: 'Madurez en gestión de la innovación', x: 'Las capacidades para innovar se construyen: rutinas de búsqueda, selección, desarrollo y aprendizaje que mejoran con la práctica y la revisión sistemática de los proyectos, exitosos o fallidos.', s: 'Revisión post-proyecto: analizar un proyecto terminado eleva la madurez.', r: ['tidd'] },
+    { t: 'Evaluar ideas entre pares', x: 'La creatividad de una idea se puede juzgar de forma confiable cuando varias personas que conocen el tema la califican por separado, sin ponerse de acuerdo, y se promedian sus notas: es la técnica de evaluación consensuada. Para que el juicio sea útil conviene usar criterios explícitos, como la novedad, la viabilidad y la claridad o especificidad de la idea. Cuando dos evaluadores difieren mucho, conviene revisar si entendieron lo mismo.', s: 'Decidir → Evaluar a otros equipos: califican de forma anónima los conceptos de otros dos equipos; el promedio ajusta la calidad hasta ±0,5. Lo que dijeron de los suyos está en Resultados → Evaluación de sus conceptos.', r: ['amab82', 'dean06'] },
+    { t: 'El debriefing', x: 'En una simulación se aprende sobre todo en la reflexión que viene después de jugar. El debriefing es esa conversación guiada: qué pasó, por qué pasó y qué haríamos distinto. Sin ella, la experiencia queda como un juego ganado o perdido; con ella, se convierte en principios que se pueden usar en una empresa real.', s: 'Al cierre de cada año el docente proyecta una guía con los datos del curso (validación, pronósticos, tipos de innovación, investigación) y tres preguntas para discutir.', r: ['crook'] },
+    { t: 'Aprender de la experiencia', x: 'Se aprende cuando la experiencia se convierte en reflexión, se conceptualiza y se vuelve a probar. Escribir hipótesis antes de decidir y contrastarlas después con los resultados es la forma de pasar del “nos fue bien” al “sabemos por qué”.', s: 'Hipótesis de cada ronda y bitácora: qué decidimos, qué pasó, por qué pasó y qué principio lo explica.', r: ['kolb', 'schon'] }
+  ] }
+];
+
+var GLOSARIO = [
+  ['Debriefing', 'Conversación guiada después de jugar una simulación: qué pasó, por qué pasó y qué haríamos distinto. Es donde ocurre buena parte del aprendizaje (Crookall, 2010).'],
+  ['Evaluación consensuada', 'Forma de juzgar la creatividad de una idea: varias personas que conocen el tema la califican por separado y se promedian sus notas (Amabile, 1982).'],
+  ['Núcleo, adyacente y transformacional', 'Tres horizontes del portafolio de innovación: mejorar lo actual para los clientes actuales (núcleo), llevar lo que se sabe hacer a nuevos clientes o usos (adyacente) y crear ofertas para mercados que todavía no existen (transformacional) (Nagji y Tuff, 2012).'],
+  ['Postura frente a la innovación', 'Actitud estratégica de la empresa ante lo nuevo: ofensiva, defensiva, imitativa, dependiente, tradicional u oportunista (Freeman y Soete, 1997).'],
+  ['Análisis morfológico', 'Técnica creativa que divide un producto en parámetros, lista opciones para cada uno y las combina para encontrar soluciones nuevas (Zwicky, 1969).'],
+  ['Ficha de concepto', 'Descripción breve de una idea de producto: qué es, para quién, qué necesidad resuelve y por qué es mejor que la alternativa. Es lo que se muestra a los clientes en un test de concepto.'],
+  ['Flor de loto', 'Técnica creativa que coloca el reto al centro, lo rodea de ocho temas y desarrolla ideas para cada tema (Michalko, 2006).'],
+  ['Kano (modelo de)', 'Clasifica los atributos en básicos (si faltan, el cliente rechaza el producto), de desempeño (más es mejor) y de entusiasmo (si faltan nadie los extraña; si están, encantan) (Kano et al., 1984).'],
+  ['Malla receptora de información', 'Cuadro de cuatro partes para registrar lo que gustó, las críticas, las preguntas y las ideas nuevas que surgen al probar un prototipo (Hasso Plattner Institute of Design, 2010).'],
+  ['Especificación', 'Descripción precisa de cómo se fabrica un producto: materiales, proceso, costo por unidad, vida útil y capacidad (Ulrich y Eppinger, 2016).'],
+  ['Clase de referencia', 'Conjunto de proyectos parecidos ya realizados que sirve para corregir un pronóstico optimista (Lovallo y Kahneman, 2003).'],
+  ['Pre-mortem', 'Ejercicio en que el equipo imagina que el proyecto fracasó y escribe por qué, para atacar esos riesgos antes (Klein, 2007).'],
+  ['Lienzo del modelo de negocio', 'Herramienta de nueve bloques que describe cómo un negocio crea, entrega y cobra valor (Osterwalder y Pigneur, 2010).'],
+  ['Canibalización', 'Ventas que un producto nuevo le quita a otro producto de la misma empresa.'],
+  ['Revisión después de la acción', 'Reunión de cierre con cuatro preguntas: qué esperábamos, qué pasó, por qué hubo diferencia y qué haremos distinto (Garvin, 2000).'],
+  ['Costo hundido', 'Dinero ya gastado que no se recupera y que no debería influir en la decisión de continuar (Staw, 1976).'],
+  ['Matriz de Pugh', 'Herramienta para comparar conceptos con una referencia, criterio por criterio, marcando +1, 0 o −1 (Pugh, 1991).'],
+  ['SCAMPER', 'Lista de siete preguntas para transformar un producto existente: sustituir, combinar, adaptar, modificar, poner otro uso, eliminar y reordenar (Eberle, 1996).'],
+  ['Test de concepto', 'Estudio que muestra una ficha de concepto a clientes del segmento para medir su interés, el precio que aceptan y lo que les gusta o no. La intención de compra declarada exagera la compra real (Jamieson y Bass, 1989).'],
+  ['Trabajos por hacer', 'Enfoque que entiende la compra como “contratar” un producto para lograr un progreso en una situación concreta: cuando…, quiero…, para… (Christensen et al., 2016).'],
+  ['Van Westendorp (medidor de)', 'Método de precios que pregunta a qué precio un producto parece muy barato, barato, caro y muy caro; los cruces de las curvas dan el rango de precio aceptable (Van Westendorp, 1976).'],
+  ['4P de la innovación', 'Los cuatro espacios donde se puede innovar: producto (lo que se ofrece), proceso (cómo se produce o entrega), posición (a quién y en qué contexto se ofrece) y paradigma (el modelo de negocio).'],
+  ['Activos complementarios', 'Recursos como la distribución, la marca o la capacidad de producción que se necesitan para comercializar una innovación y que ayudan a capturar su valor.'],
+  ['Adquisición', 'Compra de otra empresa, por ejemplo de un disruptor, para incorporar su producto, tecnología o clientes.'],
+  ['Alianza estratégica', 'Acuerdo de colaboración con otra organización para compartir recursos, riesgos o mercados sin fusionarse.'],
+  ['Ambidestreza organizacional', 'Capacidad de explotar el negocio actual y explorar negocios nuevos al mismo tiempo.'],
+  ['Apropiabilidad', 'Grado en que una empresa puede quedarse con los beneficios de su innovación frente a imitadores.'],
+  ['Autoeficacia creativa', 'Confianza de una persona en su capacidad para generar ideas valiosas.'],
+  ['Bitácora', 'Registro reflexivo de cada ronda: qué se decidió, qué pasó, por qué y qué principio lo explica.'],
+  ['Canal de distribución', 'Vía por la que el producto llega al cliente: tiendas, supermercados, kioscos, máquinas o aplicaciones.'],
+  ['Ciclo de vida del producto', 'Etapas de introducción, crecimiento, madurez y declive que recorre un producto en el mercado.'],
+  ['Clima creativo', 'Percepción de las personas sobre cuánto apoya la organización la creatividad: libertad, recursos, tiempo y tolerancia al error.'],
+  ['Contrafactual (empresa gemela)', 'Escenario de comparación que muestra qué habría pasado si la empresa no hubiera innovado.'],
+  ['Cuota de mercado', 'Porcentaje de las ventas de un segmento o mercado que obtiene un producto o empresa.'],
+  ['Design Thinking', 'Enfoque de innovación centrado en las personas que combina empatía, definición del problema, ideación, prototipado y prueba.'],
+  ['Difusión', 'Proceso por el cual una innovación es adoptada de forma gradual por los miembros de un mercado.'],
+  ['Disrupción', 'Innovación que entra por la gama baja o por no consumidores y termina desplazando a los líderes establecidos.'],
+  ['Elasticidad precio', 'Sensibilidad de la demanda ante cambios en el precio.'],
+  ['Embudo de innovación', 'Representación del proceso en que muchas ideas entran y, tras sucesivas selecciones, pocas llegan al mercado.'],
+  ['Empatía', 'Comprensión profunda de las necesidades, contextos y emociones de los usuarios.'],
+  ['Etnografía', 'Método de investigación que observa a las personas en su entorno real para comprender su comportamiento.'],
+  ['Exploración y explotación', 'Explorar es buscar posibilidades nuevas; explotar es aprovechar y mejorar lo que ya se sabe hacer.'],
+  ['Factibilidad', 'Grado en que una idea puede realizarse técnicamente con los recursos disponibles.'],
+  ['Fidelidad del prototipo', 'Nivel de parecido del prototipo con el producto final; a mayor fidelidad, mayor costo y precisión.'],
+  ['Hipótesis', 'Supuesto verificable sobre lo que ocurrirá como resultado de una decisión.'],
+  ['Idea', 'Propuesta inicial de solución que aún no ha sido validada ni desarrollada.'],
+  ['Índice de vitalidad', 'Proporción de las ventas que proviene de productos lanzados recientemente.'],
+  ['Innovación', 'Producto, proceso, posición o modelo de negocio nuevo o mejorado que se implementa y genera valor.'],
+  ['Innovación abierta', 'Uso deliberado de ideas y conocimiento externos, además de los internos, para innovar.'],
+  ['Innovación incremental', 'Mejora gradual de un producto o proceso existente, de bajo riesgo.'],
+  ['Innovación radical', 'Cambio profundo en la oferta, la tecnología o el modelo, con alto riesgo y alto potencial.'],
+  ['Insight', 'Descubrimiento revelador sobre los clientes que explica su comportamiento y abre oportunidades.'],
+  ['Intensidad de innovación', 'Gasto en innovación expresado como porcentaje de las ventas.'],
+  ['Intraemprendimiento', 'Desarrollo de iniciativas emprendedoras por empleados dentro de la organización.'],
+  ['Madurez en gestión de la innovación', 'Nivel de desarrollo de las rutinas y capacidades de una organización para innovar de forma sistemática.'],
+  ['Mandato', 'Encargo del directorio que fija la tolerancia al riesgo y el tipo de problema prioritario.'],
+  ['Modelo de negocio', 'Lógica con que la empresa crea, entrega y captura valor.'],
+  ['Motivación intrínseca', 'Impulso a realizar una tarea por el interés, el disfrute o el reto que representa.'],
+  ['Necesidad latente', 'Necesidad real que los clientes no expresan porque no la reconocen o no imaginan que pueda resolverse.'],
+  ['Patente', 'Derecho legal temporal que impide a otros usar una invención sin autorización.'],
+  ['Piloto', 'Prueba a escala reducida en condiciones reales antes del lanzamiento masivo.'],
+  ['Portafolio de innovación', 'Conjunto de proyectos de innovación de la empresa, equilibrados por riesgo, plazo y mercado.'],
+  ['Propuesta de valor', 'Beneficio que un producto ofrece a un segmento de clientes y que lo diferencia de las alternativas.'],
+  ['Prototipo', 'Representación tangible de una idea para probarla y aprender de ella.'],
+  ['Ruido', 'Información del entorno que parece relevante pero no anticipa cambios reales.'],
+  ['Segmento de mercado', 'Grupo de clientes con necesidades y comportamientos de compra similares.'],
+  ['Seguridad psicológica', 'Creencia compartida de que el equipo es un espacio seguro para proponer, preguntar y equivocarse.'],
+  ['Semanas-persona', 'Unidad de capacidad de trabajo del equipo de innovación en cada trimestre.'],
+  ['Señal débil', 'Indicio temprano y ambiguo de un cambio futuro en el entorno.'],
+  ['Stage-gate (etapas y puertas)', 'Sistema que divide el desarrollo en etapas separadas por puntos de decisión para continuar o detener.'],
+  ['Usuario extremo', 'Usuario con un uso muy intenso o muy escaso del producto, que hace visibles problemas ocultos.'],
+  ['Usuario líder', 'Usuario que enfrenta antes que el mercado necesidades futuras y que a menudo innova por su cuenta.'],
+  ['Validación', 'Prueba que reduce la incertidumbre sobre el valor real de una idea antes de invertir más.'],
+  ['Valor terminal', 'Valor estimado de los flujos de la empresa más allá del último período analizado.'],
+  ['Viabilidad', 'Grado en que una idea puede generar resultados económicos sostenibles.']
+];
+
+GLOSARIO.sort(function (a, b) { return a[0].localeCompare(b[0], 'es'); });
+function cita(k) {
+  var r = REFS[k].replace(/<[^>]+>/g, ''), anio = (r.match(/\((\d{4})\)/) || [0, 's. f.'])[1], au = r.split(' (')[0].replace(/\.$/, '');
+  if (/^OECD/.test(au)) return 'OECD y Eurostat, ' + anio;
+  var ap = au.replace(/&/g, ',').split(',').map(function (x) { return x.trim(); }).filter(function (x) { return x && !/^[A-Z][A-Z.\s]*$/.test(x); });
+  return (ap.length === 1 ? ap[0] : ap.length === 2 ? ap[0] + ' y ' + ap[1] : ap[0] + ' et al.') + ', ' + anio;
+}
+var UABIERTA = 1;
+function vTemas() {
+  var html = '<div class="card"><h2>Temas de innovación</h2><p>Nueve unidades y ' + UNIDADES.reduce(function (n, u) { return n + u.temas.length; }, 0) + ' temas, explicados a partir de la literatura científica sobre innovación y creatividad. Cada tema indica dónde lo viven en el simulador. Lean la unidad que corresponde a lo que están decidiendo y usen sus conceptos en la bitácora.</p><div class="inline">' +
+    UNIDADES.map(function (u) { return '<button class="btn ' + (UABIERTA === u.n ? '' : 'sec') + '" onclick="UABIERTA=' + u.n + ';render()">' + u.n + '</button>'; }).join('') + '</div></div>';
+  var u = UNIDADES[UABIERTA - 1], refs = [];
+  html += '<div class="card"><h2>Unidad ' + u.n + '. ' + esc(u.titulo) + '</h2>';
+  u.temas.forEach(function (t, i) {
+    t.r.forEach(function (k) { if (refs.indexOf(k) < 0) refs.push(k); });
+    html += '<div class="card tema"><h3>' + u.n + '.' + (i + 1) + ' ' + esc(t.t) + '</h3><p>' + esc(t.x) + '</p><p><b>En el simulador:</b> ' + esc(t.s) + '</p><p class="muted">Fuente: ' + t.r.map(cita).join('; ') + '</p></div>';
+  });
+  html += '<h3>Pregunta para la bitácora</h3><p>' + esc(u.pregunta) + '</p><h3>Referencias</h3>' + refs.map(function (k) { return REFS[k]; }).sort().map(function (r) { return '<p class="ref">' + r + '</p>'; }).join('') +
+    '<div class="inline" style="justify-content:space-between;margin-top:10px">' + (u.n > 1 ? '<button class="btn sec" onclick="UABIERTA=' + (u.n - 1) + ';render();window.scrollTo(0,0)">← Unidad ' + (u.n - 1) + '</button>' : '<span></span>') + (u.n < 9 ? '<button class="btn sec" onclick="UABIERTA=' + (u.n + 1) + ';render();window.scrollTo(0,0)">Unidad ' + (u.n + 1) + ' →</button>' : '') + '</div></div>';
+  return html;
+}
+var GFILTRO = '';
+function vGlosario() {
+  var f = GFILTRO.toLowerCase();
+  var L = GLOSARIO.filter(function (g) { return !f || (g[0] + ' ' + g[1]).toLowerCase().indexOf(f) >= 0; });
+  return '<div class="card"><h2>Glosario de términos</h2><label>Buscar un término</label><input type="text" id="gbus" value="' + esc(GFILTRO) + '" oninput="GFILTRO=this.value;var p=this.selectionStart;render();var e=$(\'gbus\');e.focus();e.setSelectionRange(p,p)" placeholder="Por ejemplo: disrupción, prototipo, vitalidad">' +
+    '<dl class="glos">' + (L.length ? L.map(function (g) { return '<dt>' + esc(g[0]) + '</dt><dd>' + esc(g[1]) + '</dd>'; }).join('') : '<dd class="muted">No se encontró el término.</dd>') + '</dl><p class="muted">' + GLOSARIO.length + ' términos.</p></div>';
+}
+</script>

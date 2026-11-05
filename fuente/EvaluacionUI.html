@@ -1,0 +1,128 @@
+<script>
+// ===================== Etapa 4: evaluación entre equipos, calificación docente, debriefing =====================
+var P4_PAR = null, P4_TXT = null, P4_TFILTRO = '', P4_ANIO = 1;
+function P4_opts(v) { var h = '<option value="">—</option>'; for (var i = 1; i <= 9; i++) h += '<option' + (Number(v) === i ? ' selected' : '') + '>' + i + '</option>'; return h; }
+function P4_ptsTxt(p) { var N = (V && V.cat && V.cat.ptsNom) || { sab: 'Sabor', nut: 'Nutrición', conv: 'Conveniencia', salud: 'Saludable', sost: 'Sostenibilidad', precio: 'Precio' }; return Object.keys(N).filter(function (k) { return p && p[k]; }).map(function (k) { return N[k] + ' ' + p[k]; }).join(' · '); }
+
+// ---------- estudiante: Situación → Caso ----------
+function P4_lienzoActual() {
+  var c = (V.cat.p3 && V.cat.p3.hoy) || { soc: [], act: [], rec: [], rel: 'auto', can: [] }, rel = (V.cat.p3 && V.cat.p3.lienzo && V.cat.p3.lienzo.rel) || {};
+  var can = (c.can || []).map(function (id) { var x = (V.cat.canales || []).filter(function (k) { return k.id === id; })[0]; return x ? x.nombre : id; });
+  function blk(t, h, area) { return '<div class="p4blk" style="grid-area:' + area + '"><b>' + t + '</b>' + h + '</div>'; }
+  function lst(L) { return '<ul>' + L.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; }
+  return '<div class="card"><h2>El modelo de negocio actual de ' + esc(V.equipo.nombre) + '</h2><p class="muted">Cómo la empresa crea, entrega y cobra su valor hoy, en los nueve bloques del lienzo del modelo de negocio (Osterwalder y Pigneur, 2010). Es la referencia con la que se compara el lienzo de cada proyecto en la Puerta: si un proyecto cambia la forma de entregar o de cobrar, cambia el modelo de negocio.</p>' +
+    '<div class="p4bmc">' + blk('Socios clave', lst(c.soc), 'soc') + blk('Actividades clave', lst(c.act), 'act') + blk('Recursos clave', lst(c.rec), 'rec') +
+    blk('Propuesta de valor', '<p>Leche saborizada de 1 litro con buen sabor, para toda la familia, a precio accesible.</p>', 'pro') +
+    blk('Relación con el cliente', '<p>' + esc(rel[c.rel] || 'Autoservicio en la tienda') + '</p>', 'rel') + blk('Canales', lst(can), 'can') +
+    blk('Segmentos de clientes', '<p>S1 Familias con niños y S5 Adultos mayores (clientes tradicionales).</p>', 'seg') +
+    blk('Estructura de costos', '<p>Leche cruda, envase de cartón, planta y línea de envasado, distribución, publicidad masiva y gastos fijos de Bs 500.000 por trimestre.</p>', 'cos') +
+    blk('Fuentes de ingresos', '<p>Venta por unidad a Bs 9 el litro (Bs 2,25 por porción) a través de tiendas y supermercados.</p>', 'ing') + '</div></div>';
+}
+
+// ---------- estudiante: Decidir → Evaluar conceptos de otros ----------
+function P4_vPares() {
+  return '<div class="card"><h2>Evaluar los conceptos de otros equipos</h2><p>Cada trimestre su equipo evalúa, sin saber de qué empresa son, las fichas de concepto que crearon otros dos equipos en el trimestre anterior. Califiquen de 1 (muy bajo) a 9 (muy alto) la <b>novedad</b>, la <b>viabilidad</b> y la <b>claridad</b> de cada concepto. El promedio de varios evaluadores ajusta la calidad de esos conceptos hasta ±0,5 puntos.</p>' +
+    '<p class="ayuda">Juzguen el concepto, no a la empresa. Varias personas que conocen el tema y califican por separado juzgan la creatividad de forma confiable (Amabile, 1982). Los criterios siguen a Dean et al. (2006). <a href="#" onclick="irAprender(5);return false">Aprender: unidad 5 →</a></p>' +
+    '<div id="p4par" class="muted">Cargando…</div></div>';
+}
+function P4_cargarPares() {
+  call('apiPares', TOK).then(function (r) {
+    P4_PAR = r; if (!$('p4par')) return;
+    if (!r.asignadas.length) { $('p4par').innerHTML = '<p class="muted">Este trimestre no hay conceptos nuevos de otros equipos para evaluar. Aparecen cuando otros equipos crean fichas de concepto en el trimestre anterior.</p>'; return; }
+    var h = '';
+    r.asignadas.forEach(function (a, i) {
+      var m = r.mias[a.key] || {};
+      h += '<div class="card proj"><h3>' + esc(a.alias) + ' · ' + esc(a.nombre) + ' <span class="tag">' + esc(a.seg) + '</span>' + (a.tipo4p ? ' <span class="tag">' + esc(a.tipo4p) + '</span>' : '') + '</h3>' +
+        (a.reto ? '<p class="muted">Reto del proyecto: ' + esc(a.reto) + '</p>' : '') + '<p>' + esc(a.frase || '(sin frase de posicionamiento)') + '</p><p class="muted">Apuesta: ' + esc(P4_ptsTxt(a.pts)) + (a.precioObj ? ' · Precio objetivo Bs ' + esc(a.precioObj) + ' por porción' : '') + '</p>' +
+        '<div class="grid g4">' + r.criterios.map(function (c) { return '<div><label for="p4n_' + i + '_' + c[0] + '">' + esc(c[1]) + '</label><select id="p4n_' + i + '_' + c[0] + '">' + P4_opts(m[c[0]]) + '</select></div>'; }).join('') +
+        '<div><label for="p4n_' + i + '_com">Comentario breve (opcional)</label><input type="text" id="p4n_' + i + '_com" maxlength="300" value="' + esc(m.com || '') + '"></div></div></div>';
+    });
+    h += r.abierto ? '<button class="btn" onclick="P4_guardarPares()">Guardar mis evaluaciones</button>' : '<span class="tag aviso">Trimestre cerrado</span>';
+    $('p4par').innerHTML = h;
+  }).catch(function (e) { if ($('p4par')) $('p4par').innerHTML = esc(e); });
+}
+function P4_guardarPares() {
+  var out = {};
+  P4_PAR.asignadas.forEach(function (a, i) { var o = { com: $('p4n_' + i + '_com').value }; P4_PAR.criterios.forEach(function (c) { o[c[0]] = $('p4n_' + i + '_' + c[0]).value; }); out[a.key] = o; });
+  call('apiGuardarPares', TOK, out).then(function (r) { aviso('Evaluaciones guardadas: ' + r.completas + ' de ' + r.total + ' conceptos con las tres notas.', r.completas === r.total ? 'ok' : 'err'); P4_cargarPares(); }).catch(function (e) { aviso(e, 'err'); });
+}
+
+// ---------- estudiante: Resultados → Evaluación de sus conceptos ----------
+function P4_vEvaluaciones() {
+  return '<div class="card"><h2>Cómo evaluaron sus conceptos y prototipos</h2><p class="muted">Notas de 1 a 9 que dieron otros equipos (sin saber de qué empresa eran) y el docente. El ajuste se aplica a la calidad de su concepto o prototipo al procesar el trimestre siguiente.</p><div id="p4mis" class="muted">Cargando…</div></div>';
+}
+function P4_num(x) { return x === null || x === undefined ? '—' : Number(x).toFixed(1).replace('.', ','); }
+function P4_aj(x) { return (x > 0 ? '+' : '') + Number(x || 0).toFixed(2).replace('.', ','); }
+function P4_cargarMias() {
+  call('apiMisEvaluaciones', TOK).then(function (r) {
+    if (!$('p4mis')) return;
+    if (!r.fichas.length && !r.protos.length) { $('p4mis').innerHTML = '<p>Todavía no hay evaluaciones de sus conceptos. Llegan cuando otros equipos o el docente califican sus fichas de concepto.</p>'; return; }
+    var h = '';
+    if (r.fichas.length) h += '<h3>Fichas de concepto</h3><div class="scroll"><table><tr><th>Proyecto</th><th>Concepto</th><th class="n">Otros equipos</th><th class="n">Novedad</th><th class="n">Viabilidad</th><th class="n">Claridad</th><th class="n">Docente</th><th class="n">Ajuste de calidad</th><th>Comentarios</th></tr>' +
+      r.fichas.map(function (f) { var p = f.pares || {}, d = f.docente; return '<tr><td>' + esc(f.proyecto) + '</td><td>' + esc(f.nombre) + ' <span class="muted">T' + f.t + '</span></td><td class="n">' + (f.pares ? P4_num(p.prom) + ' (' + p.n + ')' : '—') + '</td><td class="n">' + P4_num(p.nov) + '</td><td class="n">' + P4_num(p.via) + '</td><td class="n">' + P4_num(p.cla) + '</td><td class="n">' + (d && d.media !== null ? P4_num(d.media) : '—') + '</td><td class="n">' + P4_aj(f.ajuste) + '</td><td>' + esc(((p.comentarios || []).concat(d && d.com ? ['Docente: ' + d.com] : [])).join(' · ')) + '</td></tr>'; }).join('') + '</table></div>';
+    if (r.protos.length) h += '<h3>Prototipos (docente)</h3><div class="scroll"><table><tr><th>Proyecto</th><th>Versión</th>' + r.critProto.map(function (c) { return '<th class="n">' + esc(c[1]) + '</th>'; }).join('') + '<th>Construido de verdad</th><th class="n">Ajuste</th><th>Comentario</th></tr>' +
+      r.protos.map(function (p) { return '<tr><td>' + esc(p.proyecto) + '</td><td>' + p.version + ' <span class="muted">T' + p.t + '</span></td>' + r.critProto.map(function (c) { return '<td class="n">' + esc(p.notas[c[0]] || '—') + '</td>'; }).join('') + '<td>' + (p.construido ? 'Sí' : 'No') + '</td><td class="n">' + P4_aj(p.ajuste) + '</td><td>' + esc(p.com) + '</td></tr>'; }).join('') + '</table></div>';
+    $('p4mis').innerHTML = h;
+  }).catch(function (e) { if ($('p4mis')) $('p4mis').innerHTML = esc(e); });
+}
+
+// ---------- docente: Textos y calificación ----------
+function P4_aTextos() {
+  return '<div class="card"><h2>Textos del curso</h2><p class="muted">Todo lo que escribieron los equipos, por empresa, proyecto y fase. La calificación es opcional: ajusta la calidad del concepto hasta ±0,5 (60 % su nota y 40 % la de los otros equipos) y la del prototipo hasta +1 si lo construyeron de verdad y dejaron el enlace de la foto.</p><div class="inline"><label for="p4tf" style="margin:0">Trimestre</label><select id="p4tf" onchange="P4_TFILTRO=this.value;P4_pintarTextos()" style="max-width:140px"><option value="">Todos</option></select></div><div id="p4txt" class="muted">Cargando…</div></div>';
+}
+function P4_cargarTextos() {
+  call('apiAdmin', TOK, 'textos', { simId: SIMID }).then(function (r) { P4_TXT = r; var s = $('p4tf'); if (s) { for (var t = 1; t <= r.t; t++) s.innerHTML += '<option value="' + t + '"' + (String(t) === P4_TFILTRO ? ' selected' : '') + '>T' + t + '</option>'; } P4_pintarTextos(); }).catch(function (e) { if ($('p4txt')) $('p4txt').innerHTML = esc(e); });
+}
+function P4_pintarTextos() {
+  var r = P4_TXT; if (!r || !$('p4txt')) return;
+  if (!r.t) { $('p4txt').innerHTML = 'Aún no hay trimestres procesados.'; return; }
+  var h = '';
+  if (r.alertas.length) h += '<div class="msg err">Evaluaciones entre equipos con mucha diferencia (más de 3 puntos entre evaluadores): ' + r.alertas.map(function (a) { return esc(a.equipo) + ' (' + a.detalle.map(function (x) { return x.toFixed(1); }).join(' / ') + ')'; }).join('; ') + '. Revíselas y, si corresponde, califique usted esas fichas.</div>';
+  r.equipos.forEach(function (e, ei) {
+    var L = e.items.filter(function (it) { return !P4_TFILTRO || String(it.t) === P4_TFILTRO; });
+    h += '<div class="card proj"><h2>' + esc(e.nombre) + '</h2><p class="muted">Ideas aportadas por integrante: ' + (e.participacion.map(function (p) { return esc(p.nombre) + ' ' + p.ideas; }).join(' · ') || '—') + '</p>';
+    if (!L.length) { h += '<p class="muted">Sin textos en este período.</p></div>'; return; }
+    h += '<div class="scroll"><table><tr><th>T</th><th>Proyecto</th><th>Fase</th><th>Qué</th><th>Texto</th><th>Calificación</th></tr>';
+    L.forEach(function (it, ii) {
+      var id = 'p4c_' + ei + '_' + ii, crit = it.calif === 'proto' ? r.critProto : r.critFicha, d = it.doc || {};
+      var cal = '';
+      if (it.calif) {
+        cal = '<details' + (it.doc ? ' open' : '') + '><summary class="muted" style="cursor:pointer">' + (it.doc ? 'Calificada' : 'Calificar') + (it.pares ? ' · pares ' + it.pares.prom.toFixed(1) + ' (' + it.pares.n + ')' + (it.pares.alerta ? ' ⚠' : '') : '') + '</summary><div class="p4cal">' +
+          crit.map(function (c) { return '<label>' + esc(c[1]) + ' <select id="' + id + '_' + c[0] + '">' + P4_opts(d[c[0]]) + '</select></label>'; }).join('') +
+          (it.calif === 'proto' ? '<label class="chk"><input type="checkbox" id="' + id + '_cons"' + (d.construido ? ' checked' : '') + (it.foto ? '' : ' disabled') + '> Lo construyeron de verdad' + (it.foto ? '' : ' (sin enlace de foto)') + '</label>' : '') +
+          '<input type="text" id="' + id + '_com" placeholder="Comentario para el equipo" value="' + esc(d.com || '') + '">' +
+          '<div class="inline"><button class="btn sec" onclick="P4_calificar(\'' + id + '\',\'' + esc(it.key) + '\',\'' + it.calif + '\')">Guardar</button>' + (it.doc ? '<button class="btn sec" onclick="P4_calificar(\'' + id + '\',\'' + esc(it.key) + '\',\'' + it.calif + '\',true)">Quitar</button>' : '') + '</div></div></details>';
+      }
+      h += '<tr><td>' + it.t + '</td><td>' + esc(it.proyecto) + '</td><td>' + esc(it.fase) + '</td><td>' + esc(it.tipo) + (it.autor ? '<br><span class="muted">' + esc(it.autor) + '</span>' : '') + '</td><td>' + esc(it.texto) + (it.foto ? '<br><a href="' + esc(it.foto) + '" target="_blank" rel="noopener">Ver foto del prototipo</a>' : '') + '</td><td style="min-width:220px">' + cal + '</td></tr>';
+    });
+    h += '</table></div></div>';
+  });
+  $('p4txt').innerHTML = h;
+}
+function P4_calificar(id, key, tipo, borrar) {
+  var crit = tipo === 'proto' ? P4_TXT.critProto : P4_TXT.critFicha, d = { key: key, tipo: tipo, com: $(id + '_com').value, borrar: !!borrar };
+  crit.forEach(function (c) { d[c[0]] = $(id + '_' + c[0]).value; });
+  if (tipo === 'proto') d.construido = $(id + '_cons') && $(id + '_cons').checked;
+  adm('calificar', d, false).then(function () { P4_cargarTextos(); });
+}
+
+// ---------- docente: Guía de debriefing ----------
+function P4_aDebrief() {
+  var max = Math.max(1, Math.ceil(Math.min((SIMS && SIMS.total) || 20, (ADM.partida.t || 1) - 1) / 4));
+  var o = ''; for (var a = 1; a <= 5; a++) o += '<option value="' + a + '"' + (a === P4_ANIO ? ' selected' : '') + (a > max ? ' disabled' : '') + '>Año ' + a + '</option>';
+  return '<div class="card"><h2>Guía de debriefing</h2><p class="muted">Una página para proyectar en clase al cierre de cada año, con los datos del curso y tres preguntas de discusión. En la simulación se aprende sobre todo en la reflexión posterior al juego (Crookall, 2010). Sugerencia: 20 minutos, primero lo que pasó, luego por qué pasó y al final qué harán distinto.</p><div class="inline"><select id="p4an" style="max-width:140px">' + o + '</select><button class="btn" onclick="P4_ANIO=Number($(\'p4an\').value);P4_cargarDebrief()">Generar guía</button></div></div><div id="p4db"></div>';
+}
+function P4_cargarDebrief() {
+  if (!$('p4db')) return; $('p4db').innerHTML = '<div class="card muted">Generando…</div>';
+  call('apiAdmin', TOK, 'debriefing', { simId: SIMID, anio: P4_ANIO }).then(function (r) {
+    if (r.vacio || !r.filas.length) { $('p4db').innerHTML = '<div class="card"><p>El año ' + r.anio + ' todavía no tiene trimestres procesados.</p></div>'; return; }
+    var F = r.filas, h = '<div class="card p4proy"><h2>Año ' + r.anio + ' (T' + r.tIni + '–T' + r.tFin + '): ¿qué aprendimos?</h2>';
+    h += '<h3>1. Validar antes de elegir</h3><div class="scroll"><table><tr><th>Empresa</th><th class="n">Conceptos elegidos</th><th class="n">Validados con test</th><th>Lanzamientos (participación en su segmento)</th><th class="n">Utilidad del año</th></tr>' + F.map(function (f) { return '<tr><td>' + esc(f.equipo) + '</td><td class="n">' + f.elegidos + '</td><td class="n">' + f.validados + '</td><td>' + (f.lanzamientos.map(function (l) { return esc(l.nombre) + ' ' + pct(l.cuota) + (l.validado ? '' : ' (sin validar)'); }).join(' · ') || '—') + '</td><td class="n">' + bs(f.utilidad) + '</td></tr>'; }).join('') + '</table></div>';
+    h += '<h3>2. Pronóstico frente a realidad</h3><div class="scroll"><table><tr><th>Empresa</th><th class="n">Desvío medio</th><th>Últimos pronósticos (esperado → real)</th><th class="n">Volúmenes dentro de la clase de referencia</th></tr>' + F.map(function (f) { return '<tr><td>' + esc(f.equipo) + '</td><td class="n">' + (f.errorPron === null ? '—' : f.errorPron + ' %') + '</td><td>' + (f.pronosticos.map(function (p) { return esc(p.que) + ': ' + Math.round(p.esperado).toLocaleString('es-BO') + ' → ' + Math.round(p.real).toLocaleString('es-BO'); }).join(' · ') || '—') + '</td><td class="n">' + (f.refN ? f.refOk + ' de ' + f.refN : '—') + '</td></tr>'; }).join('') + '</table></div>';
+    h += '<h3>3. Tipo de innovación declarado y real</h3><div class="scroll"><table><tr><th>Empresa</th><th>Proyectos</th></tr>' + F.map(function (f) { return '<tr><td>' + esc(f.equipo) + '</td><td>' + (f.tipos.map(function (x) { return esc(x.proyecto) + ': ' + esc(x.decl) + ' → ' + (x.decl === x.real ? esc(x.real) : '<b>' + esc(x.real) + '</b>'); }).join(' · ') || '—') + '</td></tr>'; }).join('') + '</table></div>';
+    h += '<h3>4. Investigación y decisiones</h3><div class="scroll"><table><tr><th>Empresa</th><th class="n">Informes recibidos</th><th class="n">Con decisión escrita</th><th class="n">Briefs con evidencia</th></tr>' + F.map(function (f) { return '<tr><td>' + esc(f.equipo) + '</td><td class="n">' + f.informes + '</td><td class="n">' + f.conDecision + '</td><td class="n">' + f.briefsConEvidencia + '</td></tr>'; }).join('') + '</table></div>';
+    h += '<h3>Preguntas para la discusión</h3><ol class="p4preg">' + r.preguntas.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol></div>';
+    $('p4db').innerHTML = h;
+  }).catch(function (e) { $('p4db').innerHTML = '<div class="card">' + esc(e) + '</div>'; });
+}
+</script>

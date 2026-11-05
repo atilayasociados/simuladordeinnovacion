@@ -1,0 +1,55 @@
+// Simulación mínima de Apps Script (SpreadsheetApp, CacheService, LockService, Utilities, HtmlService) en memoria.
+const fs = require('fs'), vm = require('vm'), path = require('path'), crypto = require('crypto');
+function makeSheet(name) {
+  const data = []; // filas (arrays)
+  const sh = {
+    name, data,
+    getName: () => name,
+    getLastRow: () => data.length,
+    getLastColumn: () => data.reduce((m, r) => Math.max(m, r.length), 0),
+    appendRow: (row) => { data.push(row.map(v => v === undefined ? '' : v)); },
+    deleteRow: (r) => { data.splice(r - 1, 1); },
+    deleteRows: (r, n) => { data.splice(r - 1, n); },
+    setFrozenRows: () => { },
+    getRange: (r, c, nr, nc) => {
+      nr = nr || 1; nc = nc || 1;
+      const rng = {
+        getValues: () => { const out = []; for (let i = 0; i < nr; i++) { const row = data[r - 1 + i] || []; const o = []; for (let j = 0; j < nc; j++) o.push(row[c - 1 + j] === undefined ? '' : row[c - 1 + j]); out.push(o); } return out; },
+        setValues: (vals) => { for (let i = 0; i < nr; i++) { while (data.length < r + i) data.push([]); const row = data[r - 1 + i]; for (let j = 0; j < nc; j++) row[c - 1 + j] = vals[i][j]; } return rng; },
+        setValue: (v) => { while (data.length < r) data.push([]); data[r - 1][c - 1] = v; return rng; },
+        setFontWeight: () => rng, setBackground: () => rng, setFontColor: () => rng
+      };
+      return rng;
+    }
+  };
+  return sh;
+}
+function makeGas() {
+  const sheets = {};
+  const ss = {
+    getSheetByName: (n) => sheets[n] || null,
+    insertSheet: (n) => (sheets[n] = makeSheet(n)),
+    getSheets: () => Object.values(sheets), getNumSheets: () => Object.keys(sheets).length,
+    deleteSheet: (s) => { delete sheets[s.name]; },
+    setActiveSheet: () => { }
+  };
+  const cache = {}, props = {};
+  const ctx = {
+    console, Math, JSON, Date, Number, String, Object, Array, RegExp, Error, Promise,
+    SpreadsheetApp: { getActive: () => Object.assign(ss, { toast: () => { }, getId: () => 'X' }), openById: () => ss, getUi: () => ({ alert: (m) => { ctx._alerts.push(m); }, createMenu: () => ({ addItem() { return this; }, addToUi() { } }) }) },
+    CacheService: { getScriptCache: () => ({ get: (k) => cache[k] || null, put: (k, v) => { cache[k] = v; }, remove: (k) => { delete cache[k]; } }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); }, deleteProperty: (k) => { delete props[k]; } }) },
+    Session: { getEffectiveUser: () => ({ getEmail: () => 'docente@test.bo' }) },
+    ScriptApp: { getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/TEST/exec' }) },
+    LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock: () => { }, releaseLock: () => { } }) },
+    Utilities: { getUuid: () => crypto.randomUUID(), DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' }, computeDigest: (alg, s) => Array.from(crypto.createHash('sha256').update(s, 'utf8').digest()).map(b => b > 127 ? b - 256 : b) },
+    HtmlService: {}, Logger: { log: () => { } },
+    _alerts: [], _sheets: sheets, _cache: cache, _props: props
+  };
+  vm.createContext(ctx);
+  for (const f of ['Params.gs', 'Engine.gs', 'Informes.gs', 'Proyectos.gs', 'Evaluacion.gs', 'Db.gs', 'Setup.gs', 'Code.gs', 'Acceso.gs']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'fuente', f), 'utf8'), ctx, { filename: f });
+  // Atajos SOLO para pruebas (no existen en el servidor): permiten que las pruebas antiguas obtengan sesiones sin pasar por la pantalla.
+  vm.runInContext(fs.readFileSync(path.join(__dirname, 'legacy.js'), 'utf8'), ctx, { filename: 'legacy.js' });
+  return ctx;
+}
+module.exports = { makeGas };

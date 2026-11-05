@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <header>
+    <h1 id="titulo">Simulador de Innovación</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+  <nav id="nav" style="display:none"></nav>
+  <main id="app"></main>
+  <footer class="acciones" id="pie" style="display:none"></footer>
+  <script>var VISTA = '<?= vista ?>'; var AX_INV = '<?= invitacion ?>';</script>
+  <?!= include('App'); ?>
+  <?!= include('AccesoUI'); ?>
+  <?!= include('InformesUI'); ?>
+  <?!= include('ProyectosUI'); ?>
+  <?!= include('EvaluacionUI'); ?>
+  <?!= include('Aprender'); ?>
+  <script>AX_inicio();</script>
+</body>
+</html>
