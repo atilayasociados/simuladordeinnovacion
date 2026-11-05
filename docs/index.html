@@ -277,7 +277,7 @@ function irTab(t) { TAB = t; render(); window.scrollTo(0, 0); }
 function render() {
   var p = V.partida, M = menuDe(TAB);
   $('titulo').textContent = p.nombre || 'Simulador de Innovación';
-  $('meta').innerHTML = '<span>' + esc(V.usuario.nombre) + ' · ' + esc(V.equipo.nombre) + '</span><span>' + esc(p.sigla || '') + '</span><span>' + (p.finalizada ? 'Partida terminada' : 'Trimestre ' + p.t + ' de ' + p.total + ' (año ' + (Math.floor((p.t - 1) / 4) + 1) + ')') + '</span><span>' + (p.estado === 'abierto' ? 'Abierto' : 'Cerrado') + '</span><span>Presupuesto: ' + bs(V.estado.saldo) + '</span><a href="#" style="color:#fff" onclick="pantallaLogin();return false">Salir</a>';
+  $('meta').innerHTML = '<span>' + esc(V.usuario.nombre) + ' · ' + esc(V.equipo.nombre) + '</span><span>' + esc(p.sigla || '') + '</span><span>' + (p.finalizada ? 'Partida terminada' : 'Trimestre ' + p.t + ' de ' + p.total + ' (año ' + (Math.floor((p.t - 1) / 4) + 1) + ')') + '</span><span>' + (p.estado === 'abierto' ? 'Abierto' : 'Cerrado') + '</span><span>Presupuesto: ' + bs(V.estado.saldo) + '</span><button class="btn-manual" onclick="irManual(MANUAL_DE[TAB] || \'inicio\')" title="Abrir el Manual del estudiante">📘 Manual</button><a href="#" style="color:#fff" onclick="pantallaLogin();return false">Salir</a>';
   $('nav').style.display = 'block';
   $('nav').innerHTML = '<div class="menu">' + MENUS.map(function (m) { return '<button class="' + (M[0] === m[0] ? 'on' : '') + '" onclick="irTab(\'' + m[2][0][0] + '\')">' + m[1] + '</button>'; }).join('') + '</div>' +
     '<div class="sub">' + M[2].map(function (t) { return '<button class="' + (TAB === t[0] ? 'on' : '') + '" onclick="irTab(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('') + '</div>';
@@ -2691,6 +2691,7 @@ function cerrarManualPublico() { var o = document.getElementById('manPub'); if (
 .man-idea{background:#E3F3EA;border-left:4px solid #1E7B46}.man-idea>.man-lbl{color:#1E7B46}
 .man-ej{background:#E6EDF8;border-left:4px solid var(--azul2)}.man-ej>.man-lbl{color:var(--azul2)}
 .man-ctx{margin:0 0 8px;font-size:13px;text-align:right}
+.btn-manual{background:#fff;color:var(--azul,#1F3864);border:none;border-radius:14px;padding:3px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}.btn-manual:hover{background:#E6EDF8}
 #manPub{position:fixed;inset:0;z-index:1000;background:#f4f6f9;overflow-y:auto;color:#1d2433;font-family:inherit}
 .man-pub-bar{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--azul,#1F3864);color:#fff;padding:10px 16px}
 .man-pub-in{max-width:1100px;margin:0 auto;padding:14px 16px 40px}

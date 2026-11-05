@@ -61,12 +61,18 @@ try {
   R.anchoCel = await pg.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   await pg.selectOption('.man-sel', 'evaluar'); await pg.waitForTimeout(200); R.selCel = await pg.isVisible('.man-sec h2:has-text("Fase 3. Evaluar")');
   await pg.screenshot({ path: OUT + '/manual_celular.png' });
+  // botón fijo de la barra superior
+  await pg.setViewportSize({ width: 1280, height: 900 });
+  await pg.click('nav >> text=Resultados'); await pg.waitForTimeout(200);
+  await pg.click('header >> text=📘 Manual'); await pg.waitForTimeout(300);
+  R.botonBarra = await pg.isVisible('.man-sec h2:has-text("Leer los resultados")');
+  await pg.screenshot({ path: OUT + '/manual_boton.png' });
   // 8) tabla de cinco años del caso
   await pg.setViewportSize({ width: 1280, height: 900 });
   await pg.click('nav >> text=Situación'); await pg.waitForTimeout(300);
   R.anios = await pg.isVisible('text=Renovación: los clientes cambian lo que valoran');
 } catch (e) { R.falla = e.message; }
 console.log(JSON.stringify(R, null, 1)); console.log('Errores de página:', errs.length ? errs : 'ninguno');
-const ok = !R.falla && R.publico && R.publicoSinBotonesIr && R.publicoNavega && R.cierra && /Paso 4/.test(R.ctx || '') && R.ctxAbre && R.subMenu && R.irFunciona && R.todasAbren && R.busca.length >= 1 && R.buscaSinTilde >= 1 && R.verTodo === R.secciones && R.anchoCel && R.selCel && R.anios && !errs.length;
+const ok = !R.falla && R.publico && R.publicoSinBotonesIr && R.publicoNavega && R.cierra && /Paso 4/.test(R.ctx || '') && R.ctxAbre && R.subMenu && R.irFunciona && R.todasAbren && R.busca.length >= 1 && R.buscaSinTilde >= 1 && R.verTodo === R.secciones && R.anchoCel && R.selCel && R.botonBarra && R.anios && !errs.length;
 await br.close(); await s.cerrar();
 console.log(ok ? 'MANUAL OK' : 'MANUAL CON FALLAS'); process.exit(ok ? 0 : 1);

@@ -108,7 +108,7 @@ function irTab(t) { TAB = t; render(); window.scrollTo(0, 0); }
 function render() {
   var p = V.partida, M = menuDe(TAB);
   $('titulo').textContent = p.nombre || 'Simulador de Innovación';
-  $('meta').innerHTML = '<span>' + esc(V.usuario.nombre) + ' · ' + esc(V.equipo.nombre) + '</span><span>' + esc(p.sigla || '') + '</span><span>' + (p.finalizada ? 'Partida terminada' : 'Trimestre ' + p.t + ' de ' + p.total + ' (año ' + (Math.floor((p.t - 1) / 4) + 1) + ')') + '</span><span>' + (p.estado === 'abierto' ? 'Abierto' : 'Cerrado') + '</span><span>Presupuesto: ' + bs(V.estado.saldo) + '</span><a href="#" style="color:#fff" onclick="pantallaLogin();return false">Salir</a>';
+  $('meta').innerHTML = '<span>' + esc(V.usuario.nombre) + ' · ' + esc(V.equipo.nombre) + '</span><span>' + esc(p.sigla || '') + '</span><span>' + (p.finalizada ? 'Partida terminada' : 'Trimestre ' + p.t + ' de ' + p.total + ' (año ' + (Math.floor((p.t - 1) / 4) + 1) + ')') + '</span><span>' + (p.estado === 'abierto' ? 'Abierto' : 'Cerrado') + '</span><span>Presupuesto: ' + bs(V.estado.saldo) + '</span><button class="btn-manual" onclick="irManual(MANUAL_DE[TAB] || \'inicio\')" title="Abrir el Manual del estudiante">📘 Manual</button><a href="#" style="color:#fff" onclick="pantallaLogin();return false">Salir</a>';
   $('nav').style.display = 'block';
   $('nav').innerHTML = '<div class="menu">' + MENUS.map(function (m) { return '<button class="' + (M[0] === m[0] ? 'on' : '') + '" onclick="irTab(\'' + m[2][0][0] + '\')">' + m[1] + '</button>'; }).join('') + '</div>' +
     '<div class="sub">' + M[2].map(function (t) { return '<button class="' + (TAB === t[0] ? 'on' : '') + '" onclick="irTab(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('') + '</div>';
