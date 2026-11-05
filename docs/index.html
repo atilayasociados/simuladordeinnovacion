@@ -133,6 +133,17 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
   var q = new URLSearchParams(location.search);
   window.VISTA = q.get('vista') === 'docente' ? 'docente' : 'estudiante';
   window.AX_INV = (q.get('invitacion') || '').replace(/[^A-Za-z0-9-]/g, '').slice(0, 60);
+  // Logos: si el servidor no envía uno, se usa docs/img/logoN.png cuando ese archivo existe.
+  function logosLocales(L, listo) {
+    var pend = L.length, out = L.slice(), fin = false;
+    function uno() { if (--pend <= 0 && !fin) { fin = true; listo(out); } }
+    setTimeout(function () { if (!fin) { fin = true; listo(out); } }, 2500);
+    L.forEach(function (x, i) {
+      if (x) { uno(); return; }
+      var img = new Image(), src = 'img/logo' + (i + 1) + '.png';
+      img.onload = function () { out[i] = src; uno(); }; img.onerror = uno; img.src = src;
+    });
+  }
   function llamar(fn, args, ok, ko) {
     fetch(window.SIM_API, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: window.SIM_KEY },
       body: JSON.stringify({ fn: fn, args: args }) })
@@ -140,7 +151,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
       .then(function (r) {
         if (!r || !r.ok) { ko({ message: (r && r.error) || 'Error del servidor.' }); return; }
         var v = r.r;
-        if (fn === 'apiAXInicio' && v && Array.isArray(v.logos)) v.logos = v.logos.map(function (x, i) { return x || ('img/logo' + (i + 1) + '.png'); });
+        if (fn === 'apiAXInicio' && v && Array.isArray(v.logos)) { logosLocales(v.logos, function (L) { v.logos = L; ok(v); }); return; }
         ok(v);
       })
       .catch(function () { ko({ message: 'No hay conexión con el servidor. Revisa tu internet e intenta de nuevo.' }); });

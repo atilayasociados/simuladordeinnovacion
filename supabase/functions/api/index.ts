@@ -2,8 +2,9 @@
 // Recibe POST { fn, args } desde la pantalla (docs/) y ejecuta la función del simulador con el mismo
 // contrato que google.script.run. Autenticación propia: tokens de sesión del simulador (Acceso.gs),
 // por eso verify_jwt = false. La service role key solo existe aquí, en el servidor.
-import { crearNucleo } from './nucleo.js';
-import { CODIGO } from './gas_codigo.js';
+import { crearNucleo, sha256Bytes } from './nucleo.js';
+import { CODIGO_URL, CODIGO_SHA256 } from './origen_codigo.js';
+import { crearManejador } from './http.js';
 
 // Orígenes permitidos (CORS). Cambie esta lista si cambia la dirección pública del simulador,
 // o defina la variable de entorno ORIGENES_PERMITIDOS (separados por comas). "*" permite cualquiera.
@@ -32,29 +33,26 @@ const adaptador = {
   soltarBloqueo: (n: string, t: string) => rpc('sim_soltar_bloqueo', { p_nombre: n, p_token: t }),
 };
 
-const nucleo = crearNucleo({ codigo: CODIGO, adaptador, entorno: { correoSuperadmin: CORREO_SUPERADMIN, urlPublica: URL_PUBLICA } });
-
-function cors(origen: string | null) {
-  const permitido = origen && (ORIGENES.includes(origen) || ORIGENES.includes('*')) ? origen : ORIGENES[0];
-  return {
-    'Access-Control-Allow-Origin': permitido,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Vary': 'Origin',
-  };
-}
-
-Deno.serve(async (req) => {
-  const h = cors(req.headers.get('origin'));
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: h });
-  if (req.method !== 'POST') return new Response('Método no permitido', { status: 405, headers: h });
-  const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { ...h, 'Content-Type': 'application/json' } });
-  let cuerpo: { fn?: string; args?: unknown[] };
-  try { cuerpo = await req.json(); } catch { return json({ ok: false, error: 'Solicitud no válida.' }, 400); }
-  try {
-    const { resultado, medidas } = await nucleo.ejecutar(String(cuerpo.fn || ''), Array.isArray(cuerpo.args) ? cuerpo.args : []);
-    return json({ ok: true, r: resultado, ms: medidas.ms });
-  } catch (e) {
-    return json({ ok: false, error: e instanceof Error ? e.message : String(e) });
+// La lógica del simulador (gas_codigo.js, generado por build.js) se descarga de GitHub en el commit fijado
+// por tools/origen.mjs y se verifica con SHA-256 antes de usarla. Se descarga una vez por instancia.
+let nucleoListo: Promise<{ ejecutar: (fn: string, args: unknown[]) => Promise<{ resultado: unknown; medidas: { ms: number } }> }> | null = null;
+function obtenerNucleo() {
+  if (!nucleoListo) {
+    nucleoListo = (async () => {
+      const r = await fetch(CODIGO_URL);
+      if (!r.ok) throw new Error('No se pudo descargar la lógica del simulador (' + r.status + ').');
+      const txt = await r.text();
+      const h = sha256Bytes(txt).map((b: number) => b.toString(16).padStart(2, '0')).join('');
+      if (h !== CODIGO_SHA256) throw new Error('La lógica descargada no coincide con la versión esperada.');
+      const m = /^export const CODIGO = (".*");\s*$/m.exec(txt);
+      if (!m) throw new Error('Formato de gas_codigo.js no reconocido.');
+      const codigo = JSON.parse(m[1]);
+      return crearNucleo({ codigo, adaptador, entorno: { correoSuperadmin: CORREO_SUPERADMIN, urlPublica: URL_PUBLICA } });
+    })();
+    nucleoListo.catch(() => { nucleoListo = null; });
   }
-});
+  return nucleoListo;
+}
+const nucleo = { ejecutar: async (fn: string, args: unknown[]) => (await obtenerNucleo()).ejecutar(fn, args) };
+
+Deno.serve(crearManejador({ nucleo, origenes: ORIGENES }));
