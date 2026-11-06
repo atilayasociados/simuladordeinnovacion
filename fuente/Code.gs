@@ -23,6 +23,11 @@ function sess_(tok, rol) {
   if (rol && s.rol !== rol) throw new Error('No tienes permiso para esta acción.');
   if (s.tmp) throw new Error('Debes cambiar tu contraseña temporal antes de continuar.');
   if (s.rol === 'equipo' && !s.registro) throw new Error('Indica quién eres para continuar.');
+  if (s.rol === 'equipo') {
+    var sm = simById_(s.simId);
+    if (!sm || !equipoById_(s.equipoId)) throw new Error('Esta simulación ya no está disponible. Consulta a tu docente.');
+    if (String(sm.acceso) === 'archivada') throw new Error('Esta simulación fue archivada. Consulta a tu docente.');
+  }
   return s;
 }
 
@@ -300,6 +305,92 @@ function procesarTrimestre_(simId) {
   } finally { lock.releaseLock(); }
 }
 
+// ---------- archivo, respaldo, restauración y eliminación de simulaciones ----------
+var RESP_TIPO_ = 'simulador-innovacion-respaldo';
+var RESP_TABLAS_ = ['Simulaciones', 'Equipos', 'Integrantes', 'Decisiones', 'Estados', 'Resultados', 'Bitacora', 'Evaluaciones'];
+var RESP_FECHAS_ = ['creada', 'creado', 'fecha'];
+/** Filas de una simulación en cada tabla (por la primera columna). */
+function RESP_pred_(tabla, simId) {
+  var pre = String(simId) + '-';
+  if (tabla === 'Simulaciones' || tabla === 'Integrantes') return function (id) { return String(id) === String(simId); };
+  if (tabla === 'Evaluaciones') return function (id) { id = String(id); return id === 'DOC|' + simId || id.indexOf('PAR|' + pre) === 0; };
+  return function (id) { return String(id).indexOf(pre) === 0; };
+}
+function RESP_hoja_(tabla) { if (tabla === 'Evaluaciones') { try { P4_hoja_(); } catch (e) { } } try { return sh_(tabla); } catch (e) { return null; } }
+/** Un id de simulación nuevo que nunca se usó antes (evita que sesiones antiguas apunten a otra simulación). */
+function RESP_nuevoSimId_() {
+  var pr = AX_props_(), seq = Number(pr.getProperty('SIM_SEQ')) || 0;
+  simulaciones_().forEach(function (s) { var m = /^S(\d+)$/.exec(String(s.simId)); if (m) seq = Math.max(seq, Number(m[1])); });
+  var id; do { seq++; id = 'S' + ('0' + seq).slice(-2); } while (simById_(id));
+  pr.setProperty('SIM_SEQ', String(seq));
+  return id;
+}
+function RESP_crear_(simId) {
+  var pa = partida_(simId), tablas = {};
+  RESP_TABLAS_.forEach(function (t) {
+    var s = RESP_hoja_(t); if (!s) return;
+    var n = s.getLastRow(), c = s.getLastColumn(), cab = HOJAS[t].slice(), filas = [];
+    if (n >= 2) {
+      var v = s.getRange(1, 1, n, c).getValues(), pred = RESP_pred_(t, simId); cab = v[0].map(String);
+      filas = v.slice(1).filter(function (r) { return pred(r[0]); }).map(function (r) { return r.map(function (x) { return x instanceof Date ? x.toISOString() : x; }); });
+    }
+    tablas[t] = { cab: cab, filas: filas };
+  });
+  return { tipo: RESP_TIPO_, version: 1, creado: new Date().toISOString(), simulacion: { simId: pa.simId, codigo: pa.codigo, nombre: pa.nombre, sigla: pa.sigla, trimestre: pa.t, equipos: tablas.Equipos ? tablas.Equipos.filas.length : 0, integrantes: tablas.Integrantes ? tablas.Integrantes.filas.length : 0 }, tablas: tablas };
+}
+function RESP_borrar_(simId) {
+  RESP_TABLAS_.slice().reverse().forEach(function (t) { if (RESP_hoja_(t)) deleteRowsWhere_(t, RESP_pred_(t, simId)); });
+  // sesiones abiertas de los equipos de esta simulación
+  try {
+    var ss = sh_('Sesiones'), L = rows_('Sesiones');
+    for (var i = L.length - 1; i >= 0; i--) { var d = {}; try { d = JSON.parse(L[i].datos); } catch (e) { } if (d && d.rol === 'equipo' && String(d.simId) === String(simId)) ss.deleteRow(L[i]._row); }
+  } catch (e2) { }
+}
+function RESP_restaurar_(ses, R) {
+  if (typeof R === 'string') { try { R = JSON.parse(R); } catch (e) { R = null; } }
+  if (!R || R.tipo !== RESP_TIPO_ || !R.tablas || !R.tablas.Simulaciones || !R.tablas.Simulaciones.filas || R.tablas.Simulaciones.filas.length !== 1) throw new Error('El archivo no es un respaldo válido del Simulador de Innovación.');
+  if (Number(R.version) > 1) throw new Error('El respaldo es de una versión más nueva del simulador.');
+  var obj = function (t, fila) { var o = {}; (R.tablas[t].cab || []).forEach(function (h, j) { o[h] = fila[j]; }); return o; };
+  var sim = obj('Simulaciones', R.tablas.Simulaciones.filas[0]), viejo = String(sim.simId || '');
+  if (!/^S\d+$/.test(viejo)) throw new Error('El respaldo no tiene un identificador de simulación válido.');
+  var mismoId = !simById_(viejo), nuevo = mismoId ? viejo : RESP_nuevoSimId_();
+  if (mismoId) { var pr = AX_props_(), m = /^S(\d+)$/.exec(viejo); if (Number(m[1]) > (Number(pr.getProperty('SIM_SEQ')) || 0)) pr.setProperty('SIM_SEQ', m[1]); }
+  var codLibre = sim.codigo && !simPorCodigo_(sim.codigo), cod = codLibre ? sim.codigo : nuevoCodigo_();
+  var reTxt = function (x) {
+    if (typeof x !== 'string' || mismoId) return x;
+    return x.split('PAR|' + viejo + '-').join('PAR|' + nuevo + '-').split('DOC|' + viejo).join('DOC|' + nuevo).split('"' + viejo + '-E').join('"' + nuevo + '-E').replace(new RegExp('^' + viejo + '-E'), nuevo + '-E');
+  };
+  var docExiste = rows_('Docentes').some(function (d) { return String(d.docenteId) === String(sim.docenteId); });
+  sim.simId = nuevo; sim.codigo = cod; sim.acceso = 'cerrada'; sim.estado = 'cerrado';
+  if (!ses.superadmin || !docExiste) sim.docenteId = ses.docenteId || sim.docenteId;
+  if (!mismoId) sim.nombre = String(sim.nombre || '') + ' (restaurada)';
+  var total = 0;
+  RESP_TABLAS_.forEach(function (t) {
+    if (!R.tablas[t] || !R.tablas[t].filas || !R.tablas[t].filas.length) return;
+    var s = RESP_hoja_(t); if (!s) return;
+    var cab = HOJAS[t], filas = R.tablas[t].filas.map(function (f) {
+      var o = t === 'Simulaciones' ? sim : obj(t, f);
+      if (t !== 'Simulaciones') {
+        if (t === 'Integrantes') o.simId = nuevo;
+        if (t === 'Equipos') o.simId = nuevo;
+        if (t === 'Estados' && !mismoId) {
+          var n = Number(o.partes) || 1, txt = ''; for (var i = 1; i <= n; i++) txt += String(o['p' + i] || '');
+          txt = txt.split('"' + viejo + '-E').join('"' + nuevo + '-E');
+          var partes = []; for (var k = 0; k < txt.length; k += CHUNK) partes.push(txt.substr(k, CHUNK));
+          for (var j = 1; j <= 10; j++) o['p' + j] = partes[j - 1] || '';
+          o.partes = partes.length;
+        }
+        Object.keys(o).forEach(function (h) { if (!(t === 'Estados' && /^p\d+$/.test(h))) o[h] = reTxt(o[h]); });
+      }
+      return cab.map(function (h) { var v = o[h]; if (v === undefined || v === null) return ''; if (RESP_FECHAS_.indexOf(h) >= 0 && typeof v === 'string' && /^\d{4}-\d\d-\d\dT/.test(v)) return new Date(v); return v; });
+    });
+    s.getRange(s.getLastRow() + 1, 1, filas.length, cab.length).setValues(filas);
+    total += filas.length;
+  });
+  log_(ses.email, 'restaurarSimulacion', nuevo + ' ' + cod + ' ' + sim.nombre + ' (respaldo del ' + String(R.creado || '').slice(0, 10) + ')');
+  return { ok: true, simId: nuevo, codigo: cod, mensaje: 'Simulación "' + sim.nombre + '" restaurada con ' + (R.tablas.Equipos ? R.tablas.Equipos.filas.length : 0) + ' equipos' + (codLibre ? ' y su código ' + cod : '; su código anterior ya estaba en uso, el nuevo es ' + cod) + '. Quedó con el acceso cerrado: actívela cuando corresponda.' };
+}
+
 // ---------- panel docente ----------
 function apiAdmin(tok, accion, datos) {
   var ses = sess_(tok, 'docente');
@@ -315,12 +406,13 @@ function apiAdmin(tok, accion, datos) {
   if (accion === 'crearSimulacion') {
     var nom = String(datos.nombre || '').trim(); if (!nom) throw new Error('Escribe el nombre de la simulación.');
     var maxI = clamp_(Math.round(Number(datos.maxIntegrantes) || 5), 1, 5);
-    var n = simulaciones_().length + 1, id; do { id = 'S' + ('0' + n).slice(-2); n++; } while (simById_(id));
+    var id = RESP_nuevoSimId_();
     var cod = nuevoCodigo_();
     appendObj_('Simulaciones', { simId: id, codigo: cod, nombre: nom, sigla: String(datos.sigla || '').trim().toUpperCase(), semilla: String(Math.floor(Math.random() * 1e9)), trimestre: 1, estado: 'cerrado', mandato: datos.mandato || 'MA', maxIntegrantes: maxI, registroAbierto: true, creada: new Date(), docenteId: ses.docenteId, acceso: 'activa' });
     log_(ses.email, 'crearSimulacion', id + ' ' + cod + ' ' + nom);
     return { ok: true, simId: id, codigo: cod, mensaje: 'Simulación creada. Código para los estudiantes: ' + cod };
   }
+  if (accion === 'restaurarSimulacion') return RESP_restaurar_(ses, datos.respaldo);
   // acciones de una simulación (el profesor solo las suyas)
   AX_simDe_(ses, datos.simId);
   var pa = partida_(datos.simId);
@@ -329,6 +421,20 @@ function apiAdmin(tok, accion, datos) {
     setSim_(pa.simId, { acceso: val });
     log_(ses.email, 'accesoSimulacion', pa.codigo + ' ' + val);
     return { ok: true, mensaje: val === 'activa' ? 'Simulación activada: los equipos pueden registrarse e ingresar.' : 'Simulación cerrada: los equipos no pueden registrarse ni ingresar.' };
+  }
+  if (accion === 'archivar' || accion === 'desarchivar') {
+    var arch = accion === 'archivar';
+    setSim_(pa.simId, arch ? { acceso: 'archivada', estado: 'cerrado' } : { acceso: 'cerrada' });
+    log_(ses.email, accion, pa.codigo);
+    return { ok: true, mensaje: arch ? 'Simulación archivada: los equipos ya no pueden ingresar y no aparece en la lista principal. Sus datos se conservan.' : 'Simulación recuperada del archivo. Quedó con el acceso cerrado: actívela cuando quiera que los equipos vuelvan a ingresar.' };
+  }
+  if (accion === 'respaldo') { log_(ses.email, 'respaldo', pa.codigo); return RESP_crear_(pa.simId); }
+  if (accion === 'eliminarSimulacion') {
+    if (AX_normCod_(datos.confirmar) !== AX_normCod_(pa.codigo)) throw new Error('Para eliminar, escriba exactamente el código de la simulación (' + pa.codigo + ').');
+    var nEq = equiposDe_(pa.simId).length;
+    RESP_borrar_(pa.simId);
+    log_(ses.email, 'eliminarSimulacion', pa.codigo + ' ' + pa.nombre + ' (' + nEq + ' equipos)');
+    return { ok: true, mensaje: 'Simulación "' + pa.nombre + '" eliminada con sus ' + nEq + ' equipos y todos sus datos.' };
   }
   if (accion === 'editarSimulacion') {
     var cambios = {};

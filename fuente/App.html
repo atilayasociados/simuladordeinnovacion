@@ -550,8 +550,9 @@ var SIMS = null, SIMID = null;
 function cargarAdmin() {
   call('apiAdmin', TOK, 'simulaciones').then(function (r) {
     SIMS = r;
-    if (!SIMID && r.lista.length) SIMID = r.lista[r.lista.length - 1].simId;
-    if (SIMID && !r.lista.some(function (x) { return x.simId === SIMID; })) SIMID = r.lista.length ? r.lista[r.lista.length - 1].simId : null;
+    var act = r.lista.filter(function (x) { return x.acceso !== 'archivada'; });
+    if (!SIMID && act.length) SIMID = act[act.length - 1].simId;
+    if (SIMID && !act.some(function (x) { return x.simId === SIMID; })) SIMID = act.length ? act[act.length - 1].simId : null;
     if (SIMID && ['simulaciones', 'docentes', 'cuenta'].indexOf(ATAB) < 0) return call('apiAdmin', TOK, 'resumen', { simId: SIMID }).then(function (x) { ADM = x; renderAdmin(); });
     ADM = null; renderAdmin();
   }).catch(function (e) { aviso(e, 'err'); });
@@ -578,9 +579,54 @@ function adm(accion, datos, recargar) {
 }
 function optMandatos(sel) { return '<option value="aleatorio"' + (sel === 'aleatorio' ? ' selected' : '') + '>Aleatorio para cada equipo</option>' + SIMS.mandatos.map(function (m) { return '<option value="' + m.id + '"' + (sel === m.id ? ' selected' : '') + '>' + esc(m.id + ' — ' + m.nombre) + '</option>'; }).join(''); }
 function aSimulaciones() {
-  var h = '<div class="card"><h2>Simulaciones</h2>' + (SIMS.lista.length ? '<div class="scroll"><table><tr><th>Simulación</th><th>Materia</th>' + (SIMS.yo && SIMS.yo.superadmin ? '<th>Docente</th>' : '') + '<th>Código para estudiantes</th><th>Acceso</th><th>Trimestre</th><th>Estado</th><th>Registro</th><th class="n">Equipos</th><th class="n">Estudiantes</th><th></th></tr>' + SIMS.lista.map(function (s) { return '<tr><td>' + esc(s.nombre) + '</td><td>' + esc(s.sigla) + '</td>' + (SIMS.yo && SIMS.yo.superadmin ? '<td>' + esc(s.docente) + '</td>' : '') + '<td><span class="ax-codigo">' + esc(s.codigo) + '</span> <button class="btn sec" onclick="AX_copiar(\'' + esc(s.codigo) + '\')">Copiar</button> <button class="btn sec" onclick="AX_cambiarCodigo(\'' + s.simId + '\',\'' + esc(s.codigo) + '\')">Cambiar</button></td><td>' + (s.acceso === 'cerrada' ? '<span class="tag mal">cerrada</span> <button class="btn sec" onclick="adm(\'acceso\',{simId:\'' + s.simId + '\',valor:\'activa\'})">Activar</button>' : '<span class="tag ok">activa</span> <button class="btn sec" onclick="adm(\'acceso\',{simId:\'' + s.simId + '\',valor:\'cerrada\'})">Cerrar</button>') + '</td><td>' + (s.t > SIMS.total ? 'Terminada' : 'T' + s.t) + '</td><td>' + esc(s.estado) + '</td><td>' + (s.registroAbierto ? '<span class="tag ok">abierto</span>' : '<span class="tag">cerrado</span>') + '</td><td class="n">' + s.equipos + '</td><td class="n">' + s.integrantes + '</td><td><button class="btn ' + (s.simId === SIMID ? '' : 'sec') + '" onclick="elegirSim(\'' + s.simId + '\')">' + (s.simId === SIMID ? 'Seleccionada' : 'Administrar') + '</button></td></tr>'; }).join('') + '</table></div>' : '<p class="muted">Aún no hay simulaciones.</p>') + '</div>';
+  var ACT = SIMS.lista.filter(function (s) { return s.acceso !== 'archivada'; }), ARC = SIMS.lista.filter(function (s) { return s.acceso === 'archivada'; });
+  var h = '<div class="card"><div class="sim-cab"><h2>Simulaciones</h2><button class="btn sec" onclick="SIM_restaurar()">📂 Restaurar desde un respaldo</button></div>' + (ACT.length ? '<div class="scroll"><table><tr><th>Simulación</th><th>Materia</th>' + (SIMS.yo && SIMS.yo.superadmin ? '<th>Docente</th>' : '') + '<th>Código para estudiantes</th><th>Acceso</th><th>Trimestre</th><th>Estado</th><th>Registro</th><th class="n">Equipos</th><th class="n">Estudiantes</th><th></th></tr>' + ACT.map(function (s) { return '<tr><td>' + esc(s.nombre) + '</td><td>' + esc(s.sigla) + '</td>' + (SIMS.yo && SIMS.yo.superadmin ? '<td>' + esc(s.docente) + '</td>' : '') + '<td><span class="ax-codigo">' + esc(s.codigo) + '</span> <button class="btn sec" onclick="AX_copiar(\'' + esc(s.codigo) + '\')">Copiar</button> <button class="btn sec" onclick="AX_cambiarCodigo(\'' + s.simId + '\',\'' + esc(s.codigo) + '\')">Cambiar</button></td><td>' + (s.acceso === 'cerrada' ? '<span class="tag mal">cerrada</span> <button class="btn sec" onclick="adm(\'acceso\',{simId:\'' + s.simId + '\',valor:\'activa\'})">Activar</button>' : '<span class="tag ok">activa</span> <button class="btn sec" onclick="adm(\'acceso\',{simId:\'' + s.simId + '\',valor:\'cerrada\'})">Cerrar</button>') + '</td><td>' + (s.t > SIMS.total ? 'Terminada' : 'T' + s.t) + '</td><td>' + esc(s.estado) + '</td><td>' + (s.registroAbierto ? '<span class="tag ok">abierto</span>' : '<span class="tag">cerrado</span>') + '</td><td class="n">' + s.equipos + '</td><td class="n">' + s.integrantes + '</td><td><button class="btn ' + (s.simId === SIMID ? '' : 'sec') + '" onclick="elegirSim(\'' + s.simId + '\')">' + (s.simId === SIMID ? 'Seleccionada' : 'Administrar') + '</button><div class="sim-acc"><button class="btn sec" onclick="SIM_archivar(\'' + s.simId + '\')" title="Ocultar y bloquear el ingreso, conservando los datos">📦 Archivar</button><button class="btn sec" onclick="SIM_backup(\'' + s.simId + '\')" title="Descargar una copia completa en un archivo">💾 Backup</button><button class="btn sec sim-del" onclick="SIM_eliminar(\'' + s.simId + '\')" title="Borrar definitivamente">✕ Eliminar</button></div></td></tr>'; }).join('') + '</table></div>' : '<p class="muted">' + (ARC.length ? 'No hay simulaciones activas. Las archivadas están más abajo.' : 'Aún no hay simulaciones.') + '</p>') + '</div>';
+  if (ARC.length) h += '<div class="card"><h2>Simulaciones archivadas (' + ARC.length + ')</h2><p class="muted">Los equipos no pueden ingresar. Los datos se conservan hasta que las elimine.</p><div class="scroll"><table><tr><th>Simulación</th><th>Materia</th>' + (SIMS.yo && SIMS.yo.superadmin ? '<th>Docente</th>' : '') + '<th>Código</th><th>Trimestre</th><th class="n">Equipos</th><th class="n">Estudiantes</th><th></th></tr>' + ARC.map(function (s) { return '<tr><td>' + esc(s.nombre) + '</td><td>' + esc(s.sigla) + '</td>' + (SIMS.yo && SIMS.yo.superadmin ? '<td>' + esc(s.docente) + '</td>' : '') + '<td><span class="ax-codigo">' + esc(s.codigo) + '</span></td><td>' + (s.t > SIMS.total ? 'Terminada' : 'T' + s.t) + '</td><td class="n">' + s.equipos + '</td><td class="n">' + s.integrantes + '</td><td><div class="sim-acc"><button class="btn sec" onclick="adm(\'desarchivar\',{simId:\'' + s.simId + '\'})">↩ Desarchivar</button><button class="btn sec" onclick="SIM_backup(\'' + s.simId + '\')">💾 Backup</button><button class="btn sec sim-del" onclick="SIM_eliminar(\'' + s.simId + '\')">✕ Eliminar</button></div></td></tr>'; }).join('') + '</table></div></div>';
   h += '<div class="card"><h2>Nueva simulación</h2><div class="grid g4"><div><label>Nombre</label><input type="text" id="snom" placeholder="Innovación — Grupo T"></div><div><label>Materia (sigla)</label><input type="text" id="ssig" placeholder="COM505T"></div><div><label>Máximo de integrantes por equipo</label><select id="smax">' + [1, 2, 3, 4, 5].map(function (n) { return '<option' + (n === 5 ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></div><div><label>Mandato del directorio</label><select id="smand">' + optMandatos('MA') + '</select></div></div><div style="margin-top:10px"><button class="btn" onclick="adm(\'crearSimulacion\',{nombre:$(\'snom\').value,sigla:$(\'ssig\').value,maxIntegrantes:$(\'smax\').value,mandato:$(\'smand\').value})">Crear simulación y generar código</button></div><p class="muted">El sistema genera un código como INN-A2B3. Compártalo con los estudiantes junto con el enlace del simulador: con él registran su equipo e ingresan.</p></div>';
   return h;
+}
+// ---------- archivar, respaldo, restaurar y eliminar ----------
+function SIM_get(id) { return SIMS.lista.filter(function (s) { return s.simId === id; })[0]; }
+function SIM_archivar(id) {
+  var s = SIM_get(id);
+  AX_confirmar('Archivar "' + s.nombre + '"', 'Los equipos ya no podrán ingresar y la simulación pasará a la lista de archivadas. Sus datos se conservan y puede desarchivarla cuando quiera.', '📦 Archivar', function () { adm('archivar', { simId: id }); });
+}
+function SIM_backup(id) {
+  aviso('Preparando el respaldo…');
+  return call('apiAdmin', TOK, 'respaldo', { simId: id }).then(function (r) {
+    var f = 'respaldo_' + String(r.simulacion.codigo).replace(/[^A-Za-z0-9-]/g, '') + '_' + String(r.creado).slice(0, 10) + '.json';
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(r)], { type: 'application/json' })); a.download = f;
+    document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    aviso('Respaldo descargado: ' + f + ' (' + r.simulacion.equipos + ' equipos). Guárdelo en un lugar seguro: contiene nombres y registros de los estudiantes.', 'ok');
+    return true;
+  }).catch(function (e) { aviso(e, 'err'); return false; });
+}
+function SIM_eliminar(id) {
+  var s = SIM_get(id);
+  var d = AX_modal('<h3>Eliminar "' + esc(s.nombre) + '"</h3><p>Se borrarán <b>definitivamente</b> la simulación, sus ' + s.equipos + ' equipos, ' + s.integrantes + ' estudiantes, decisiones, resultados, bitácoras y evaluaciones. <b>No se puede deshacer.</b></p><p>Si cree que la necesitará después, descargue antes un respaldo: podrá restaurarla con él.</p><div class="inline"><button class="btn sec" id="simDB">💾 Descargar respaldo primero</button></div><label for="simDC" style="margin-top:10px">Para confirmar, escriba el código <span class="ax-codigo">' + esc(s.codigo) + '</span></label><input type="text" id="simDC" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px"><div class="inline" style="margin-top:10px"><button class="btn sec" id="simDNo">Cancelar</button><button class="btn ax-rojo peligro" id="simDSi" disabled>✕ Eliminar definitivamente</button></div>');
+  var inp = d.querySelector('#simDC'), si = d.querySelector('#simDSi'); inp.focus();
+  var norm = function (x) { return String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+  inp.oninput = function () { si.disabled = norm(inp.value) !== norm(s.codigo); };
+  d.querySelector('#simDB').onclick = function () { SIM_backup(id); };
+  d.querySelector('#simDNo').onclick = function () { d.remove(); };
+  si.onclick = function () { var v = inp.value; d.remove(); if (SIMID === id) SIMID = null; adm('eliminarSimulacion', { simId: id, confirmar: v }); };
+}
+function SIM_restaurar() {
+  var f = document.createElement('input'); f.type = 'file'; f.accept = '.json,application/json';
+  f.onchange = function () {
+    var file = f.files && f.files[0]; if (!file) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      var R = null; try { R = JSON.parse(rd.result); } catch (e) { }
+      if (!R || R.tipo !== 'simulador-innovacion-respaldo' || !R.simulacion) { aviso('El archivo elegido no es un respaldo del Simulador de Innovación.', 'err'); return; }
+      var S = R.simulacion, existe = SIMS.lista.some(function (x) { return x.simId === S.simId; });
+      var d = AX_modal('<h3>Restaurar una simulación</h3><p><b>' + esc(S.nombre) + '</b> · ' + esc(S.sigla || '') + '<br>Código: <span class="ax-codigo">' + esc(S.codigo) + '</span> · Trimestre ' + esc(S.trimestre) + ' · ' + S.equipos + ' equipos · ' + S.integrantes + ' estudiantes<br><span class="muted">Respaldo del ' + esc(String(R.creado).slice(0, 10)) + '</span></p><p>' + (existe ? 'Esta simulación todavía existe: se creará una <b>copia</b> con el nombre "(restaurada)" y, si el código está en uso, uno nuevo. La original no se modifica.' : 'Se recreará la simulación con sus equipos, contraseñas, decisiones y resultados tal como estaban en el respaldo.') + ' Quedará con el acceso cerrado.</p><div class="inline"><button class="btn sec" id="simRNo">Cancelar</button><button class="btn" id="simRSi">📂 Restaurar</button></div>');
+      d.querySelector('#simRNo').onclick = function () { d.remove(); };
+      d.querySelector('#simRSi').onclick = function () { d.remove(); aviso('Restaurando…'); adm('restaurarSimulacion', { respaldo: R }, false).then(function (r) { if (r && r.simId) SIMID = r.simId; cargarAdmin(); }); };
+    };
+    rd.readAsText(file);
+  };
+  f.click();
 }
 function aPartida() {
   var p = ADM.partida, env = ADM.equipos.filter(function (e) { return e.envio === 'enviado'; }).length;

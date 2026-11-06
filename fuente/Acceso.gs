@@ -39,7 +39,7 @@ function AX_validarClave_(c, min) {
   return c;
 }
 function AX_nombreInt_(i) { return (String(i.nombres || '') + ' ' + String(i.apPaterno || '') + ' ' + String(i.apMaterno || '')).replace(/\s+/g, ' ').trim(); }
-function AX_simActiva_(s) { return String(s.acceso || 'activa') !== 'cerrada'; }
+function AX_simActiva_(s) { var a = String(s.acceso || 'activa'); return a !== 'cerrada' && a !== 'archivada'; }
 
 // ---------- sesiones ----------
 function AX_newSession_(datos) {
