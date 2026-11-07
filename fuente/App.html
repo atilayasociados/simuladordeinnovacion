@@ -17,6 +17,7 @@ function setP(o, path, v) { var ks = path.split('.'), a = o; for (var i = 0; i <
 // ---------- ingreso: ver AccesoUI.html (v2.3) ----------
 function pantallaLogin(modo) {
   if (TOK) { try { call('apiAXSalir', TOK).catch(function () { }); } catch (e) { } }
+  if (typeof vigilarApertura === 'function') vigilarApertura(false);
   TOK = null; ROL = null; V = null; ADM = null; SIMID = null;
   document.body.classList.remove('ax-doc');
   $('nav').style.display = 'none'; $('pie').style.display = 'none'; $('meta').innerHTML = ''; $('titulo').textContent = 'Simulador de Innovación'; $('app').innerHTML = '';
@@ -33,6 +34,20 @@ function cargar() {
     if (TAB === 'inicio') TAB = V.estado.hist.length ? 'panel' : 'caso';
     render(); estimar();
   }).catch(function (e) { $('app').innerHTML = '<div class="msg err">' + esc(e) + '</div>'; if (/sesión/.test(e)) setTimeout(pantallaLogin, 1500); });
+}
+// Mientras el trimestre está cerrado, revisa cada 30 s si el docente ya lo abrió y actualiza sola.
+var VIGIA = null;
+function vigilarApertura(activar) {
+  if (!activar) { if (VIGIA) { clearInterval(VIGIA); VIGIA = null; } return; }
+  if (VIGIA) return;
+  VIGIA = setInterval(function () {
+    if (!TOK || ROL === 'docente' || document.hidden) return;
+    call('apiEstado', TOK).then(function (v) {
+      if (!V || v.partida.estado !== 'abierto' || (v.partida.t === V.partida.t && V.partida.estado === 'abierto')) return;
+      vigilarApertura(false); V = v; D = v.borrador ? JSON.parse(JSON.stringify(v.borrador)) : {}; delete D._estado; delete D._fecha;
+      prepararBorrador(); render(); estimar(); aviso('El docente abrió el trimestre ' + v.partida.t + ': ya pueden decidir.', 'ok');
+    }).catch(function () { });
+  }, 30000);
 }
 function prepararBorrador() {
   D.noticias = D.noticias || {}; D.proyectos = D.proyectos || {}; D.productos = D.productos || {}; D.respuestas = D.respuestas || {}; D.decInformes = D.decInformes || {};
@@ -114,6 +129,7 @@ function render() {
     '<div class="sub">' + M[2].map(function (t) { return '<button class="' + (TAB === t[0] ? 'on' : '') + '" onclick="irTab(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('') + '</div>';
   var f = { caso: vCaso, panel: vPanel, mercado: vMercado, equipo: vEquipo, ronda: vRonda, entorno: vEntorno, anual: vAnual, investigacion: vInvestigacion, proyectos: vProyectos2, productos: vProductos, hipotesis: vHipotesis, resumen: vResumen, informes: vInformes, pares: P4_vPares, evaluaciones: P4_vEvaluaciones, resultados: vResultados, temas: vTemas, glosario: vGlosario, bitacora: vBitacora, manual: vManual }[TAB] || vCaso;
   var cerrado = M[0] === 'decidir' && (V.partida.estado !== 'abierto' || p.finalizada);
+  vigilarApertura(V.partida.estado !== 'abierto' && !p.finalizada);
   var html = cerrado ? vDecidirCerrado() : f();
   if (M[0] === 'decidir' && TAB !== 'ronda' && !cerrado) {
     var L = M[2], k = L.map(function (t) { return t[0]; }).indexOf(TAB);
