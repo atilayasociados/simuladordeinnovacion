@@ -269,9 +269,9 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
         portafolioAInterno_(O);
       }
       if (A.postura && P.posturas[A.postura]) O.postura = A.postura;
-      if (A.p4) O.p4 = { producto: Number(A.p4.producto) || 0, proceso: Number(A.p4.proceso) || 0, posicion: Number(A.p4.posicion) || 0, paradigma: Number(A.p4.paradigma) || 0 };
+      if (A.p4 && ['producto', 'proceso', 'posicion', 'paradigma'].reduce(function (s, k) { return s + (Number(A.p4[k]) || 0); }, 0) > 0) O.p4 = { producto: Number(A.p4.producto) || 0, proceso: Number(A.p4.proceso) || 0, posicion: Number(A.p4.posicion) || 0, paradigma: Number(A.p4.paradigma) || 0 };
       O.tiempoLibre = Number(O.tiempoLibre) || 0;
-      if (A.capacitacion) { if (gastar(g.costoCapacitacion * factorMadurez_(O), g.semCapacitacion, 'Capacitación en Design Thinking')) O.capHasta = t + 3; }
+      if (A.capacitacion === true || A.capacitacion === 'si') { if (gastar(g.costoCapacitacion * factorMadurez_(O), g.semCapacitacion, 'Capacitación en Design Thinking')) O.capHasta = t + 3; }
     }
     var costoInc = { reconocimiento: 5000, bajo: 15000, alto: 40000 }[O.incentivo] || 0;
     gastar(costoInc, 0, 'Incentivos del año');
@@ -960,22 +960,25 @@ if (typeof module !== 'undefined') module.exports = {
 };
 
 /** Estimación de costos y semanas de una decisión (para mostrar antes de enviar). */
+/** Campos de la estrategia anual sin completar (todos son obligatorios al inicio de cada año). */
+function anualFaltantes_(A) {
+  A = A || {}; var f = [], p4 = A.p4 || {}, vac = function (x) { return x === undefined || x === null || x === ''; };
+  var k4 = ['producto', 'proceso', 'posicion', 'paradigma'];
+  if (k4.some(function (k) { return vac(p4[k]); })) f.push('las 4P'); else if (k4.reduce(function (s, k) { return s + Number(p4[k]); }, 0) !== 100) f.push('las 4P deben sumar 100 %');
+  if (['nucleo', 'adyacente', 'transf'].some(function (k) { return vac(A[k]); })) f.push('el portafolio'); else if (Number(A.nucleo) + Number(A.adyacente) + Number(A.transf) !== 100) f.push('el portafolio debe sumar 100 %');
+  [['postura', 'la postura'], ['estructura', 'la estructura'], ['tiempoLibre', 'el tiempo libre'], ['incentivo', 'el incentivo'], ['politica', 'la política ante el fracaso'], ['composicion', 'la composición de equipos'], ['umbral', 'el umbral de la puerta'], ['capacitacion', 'la capacitación (sí o no)']].forEach(function (k) { if (vac(A[k[0]]) || A[k[0]] === false && k[0] !== 'capacitacion') f.push(k[1]); });
+  if (String(A.hipotesis || '').trim().length < 20) f.push('la hipótesis anual (al menos 20 caracteres)');
+  return f;
+}
 function estimarCostos_(P, S, dec, t) {
   var g = P.general, O = copy_(S.org), costo = 0, sem = 0, avisos = [], f;
   dec = dec || {};
-  if (esInicioAnio_(t) && dec.anual) {
-    var A = dec.anual;
-    var s4 = ['producto', 'proceso', 'posicion', 'paradigma'].reduce(function (s, k) { return s + (Number((A.p4 || {})[k]) || 0); }, 0);
-    if (s4 !== 100) avisos.push('La distribución 4P debe sumar 100 % (suma ' + s4 + ').');
-    if (A.nucleo !== undefined) { var sp = (Number(A.nucleo) || 0) + (Number(A.adyacente) || 0) + (Number(A.transf) || 0); if (sp !== 100) avisos.push('El portafolio (núcleo + adyacente + transformacional) debe sumar 100 % (suma ' + sp + ').'); }
-    else {
-      if ((Number(A.inc) || 0) + (Number(A.rad) || 0) !== 100) avisos.push('Incremental + radical debe sumar 100 %.');
-      if ((Number(A.act) || 0) + (Number(A.nue) || 0) !== 100) avisos.push('Clientes actuales + segmentos nuevos debe sumar 100 %.');
-    }
-    if (!A.postura) avisos.push('Elijan la postura de innovación del año.');
-    ['tiempoLibre', 'incentivo', 'estructura', 'composicion'].forEach(function (k) { if (A[k] !== undefined && A[k] !== '') O[k] = A[k]; });
+  if (esInicioAnio_(t)) {
+    var A = dec.anual || {};
+    var fA = anualFaltantes_(A); if (fA.length) avisos.push('Estrategia anual: falta completar ' + fA.join(', ') + '.');
+    ['tiempoLibre', 'incentivo', 'estructura', 'composicion'].forEach(function (k) { O[k] = A[k] === undefined ? '' : A[k]; });
     O.tiempoLibre = Number(O.tiempoLibre) || 0;
-    if (A.capacitacion) { costo += g.costoCapacitacion * factorMadurez_(O); sem += g.semCapacitacion; }
+    if (A.capacitacion === true || A.capacitacion === 'si') { costo += g.costoCapacitacion * factorMadurez_(O); sem += g.semCapacitacion; }
   }
   if (esInicioAnio_(t)) {
     costo += { reconocimiento: 5000, bajo: 15000, alto: 40000 }[O.incentivo] || 0;

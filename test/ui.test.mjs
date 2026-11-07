@@ -8,7 +8,7 @@ const br = await chromium.launch(); const pg = await br.newPage({ viewport: { wi
 const errs = []; pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => { if (m.type() === 'error' && !/favicon|img\/logo/.test(m.text() + (m.location().url || ''))) errs.push(m.text()); });
 async function ingresar(u, p, c) { await pg.waitForSelector('#axU'); await pg.fill('#axU', u); await pg.fill('#axP', p); if (c) await pg.fill('#axC', c); await pg.click('text=Ingresar →'); await pg.waitForTimeout(900); }
 const sim = () => s.mem.tablas.simulaciones[0];
-let ok = true;
+let ok = true; const R = {};
 try {
   await pg.goto(U + '?vista=docente');
   await ingresar(s.sa.email, s.sa.temporal);
@@ -29,7 +29,13 @@ try {
   for (let i = 0; i < 2; i++) { const ins = await pg.$$('#axFilas .ax-fila:nth-child(' + (i + 1) + ') input'); for (let j = 0; j < 5; j++) await ins[j].fill(filas[i][j]); }
   await pg.click('text=✓ Registrar Equipo'); await pg.waitForTimeout(1500);
   const enTrabajo = await pg.isVisible('nav >> text=Situación');
-  await pg.click('nav >> text=Decidir'); await pg.waitForTimeout(300); await pg.click('nav .sub >> text=Hipótesis'); await pg.fill('textarea[data-p="hipotesis"]', 'Si observamos a los universitarios descubriremos necesidades latentes.'); await pg.dispatchEvent('textarea[data-p="hipotesis"]', 'change');
+  await pg.click('nav >> text=Decidir'); await pg.waitForTimeout(300); await pg.click('nav .sub >> text=2. Estrategia anual'); await pg.waitForTimeout(300);
+  R.anualEnBlanco = await pg.inputValue('input[data-p="anual.p4.producto"]') === '' && await pg.inputValue('select[data-p="anual.postura"]') === '';
+  for (const [k, v] of [['producto', '40'], ['proceso', '20'], ['posicion', '20'], ['paradigma', '20']]) await pg.fill('input[data-p="anual.p4.' + k + '"]', v);
+  for (const [k, v] of [['nucleo', '60'], ['adyacente', '30'], ['transf', '10']]) await pg.fill('input[data-p="anual.' + k + '"]', v);
+  for (const [k, v] of [['postura', 'ofensiva'], ['estructura', 'integrada'], ['tiempoLibre', '10'], ['incentivo', 'reconocimiento'], ['politica', 'aprendizaje'], ['composicion', 'multifuncional'], ['umbral', 'moderado'], ['capacitacion', 'no']]) await pg.selectOption('select[data-p="anual.' + k + '"]', v);
+  await pg.fill('textarea[data-p="anual.hipotesis"]', 'Con 30 % adyacente lanzaremos un producto para universitarios antes de T8.'); await pg.waitForTimeout(300);
+  await pg.click('nav .sub >> text=Hipótesis'); await pg.fill('textarea[data-p="hipotesis"]', 'Si observamos a los universitarios descubriremos necesidades latentes.'); await pg.dispatchEvent('textarea[data-p="hipotesis"]', 'change');
   await pg.waitForTimeout(700); await pg.click('text=Enviar decisiones'); await pg.waitForTimeout(900);
   const enviado = (s.mem.tablas.decisiones || []).some((d) => d.fila.includes('enviado') && d.fila.map(String).includes('218001234'));
   await pg.click('text=Salir'); await ingresar('halcones', 'vuelo1', codigo.toLowerCase());
@@ -39,7 +45,7 @@ try {
   console.log('Superadmin obligado a cambiar la temporal:', pideCambio, '| código cambiado:', codCambiado, '| registro entra a trabajar:', enTrabajo, '| T1 enviado:', enviado, '| reingreso como 218005678:', quien === '218005678');
   console.log('Logos:', logos.join(', '), '| llamadas a la API:', s.llamadas.total, '(sin clave publicable: ' + s.llamadas.sinClave + ')');
   console.log('Errores de página:', errs.length ? errs : 'ninguno');
-  ok = pideCambio && codCambiado && enTrabajo && enviado && quien === '218005678' && !errs.length && !s.llamadas.sinClave;
+  console.log('Estrategia anual en blanco al inicio:', R.anualEnBlanco); ok = R.anualEnBlanco && pideCambio && codCambiado && enTrabajo && enviado && quien === '218005678' && !errs.length && !s.llamadas.sinClave;
 } catch (e) { ok = false; console.log('FALLA:', e.message, errs); }
 await br.close(); await s.cerrar();
 console.log(ok ? 'UI OK' : 'UI CON FALLAS');

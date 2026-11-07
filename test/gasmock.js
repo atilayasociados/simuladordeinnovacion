@@ -53,6 +53,23 @@ function makeGas() {
   for (const f of ['Params.gs', 'Engine.gs', 'Informes.gs', 'Proyectos.gs', 'Evaluacion.gs', 'Db.gs', 'Setup.gs', 'Code.gs', 'Acceso.gs']) vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f });
   // Atajos SOLO para pruebas (no existen en el servidor): permiten que las pruebas antiguas obtengan sesiones sin pasar por la pantalla.
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'legacy.js'), 'utf8'), ctx, { filename: 'legacy.js' });
+  // Las pruebas antiguas no completan la Estrategia anual (obligatoria desde v2.6): se completa con valores
+  // de prueba solo los campos que falten. ANUAL_ESTRICTO=1 desactiva este relleno.
+  if (!process.env.ANUAL_ESTRICTO) {
+    const orig = ctx.apiGuardar;
+    ctx.apiGuardar = function (tok, dec, enviar) {
+      try {
+        const ses = ctx.sess_(tok, 'equipo'), pa = ctx.partida_(ses.simId);
+        if (enviar && ctx.esInicioAnio_(pa.t)) {
+          const A = dec.anual = dec.anual || {}, D = { nucleo: 70, adyacente: 20, transf: 10, postura: 'ofensiva', estructura: 'integrada', tiempoLibre: 10, incentivo: 'reconocimiento', politica: 'aprendizaje', composicion: 'multifuncional', capacitacion: 'no', umbral: 'moderado', hipotesis: 'Hipótesis anual de prueba con más de veinte caracteres.' };
+          if (!A.p4 || ['producto', 'proceso', 'posicion', 'paradigma'].some((k) => A.p4[k] === undefined || A.p4[k] === '')) A.p4 = { producto: 40, proceso: 20, posicion: 20, paradigma: 20 };
+          Object.keys(D).forEach((k) => { if (A[k] === undefined || A[k] === '' || (k === 'hipotesis' && String(A[k]).length < 20)) A[k] = D[k]; });
+          if (A.capacitacion === false) A.capacitacion = 'no'; if (A.capacitacion === true) A.capacitacion = 'si';
+        }
+      } catch (e) { }
+      return orig(tok, dec, enviar);
+    };
+  }
   return ctx;
 }
 module.exports = { makeGas };

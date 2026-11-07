@@ -215,6 +215,7 @@ function apiGuardar(tok, dec, enviar) {
   var eq = equipoById_(ses.equipoId), S = estadoPrevio_(P, eq, pa.t);
   var est = estimarCostos_(P, S, dec, pa.t);
   if (enviar && (!dec.hipotesis || String(dec.hipotesis).trim().length < 20)) throw new Error('Para enviar, escribe la hipótesis del equipo (al menos 20 caracteres).');
+  if (enviar && esInicioAnio_(pa.t)) { var fA = anualFaltantes_(dec.anual); if (fA.length) throw new Error('Para enviar, completen la Estrategia anual: falta ' + fA.join(', ') + '.'); }
   if (enviar && informesPendientes_(migrar_(S, P), dec, pa.t).length) throw new Error('Para enviar, escriban en Resultados → Informes de investigación qué decisión toman con cada informe recibido (al menos 10 caracteres).');
   var lock = LockService.getScriptLock(); lock.waitLock(30000);
   try {

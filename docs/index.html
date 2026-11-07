@@ -133,7 +133,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = '525db788a189';
+  var V0 = '235c9bb09df9';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -245,8 +245,8 @@ function prepararBorrador() {
   D.nuevosProyectos = D.nuevosProyectos || [];
   D._ini = D._ini || {};
   var O = V.estado.org;
-  if (V.flags.anualEditable && D.anual && D.anual.nucleo === undefined) { D.anual.nucleo = O.nucleo; D.anual.adyacente = O.adyacente; D.anual.transf = O.transf; D.anual.postura = O.postura; }
-  if (V.flags.anualEditable && !D.anual) D.anual = { p4: JSON.parse(JSON.stringify(O.p4)), nucleo: O.nucleo, adyacente: O.adyacente, transf: O.transf, postura: O.postura, estructura: O.estructura, tiempoLibre: O.tiempoLibre, incentivo: O.incentivo, politica: O.politica, composicion: O.composicion, capacitacion: false, umbral: O.umbral, hipotesis: '' };
+  // La estrategia anual empieza en blanco: la decide el equipo (puede copiar la del año anterior).
+  if (V.flags.anualEditable && !D.anual) D.anual = { p4: { producto: '', proceso: '', posicion: '', paradigma: '' }, nucleo: '', adyacente: '', transf: '', postura: '', estructura: '', tiempoLibre: '', incentivo: '', politica: '', composicion: '', capacitacion: '', umbral: '', hipotesis: '' };
   V.estado.productos.forEach(function (p) {
     if (!D.productos[p.id]) D.productos[p.id] = { precio: p.precio, comunicacion: p.comunicacion || 0, segPub: p.segPub || 'todos', promo: 0, pronostico: '', canales: p.canales.slice(), retirar: false };
     var dp = D.productos[p.id]; if (dp.segPub === undefined) dp.segPub = p.segPub || 'todos'; if (dp.promo === undefined) dp.promo = 0;
@@ -434,6 +434,20 @@ function ayuda(texto, unidad, termino) {
 }
 
 // ---------- Estrategia anual ----------
+function anualFaltan() {
+  var A = D.anual || {}, f = [], p4 = A.p4 || {}, vac = function (x) { return x === undefined || x === null || x === ''; };
+  var k4 = ['producto', 'proceso', 'posicion', 'paradigma'];
+  if (k4.some(function (k) { return vac(p4[k]); })) f.push('las 4P'); else if (k4.reduce(function (s, k) { return s + Number(p4[k]); }, 0) !== 100) f.push('las 4P deben sumar 100 %');
+  if (['nucleo', 'adyacente', 'transf'].some(function (k) { return vac(A[k]); })) f.push('el portafolio'); else if (Number(A.nucleo) + Number(A.adyacente) + Number(A.transf) !== 100) f.push('el portafolio debe sumar 100 %');
+  [['postura', 'la postura'], ['estructura', 'la estructura'], ['tiempoLibre', 'el tiempo libre'], ['incentivo', 'el incentivo'], ['politica', 'la política ante el fracaso'], ['composicion', 'la composición de equipos'], ['umbral', 'el umbral de la puerta'], ['capacitacion', 'la capacitación (sí o no)']].forEach(function (k) { if (vac(A[k[0]])) f.push(k[1]); });
+  if (String(A.hipotesis || '').trim().length < 20) f.push('la hipótesis anual (al menos 20 caracteres)');
+  return f;
+}
+function copiarAnual() {
+  var O = V.estado.org, h = (D.anual || {}).hipotesis || '';
+  D.anual = { p4: { producto: O.p4.producto, proceso: O.p4.proceso, posicion: O.p4.posicion, paradigma: O.p4.paradigma }, nucleo: O.nucleo, adyacente: O.adyacente, transf: O.transf, postura: O.postura, estructura: O.estructura, tiempoLibre: O.tiempoLibre, incentivo: O.incentivo, politica: O.politica, composicion: O.composicion, capacitacion: '', umbral: O.umbral, hipotesis: h };
+  render(); estimar(); aviso('Copiaron la estrategia del año anterior. Revísenla, decidan la capacitación y escriban la hipótesis de este año.', 'ok');
+}
 function vAnual() {
   var O = V.estado.org;
   if (!V.flags.anualEditable) {
@@ -442,21 +456,24 @@ function vAnual() {
         .map(function (r) { return '<tr><th>' + r[0] + '</th><td>' + esc(r[1]) + '</td></tr>'; }).join('') + '</table></div>' + tarjetaCoherencia();
   }
   var g = V.cat.general;
-  return '<div class="card"><h2>Cómo pensar la estrategia del año</h2><p>Estas decisiones valen para los cuatro trimestres del año. No hay una respuesta correcta única: deben ser <b>coherentes</b> con su mandato, con lo que saben del mercado y con su presupuesto. Debajo de cada casilla se explica qué significa y qué efecto tiene.</p></div>' +
+  var falt = anualFaltan();
+  return '<div class="card"><h2>Cómo pensar la estrategia del año</h2><p>Estas decisiones valen para los cuatro trimestres del año. No hay una respuesta correcta única: deben ser <b>coherentes</b> con su mandato, con lo que saben del mercado y con su presupuesto. Las casillas empiezan en blanco: <b>todas son obligatorias</b> para enviar. Debajo de cada casilla se explica qué significa y qué efecto tiene.</p>' +
+    (V.partida.t > 1 ? '<div class="inline"><button class="btn sec" onclick="copiarAnual()">Copiar la estrategia del año anterior</button><span class="muted">y luego ajústenla</span></div>' : '') +
+    (falt.length ? '<div class="avisos">⚠ Falta completar: ' + falt.map(esc).join(', ') + '.</div>' : '<p class="tag ok" style="display:inline-block">Estrategia anual completa</p>') + '</div>' +
     '<div class="card"><h2>Bloque A. Estrategia y portafolio</h2><div class="grid g2"><div>' +
     '<h3>Distribución del esfuerzo en las 4P (suma 100 %)</h3>' + ayuda('¿En qué quieren innovar? <b>Producto</b>: lo que venden. <b>Proceso</b>: cómo lo producen o entregan. <b>Posición</b>: a quién y con qué mensaje lo ofrecen. <b>Paradigma</b>: el modelo de negocio (por ejemplo, suscripción). El porcentaje decide qué tipo de ideas aparecerán en sus proyectos.', 1, '4P') + '<div class="grid g4">' +
     [['producto', 'Producto'], ['proceso', 'Proceso'], ['posicion', 'Posición'], ['paradigma', 'Paradigma (modelo de negocio)']].map(function (k) { return '<div><label>' + k[1] + '</label>' + inp('anual.p4.' + k[0], 'number', 'min=0 max=100') + '</div>'; }).join('') +
     '</div></div><div>' +
     '<h3>Portafolio de innovación (suma 100 %)</h3>' + ayuda('Según Nagji y Tuff (2012). <b>Núcleo</b>: mejorar lo que ya venden a sus clientes actuales. <b>Adyacente</b>: llevar lo que saben hacer a clientes o usos nuevos (universitarios, oficinistas, deportistas). <b>Transformacional</b>: crear ofertas y mercados que todavía no existen. Muchas empresas exitosas reparten cerca de 70 / 20 / 10, pero depende de la estrategia. Con menos de 20 % en adyacente + transformacional no podrán crear proyectos para S2, S3 o S4.', 1, 'Portafolio') + '<div class="grid g4"><div><label>Núcleo</label>' + inp('anual.nucleo', 'number', 'min=0 max=100') + '</div><div><label>Adyacente</label>' + inp('anual.adyacente', 'number', 'min=0 max=100') + '</div><div><label>Transformacional</label>' + inp('anual.transf', 'number', 'min=0 max=100') + '</div></div>' +
-    '<h3>Postura de innovación</h3>' + ayuda('Según Freeman y Soete (1997): la actitud de la empresa frente a la innovación. El informe de coherencia revisará si sus decisiones corresponden a la postura que eligen.', 1, 'Postura') + sel('anual.postura', Object.keys(V.cat.posturas).map(function (k) { return [k, V.cat.posturas[k][0] + ': ' + V.cat.posturas[k][1]]; })) + '</div></div>' +
-    '<label>Estructura para proyectos radicales</label>' + ayuda('<b>Integrada</b>: los proyectos radicales compiten por recursos con el negocio actual y el comité los evalúa con más exigencia. <b>Unidad autónoma</b>: un equipo separado con sus propias reglas; protege lo radical y ayuda a responder a un disruptor.', 8, 'Ambidestreza') + sel('anual.estructura', [['integrada', 'Integrada a la línea principal'], ['autonoma', 'Unidad autónoma (' + bs(g.costoUnidadAutonoma) + ' por año)']]) +
+    '<h3>Postura de innovación</h3>' + ayuda('Según Freeman y Soete (1997): la actitud de la empresa frente a la innovación. El informe de coherencia revisará si sus decisiones corresponden a la postura que eligen.', 1, 'Postura') + sel('anual.postura', [['', '— Elijan una postura —']].concat(Object.keys(V.cat.posturas).map(function (k) { return [k, V.cat.posturas[k][0] + ': ' + V.cat.posturas[k][1]]; })), 'data-rerender="1"') + '</div></div>' +
+    '<label>Estructura para proyectos radicales</label>' + ayuda('<b>Integrada</b>: los proyectos radicales compiten por recursos con el negocio actual y el comité los evalúa con más exigencia. <b>Unidad autónoma</b>: un equipo separado con sus propias reglas; protege lo radical y ayuda a responder a un disruptor.', 8, 'Ambidestreza') + sel('anual.estructura', [['', '— Elijan —'], ['integrada', 'Integrada a la línea principal'], ['autonoma', 'Unidad autónoma (' + bs(g.costoUnidadAutonoma) + ' por año)']]) +
     '</div><div class="card"><h2>Bloque B. Organización y clima creativo</h2><div class="grid g2"><div>' +
-    '<label>Tiempo libre para proyectos propios</label>' + ayuda('Porcentaje del tiempo que el personal puede dedicar a ideas propias, como el 15 % de 3M. Sube la motivación intrínseca y la calidad de las ideas, pero tiene costo.', 2, 'Motivación') + sel('anual.tiempoLibre', [[0, '0 %'], [10, '10 %'], [15, '15 %'], [20, '20 %']]) + '<p class="muted">Cuesta ' + bs(g.costoTiempoLibrePunto) + ' por punto % y trimestre.</p>' +
-    '<label>Tipo de incentivo</label>' + ayuda('El reconocimiento refuerza la motivación intrínseca. Los premios en dinero altos pueden reducirla y vuelven las ideas más parecidas entre sí.', 2) + sel('anual.incentivo', [['reconocimiento', 'Reconocimiento (Bs 5.000 al año)'], ['bajo', 'Monetario bajo (Bs 15.000 al año)'], ['alto', 'Monetario alto (Bs 40.000 al año)']]) +
-    '<label>Política ante el fracaso</label>' + ayuda('Qué pasa cuando un proyecto falla. <b>Sanción</b> hace que el equipo evite riesgos. <b>Aprendizaje celebrado</b> sube la autoeficacia creativa y la seguridad psicológica.', 2, 'Seguridad') + sel('anual.politica', [['sancion', 'Sanción'], ['neutral', 'Neutral'], ['aprendizaje', 'Aprendizaje celebrado']]) +
-    '</div><div><label>Composición de equipos</label>' + ayuda('Equipos con perfiles distintos (marketing, planta, ventas, finanzas) o con externos generan ideas más variadas: más ideas malas, pero también más ideas excepcionales.', 2) + sel('anual.composicion', [['homogenea', 'Homogénea'], ['multifuncional', 'Multifuncional (marketing, planta, ventas, finanzas)'], ['externos', 'Con miembros externos']]) +
-    '<label>Umbral de la puerta (stage-gate)</label>' + ayuda('Puntaje mínimo que debe alcanzar un proyecto para pasar a piloto o lanzamiento. <b>Estricto</b> evita lanzar proyectos débiles, pero detiene más. <b>Laxo</b> deja pasar casi todo.', 5, 'Stage') + sel('anual.umbral', [['estricto', 'Estricto (7,0)'], ['moderado', 'Moderado (6,0)'], ['laxo', 'Laxo (5,0)']]) +
-    chkB('anual.capacitacion', 'Capacitación en Design Thinking este año (' + bs(g.costoCapacitacion) + ', 2 semanas-persona)') + ayuda('Entrena al equipo en empatía, prototipos y pruebas con usuarios: sube la autoeficacia y la calidad de las ideas durante el año.', 3, 'Design') + '</div></div>' +
+    '<label>Tiempo libre para proyectos propios</label>' + ayuda('Porcentaje del tiempo que el personal puede dedicar a ideas propias, como el 15 % de 3M. Sube la motivación intrínseca y la calidad de las ideas, pero tiene costo.', 2, 'Motivación') + sel('anual.tiempoLibre', [['', '— Elijan —'], [0, '0 %'], [10, '10 %'], [15, '15 %'], [20, '20 %']]) + '<p class="muted">Cuesta ' + bs(g.costoTiempoLibrePunto) + ' por punto % y trimestre.</p>' +
+    '<label>Tipo de incentivo</label>' + ayuda('El reconocimiento refuerza la motivación intrínseca. Los premios en dinero altos pueden reducirla y vuelven las ideas más parecidas entre sí.', 2) + sel('anual.incentivo', [['', '— Elijan —'], ['reconocimiento', 'Reconocimiento (Bs 5.000 al año)'], ['bajo', 'Monetario bajo (Bs 15.000 al año)'], ['alto', 'Monetario alto (Bs 40.000 al año)']]) +
+    '<label>Política ante el fracaso</label>' + ayuda('Qué pasa cuando un proyecto falla. <b>Sanción</b> hace que el equipo evite riesgos. <b>Aprendizaje celebrado</b> sube la autoeficacia creativa y la seguridad psicológica.', 2, 'Seguridad') + sel('anual.politica', [['', '— Elijan —'], ['sancion', 'Sanción'], ['neutral', 'Neutral'], ['aprendizaje', 'Aprendizaje celebrado']]) +
+    '</div><div><label>Composición de equipos</label>' + ayuda('Equipos con perfiles distintos (marketing, planta, ventas, finanzas) o con externos generan ideas más variadas: más ideas malas, pero también más ideas excepcionales.', 2) + sel('anual.composicion', [['', '— Elijan —'], ['homogenea', 'Homogénea'], ['multifuncional', 'Multifuncional (marketing, planta, ventas, finanzas)'], ['externos', 'Con miembros externos']]) +
+    '<label>Umbral de la puerta (stage-gate)</label>' + ayuda('Puntaje mínimo que debe alcanzar un proyecto para pasar a piloto o lanzamiento. <b>Estricto</b> evita lanzar proyectos débiles, pero detiene más. <b>Laxo</b> deja pasar casi todo.', 5, 'Stage') + sel('anual.umbral', [['', '— Elijan —'], ['estricto', 'Estricto (7,0)'], ['moderado', 'Moderado (6,0)'], ['laxo', 'Laxo (5,0)']]) +
+    '<label>Capacitación en Design Thinking este año</label>' + sel('anual.capacitacion', [['', '— Elijan —'], ['si', 'Sí (' + bs(g.costoCapacitacion) + ' y 2 semanas-persona)'], ['no', 'No']]) + ayuda('Entrena al equipo en empatía, prototipos y pruebas con usuarios: sube la autoeficacia y la calidad de las ideas durante el año.', 3, 'Design') + '</div></div>' +
     '<label>Hipótesis anual del equipo (obligatoria)</label>' + ayuda('Escriban qué esperan lograr este año y por qué esta estrategia los llevará ahí. Al cierre del año la contrastarán en la bitácora.', 9) + txtA('anual.hipotesis', 'Ejemplo: con 30 % radical y una unidad autónoma lanzaremos un producto para universitarios antes de T8.') + '</div>';
 }
 
