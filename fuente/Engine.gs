@@ -115,7 +115,7 @@ function calibrate_(P) {
 var MKT_ = { N: 1, rivales: [], previos: [] };
 function setMercado_(N, rivales, previos) { MKT_ = { N: Math.max(1, N || 1), rivales: rivales || [], previos: previos || rivales || [] }; }
 /** Penalización del etiquetado frontal (menor si la empresa se preparó). */
-function normaPenalP_(p, segId, t) { var f = normaPenal_(p.attrs, segId, t); return (f < 1 && p.flags && p.flags.prepEtiq) ? 0.9 : f; }
+function normaPenalP_(p, segId, t) { var f = normaPenal_(p.attrs, segId, t); var e = p.flags && p.flags.prepEtiq; e = e === true ? 1 : (Number(e) || 0); return f < 1 ? f + 0.1 * e : f; }
 /** Efecto comercial de corto plazo: promoción en el punto de venta y publicidad dirigida a un segmento. */
 function impulsoComercial_(p, segId) {
   var f = 1, pr = Number(p.promo) || 0;
@@ -140,7 +140,7 @@ function marketShares_(P, world, seg, t) {
     if (p.legado) A *= P.cal.bf[seg.id];
     A *= normaPenalP_(p, seg.id, t) * impulsoComercial_(p, seg.id);
     if (p.penalHasta && t <= p.penalHasta) A *= 0.8;
-    if (seg.id === 'S2' && world.prep && world.prep.startup && world.comps.some(function (c) { return c.id === 'C4' && c.activo; })) A *= 1.05;
+    if (seg.id === 'S2' && prepNivel_(world, 'startup') && world.comps.some(function (c) { return c.id === 'C4' && c.activo; })) A *= 1 + 0.05 * prepNivel_(world, 'startup');
     ofertas.push({ id: p.id, tipo: 'propio', A: A, U: utility_(seg, p.attrs, p.precio, t) });
   });
   world.comps.forEach(function (c) {
@@ -304,13 +304,43 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
     var c = dec.noticias ? dec.noticias[n.id] : null; if (!c) return;
     totN++; var ok = (n.tipo === 'ambas') ? (c === 'oportunidad' || c === 'amenaza') : (c === n.tipo);
     if (ok) aciertos++;
-    S.noticiasEval.push({ id: n.id, texto: n.texto, clasif: c, real: n.tipo, ok: ok, resp: (dec.respuestas || {})[n.id] || 'ignorar' });
+    var ac0 = (dec.acciones || {})[n.id] || {};
+    S.noticiasEval.push({ id: n.id, texto: n.texto, clasif: c, real: n.tipo, ok: ok, resp: (dec.respuestas || {})[n.id] || 'ignorar', accion: ac0.a || '', seg: ac0.seg || '', porque: ac0.porque || '' });
   });
   // respuesta graduada a las noticias: ignorar, vigilar o preparar
   S.seguimiento = [];
   nots.forEach(function (n) {
     var r = (dec.respuestas || {})[n.id];
     if (r === 'vigilar') S.seguimiento.push({ id: n.id, texto: n.texto, dato: datoSeguimiento_(n), t: t });
+    if (r === 'actuar') {
+      var ac = (dec.acciones || {})[n.id] || {}, A = (P.accionesEntorno || []).filter(function (x) { return x.id === ac.a; })[0];
+      var ev = S.noticiasEval.filter(function (e) { return e.id === n.id; })[0] || {};
+      var res = function (nivel, msg) { ev.nivel = nivel; ev.efecto = msg; fb.push(msg); };
+      if (!A) { res(0, 'Eligieron actuar ante "' + n.texto.slice(0, 60) + '…" pero no eligieron qué acción: no se hizo nada.'); return; }
+      if (A.seg && !ac.seg) { res(0, 'La acción "' + A.nombre + '" necesita un segmento: no se ejecutó.'); return; }
+      if (String(ac.porque || '').trim().length < 10) { res(0, 'La acción "' + A.nombre + '" no se ejecutó: falta escribir por qué responde a la noticia.'); return; }
+      if (!gastar(A.costo, 0, 'Entorno: ' + A.nombre)) { res(0, 'No alcanzó el presupuesto para "' + A.nombre + '".'); return; }
+      var cl = clavePreparacion_(n.id), costoTxt = 'Bs ' + A.costo.toLocaleString('es-BO');
+      var segTxt = A.seg ? ' en ' + ac.seg : '';
+      if (n.tipo === 'ruido') { res(0, 'Actuaron ante "' + n.texto.slice(0, 60) + '…" (' + A.nombre + segTxt + '), pero era un rumor: se perdieron ' + costoTxt + '.'); return; }
+      var aj = ajusteAccion_(A.id, ac.seg, cl);
+      if (A.id === 'estudio' && ac.seg) S.iq[ac.seg] = Math.min(1, (S.iq[ac.seg] || 0) + (aj.nivel ? 0.05 : 0.02));
+      if (!cl) { res(A.id === 'estudio' ? 0.5 : 0, 'La noticia "' + n.texto.slice(0, 60) + '…" era real, pero describe una tendencia general que ninguna acción puntual cambia' + (A.id === 'estudio' ? '; al menos su estudio les dio algo más de conocimiento de ' + ac.seg : ': ' + costoTxt + ' sin efecto') + '. Las tendencias se responden con proyectos de innovación.'); return; }
+      if (cl.indexOf('op:') === 0) {
+        var sid = cl.slice(3);
+        if (aj.nivel) {
+          if (A.id === 'campana') { W.productos.forEach(function (p) { if (p.activo) p.AW = r2_(Math.min(0.98, p.AW + 0.02)); }); S.iq[sid] = Math.min(1, (S.iq[sid] || 0) + 0.02); }
+          res(1, 'Acertaron ante la oportunidad "' + n.texto.slice(0, 60) + '…": ' + (A.id === 'campana' ? 'su campaña adelantó su marca en ' + sid + ' antes que los rivales.' : 'su estudio les dio mejor conocimiento de ' + sid + ', justo el segmento que se abre.'));
+        } else res(0, 'Ante la oportunidad "' + n.texto.slice(0, 60) + '…" eligieron ' + ACC_NOM_[A.id] + segTxt + ', que no la aprovecha: lo útil era un estudio o una campaña en ' + sid + '. Se gastaron ' + costoTxt + (A.id === 'estudio' ? ' (su estudio sí sumó algo de conocimiento de ' + ac.seg + ')' : '') + '.');
+        return;
+      }
+      if (aj.nivel) {
+        W.prep[cl] = Math.max(prepNivel_(W, cl), aj.nivel); S.preparados[cl] = W.prep[cl];
+        if (cl === 'etiquetado') W.productos.forEach(function (p) { p.flags = p.flags || {}; var e = p.flags.prepEtiq === true ? 1 : (Number(p.flags.prepEtiq) || 0); p.flags.prepEtiq = Math.max(e, aj.nivel); });
+        res(aj.nivel, (aj.nivel === 1 ? 'Acertaron ante "' : 'Su respuesta ayudó en parte ante "') + n.texto.slice(0, 60) + '…" (' + A.nombre + segTxt + '): ' + efectoPrepTxt_(cl, aj.nivel) + (aj.nivel === 1 ? '.' : '. Lo que mejor funcionaba era ' + ACC_MEJOR_[cl] + '.'));
+      } else res(0, 'Ante "' + n.texto.slice(0, 60) + '…" eligieron ' + ACC_NOM_[A.id] + segTxt + ', que no responde a ese problema: se gastaron ' + costoTxt + ' sin efecto. Lo que funcionaba era ' + ACC_MEJOR_[cl] + '.');
+      return;
+    }
     if (r === 'preparar') {
       if (!gastar(g.costoPreparar, 0, 'Preparar respuesta a una noticia')) return;
       var clave = clavePreparacion_(n.id);
@@ -751,8 +781,8 @@ function stepWorld_(P, W, S, t, sched, X) {
   var sequia = sched.sequia && (t === sched.sequia || t === sched.sequia + 1);
   function costoEf(p) {
     var c = p.costUnit;
-    if (sequia && !(p.flags && p.flags.contratoLeche)) c *= (W.prep && W.prep.sequia) ? 1.04 : 1.08;
-    if (t >= 12 && t <= 15 && !(p.flags && p.flags.envaseLocal)) c += (W.prep && W.prep.divisas) ? 0.20 : 0.40;
+    if (sequia && !(p.flags && p.flags.contratoLeche)) c *= 1.08 - 0.04 * prepNivel_(W, 'sequia');
+    if (t >= 12 && t <= 15 && !(p.flags && p.flags.envaseLocal)) c += 0.40 - 0.20 * prepNivel_(W, 'divisas');
     return c;
   }
   if (esReal && sequia && t === sched.sequia) X.fb.push('La sequía elevó el costo de la leche cruda 8 % durante dos trimestres' + '.');
@@ -779,7 +809,7 @@ function stepWorld_(P, W, S, t, sched, X) {
   W.productos.forEach(function (p) { p.ventas = 0; p.unidades = 0; p.cuotaPorSeg = {}; });
   P.segmentos.forEach(function (seg) {
     var D = demanda_(P, seg, t, sched) * MKT_.N; dTot += D;
-    if (W.prep && W.prep.bloqueos && sched.bloqueos.indexOf(t) >= 0) D *= 0.92 / 0.85;
+    if (prepNivel_(W, 'bloqueos') && sched.bloqueos.indexOf(t) >= 0) D *= (0.85 + 0.07 * prepNivel_(W, 'bloqueos')) / 0.85;
     var ofs = marketShares_(P, W, seg, t), cuotaSeg = 0;
     ofs.forEach(function (o) {
       if (o.tipo === 'propio') {
@@ -956,7 +986,14 @@ function estimarCostos_(P, S, dec, t) {
   S = migrar_(copy_(S), P);
   (inv.metodos || []).forEach(function (mid) { var m = metById_(P, mid); if (m) { var cm = costoMetodo_(P, S, m, t); costo += cm.costo * factorMadurez_(O); sem += semMadurez_(O, m.sem); if (cm.recargo) avisos.push(m.nombre + ' cuesta 50 % más porque lo compraron el trimestre anterior.'); } });
   if ((inv.metodos || []).some(function (m) { return m === 'encuesta' || m === 'observacion'; }) && !(inv.segmentos || []).length) avisos.push('Elige al menos un segmento para la encuesta u observación.');
-  Object.keys(dec.respuestas || {}).forEach(function (k) { if (dec.respuestas[k] === 'preparar') costo += g.costoPreparar; });
+  Object.keys(dec.respuestas || {}).forEach(function (k) {
+    if (dec.respuestas[k] === 'preparar') costo += g.costoPreparar;
+    if (dec.respuestas[k] === 'actuar') {
+      var ac = (dec.acciones || {})[k] || {}, A = (P.accionesEntorno || []).filter(function (x) { return x.id === ac.a; })[0];
+      if (!A) avisos.push('Entorno: eligieron actuar ante una noticia pero falta elegir la acción.');
+      else { costo += A.costo; if (A.seg && !ac.seg) avisos.push('Entorno: la acción "' + A.nombre + '" necesita un segmento.'); if (String(ac.porque || '').trim().length < 10) avisos.push('Entorno: escriban por qué "' + A.nombre + '" responde a la noticia.'); }
+    }
+  });
   var pend = informesPendientes_(S, dec, t);
   if (pend.length) avisos.push('Escriban qué decisión toman con ' + (pend.length === 1 ? 'el informe' : 'los ' + pend.length + ' informes') + ' de investigación recibidos (Resultados → Informes de investigación).');
   var maxP = anioDe_(t) === 1 ? (g.maxProyectosAnio1 || g.maxProyectos) : g.maxProyectos, actP = S.proyectos.filter(function (p) { return p.estado === 'activo'; }).length;

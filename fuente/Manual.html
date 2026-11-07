@@ -109,15 +109,33 @@ var MANUAL = [
   ['idea', 'Repartan el trabajo: una persona en entorno e investigación, otra en proyectos, otra en productos y finanzas. Antes de enviar, revisen juntos la hipótesis y el pie de la pantalla.'],
   ['ir', [['Qué decidir en esta ronda', 'ronda']]]
 ]},
-{ id: 'entorno', t: 'Paso 1. Entorno', r: 'Clasificar noticias y elegir cómo responder.', b: [
+{ id: 'entorno', t: 'Paso 1. Entorno', r: 'Clasificar noticias, elegir una postura y, si actúan, una acción.', b: [
   ['p', 'Cada trimestre llegan noticias del entorno (económicas, tecnológicas, legales, culturales…). Algunas son señales reales; otras son <b>ruido</b> (rumores sin consecuencias).'],
   ['pasos', ['<b>Clasifiquen</b> cada noticia: oportunidad, amenaza o ruido. Algunas noticias son a la vez oportunidad y amenaza.',
-    '<b>Elijan una respuesta</b>: <b>Ignorar</b> (sin costo; si era real, la enfrentan sin preparación), <b>Vigilar</b> (sin costo; el trimestre siguiente reciben un dato adicional) o <b>Preparar</b> (Bs 8.000; si era real, reduce el golpe de una amenaza o adelanta el beneficio de una oportunidad; si era ruido, el dinero se pierde).']],
-  ['p', 'Al trimestre siguiente verán qué era cada noticia y si acertaron. El porcentaje de aciertos aparece en los indicadores.'],
+    '<b>Elijan una postura</b>: <b>Ignorar</b> (sin costo; si era real, la enfrentan sin preparación), <b>Vigilar</b> (sin costo; el trimestre siguiente reciben un dato adicional para decidir mejor) o <b>Actuar</b>.',
+    'Si actúan, <b>elijan una acción</b> del menú (y el segmento, si la acción lo pide) y <b>escriban en una línea por qué</b> esa acción responde a la noticia. Sin la justificación, la acción no se ejecuta.']],
+  ['h', 'El menú de acciones'],
+  ['p', 'Es el mismo para todas las noticias: el simulador no les dice cuál corresponde a cuál. Decidirlo es parte del desafío. El costo sale del presupuesto de innovación.'],
+  ['tabla', ['Acción', 'Qué compran', 'Costo'], [
+    ['Contratar un proveedor de leche de respaldo', 'Contrato de reserva con un segundo acopiador, con precio pactado por un año.', 'Bs 8.000'],
+    ['Comprar envases importados por adelantado', 'Envases y tapas importados para los próximos trimestres.', 'Bs 15.000'],
+    ['Reformular la receta y rediseñar la etiqueta', 'Ajuste de azúcar y grasas en la fórmula y una etiqueta nueva.', 'Bs 12.000'],
+    ['Armar rutas alternativas y stock de seguridad', 'Rutas de distribución alternativas y un depósito de reserva en la ciudad.', 'Bs 6.000'],
+    ['Preparar un plan comercial contra un competidor', 'Precios, promociones y presencia listos para responder a un rival en el segmento elegido.', 'Bs 10.000'],
+    ['Hacer un estudio rápido de un segmento', 'Entrevistas y datos de ventas sobre lo que cambia en el segmento elegido.', 'Bs 5.000'],
+    ['Lanzar una campaña anticipada de marca', 'Campaña en redes y puntos de venta en el segmento elegido, antes que los rivales.', 'Bs 10.000']]],
+  ['h', 'Qué pasa después'],
+  ['tabla', ['Si…', 'Resultado'], [
+    ['La noticia se cumple y la acción responde a ella', 'Reduce el golpe de la amenaza (por ejemplo, sus envases suben Bs 0,20 por litro en vez de Bs 0,40) o adelanta el beneficio de la oportunidad.'],
+    ['La acción ayuda solo en parte', 'Logran la mitad del efecto, y el mensaje les dice qué habría funcionado mejor.'],
+    ['La acción no tiene que ver con lo que pasó', 'El dinero se gasta sin efecto, y el mensaje explica por qué.'],
+    ['La noticia era un rumor', 'Cualquier acción se pierde.']]],
+  ['ej', 'Noticia: "Se amplía la brecha cambiaria y se retrasan las importaciones de envases." Es: amenaza. Postura: actuar. Acción: comprar envases importados por adelantado (Bs 15.000). Por qué: "Nuestros envases son importados; si faltan divisas, subirán de precio."'],
+  ['p', 'Al trimestre siguiente, en <b>Su lectura del trimestre anterior</b>, verán qué era cada noticia, si la clasificaron bien y lo que logró su acción. El porcentaje de aciertos aparece en los indicadores.'],
   ['h', 'Decisiones especiales'],
   ['lista', ['<b>Respuesta a la startup de bebidas vegetales</b>: cuando aparezca, pueden responder una sola vez con una <b>alianza</b> (Bs 60.000 de caja: presencia en apps de delivery) o una <b>adquisición</b> (Bs 450.000 de caja: su producto pasa a su portafolio). También pueden competirle con sus propios productos.',
     '<b>Licitación de alimentación escolar y universitaria</b>: cuando se abra, pueden postular si tienen un producto con atributo saludable 6 o más y nutrición 6 o más.']],
-  ['idea', 'No paguen "Preparar" en todo. Prepárense para las señales que afectan a sus segmentos y vigilen las dudosas. La vigilancia del entorno (paso 3) les trae las noticias un trimestre antes.'],
+  ['idea', 'No actúen ante todo: el presupuesto no alcanza y los rumores cuestan. Actúen ante las señales que afectan a sus productos y segmentos, y vigilen las dudosas. Una misma acción puede servir para más de una noticia. La vigilancia del entorno (paso 3) les trae las noticias un trimestre antes.'],
   ['ir', [['Ir a 1. Entorno', 'entorno']]]
 ]},
 { id: 'anual', t: 'Paso 2. Estrategia anual', r: 'Cómo repartir el esfuerzo y gestionar el clima creativo.', b: [

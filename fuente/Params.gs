@@ -206,6 +206,16 @@ var DEF = {
   ],
 
   // Noticias visibles en el trimestre t. tipo real: oportunidad, amenaza, ambas o ruido.
+  // Menú general de acciones ante el entorno: el mismo para todas las noticias; el equipo elige cuál aplica.
+  accionesEntorno: [
+    { id: 'leche', nombre: 'Contratar un proveedor de leche de respaldo', costo: 8000, seg: false, desc: 'Contrato de reserva con un segundo acopiador de leche, con precio pactado por un año.' },
+    { id: 'envases', nombre: 'Comprar envases importados por adelantado', costo: 15000, seg: false, desc: 'Compra anticipada de envases y tapas importados para los próximos trimestres.' },
+    { id: 'etiqueta', nombre: 'Reformular la receta y rediseñar la etiqueta', costo: 12000, seg: false, desc: 'Ajuste de azúcar y grasas en la fórmula y diseño de una etiqueta nueva.' },
+    { id: 'rutas', nombre: 'Armar rutas alternativas y stock de seguridad', costo: 6000, seg: false, desc: 'Rutas de distribución alternativas y un depósito con producto e insumos de reserva en la ciudad.' },
+    { id: 'competidor', nombre: 'Preparar un plan comercial contra un competidor', costo: 10000, seg: true, desc: 'Precios, promociones y presencia listos para responder a un rival en el segmento elegido.' },
+    { id: 'estudio', nombre: 'Hacer un estudio rápido de un segmento', costo: 5000, seg: true, desc: 'Entrevistas y datos de ventas para entender qué está cambiando en el segmento elegido.' },
+    { id: 'campana', nombre: 'Lanzar una campaña anticipada de marca', costo: 10000, seg: true, desc: 'Campaña en redes y puntos de venta para posicionar la marca en el segmento elegido antes que los rivales.' }
+  ],
   noticias: [
     { id: 'N01', area: 'Económico', t: 1, tipo: 'amenaza', texto: 'Las ventas de bebidas lácteas tradicionales cayeron por tercer año consecutivo en Santa Cruz.' },
     { id: 'N02', area: 'Demográfico', t: 1, tipo: 'oportunidad', texto: 'Crece la matrícula universitaria y se construyen nuevas residencias estudiantiles.' },

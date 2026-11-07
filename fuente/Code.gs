@@ -106,7 +106,7 @@ function apiEstado(tok) {
     },
     cat: {
       attrs: ATTR_NOMBRES, segmentos: P.segmentos.map(function (s) { return { id: s.id, nombre: s.nombre, part: s.part, g: s.g, pref: s.pref, est: s.est, nuevo: s.nuevo }; }),
-      canales: P.canales, iniciativas: P.iniciativas, premios: P.premios, metodos: P.metodos, fidelidades: P.fidelidades, umbrales: P.umbrales, posturas: P.posturas,
+      canales: P.canales, accionesEntorno: P.accionesEntorno || [], iniciativas: P.iniciativas, premios: P.premios, metodos: P.metodos, fidelidades: P.fidelidades, umbrales: P.umbrales, posturas: P.posturas,
       p3: P3_CAT_, tecnicas: TECNICAS_, fuentesExt: FUENTES_EXT_, scamper: SCAMPER_, morfoParams: MORFO_PARAMS_, kanoNom: KANO_NOM_, tiposNom: TIPOS_NOM_, portafolioNom: PORTAFOLIO_NOM_, ptsNom: PTS_NOM_,
       general: { semanasTrimestre: P.general.semanasTrimestre, costoValidacion: P.general.costoValidacion, costoPiloto: P.general.costoPiloto, costoLanzamiento: P.general.costoLanzamiento, costoRevision: P.general.costoRevision, costoUnidadAutonoma: P.general.costoUnidadAutonoma, costoCapacitacion: P.general.costoCapacitacion, costoTiempoLibrePunto: P.general.costoTiempoLibrePunto, maxProyectos: P.general.maxProyectos, costoAlianzaC4: P.general.costoAlianzaC4, costoAdquisicionC4: P.general.costoAdquisicionC4, costoPatente: P.general.costoPatente, costoGestionProducto: P.general.costoGestionProducto, capexEscalamiento: P.general.capexEscalamiento, promoMax: P.general.promoMax, costoPreparar: P.general.costoPreparar, recargoRepeticion: P.general.recargoRepeticion, maxProyectosAnio1: P.general.maxProyectosAnio1, costoTestConcepto: P.general.costoTestConcepto, recargoAcelerar: P.general.recargoAcelerar }
     },

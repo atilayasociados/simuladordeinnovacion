@@ -118,6 +118,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
 .sim-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.sim-cab h2{margin:0}
 .sim-acc{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}.sim-acc .btn{padding:3px 8px;font-size:12px;white-space:nowrap}
 .sim-del{color:#c0392b!important;border-color:#e6b0aa!important}
+.ent-not{padding:10px 0;border-bottom:1px solid #eee}.ent-txt{margin-bottom:4px}.ent-acc{margin:8px 0 2px 18px;padding:8px 12px;border-left:3px solid var(--azul2,#2E5597);background:#F4F7FC;border-radius:4px}
 </style>
 
 </head>
@@ -132,7 +133,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = 'dd7ed0a39691';
+  var V0 = '525db788a189';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -237,7 +238,7 @@ function vigilarApertura(activar) {
   }, 30000);
 }
 function prepararBorrador() {
-  D.noticias = D.noticias || {}; D.proyectos = D.proyectos || {}; D.productos = D.productos || {}; D.respuestas = D.respuestas || {}; D.decInformes = D.decInformes || {};
+  D.noticias = D.noticias || {}; D.proyectos = D.proyectos || {}; D.productos = D.productos || {}; D.respuestas = D.respuestas || {}; D.acciones = D.acciones || {}; D.decInformes = D.decInformes || {};
   (V.estado.informes || []).forEach(function (i) { if (i.requiere && i.t === V.partida.t - 1 && D.decInformes[i.id] === undefined && i.decision) D.decInformes[i.id] = i.decision; });
   D.investigacion = D.investigacion || { metodos: [], segmentos: [] };
   D.investigacion.metodos = D.investigacion.metodos || []; D.investigacion.segmentos = D.investigacion.segmentos || [];
@@ -397,20 +398,29 @@ function grafico() {
 // ---------- Entorno ----------
 function vEntorno() {
   var g = V.cat.general;
-  var html = '<div class="card"><h2>Noticias del trimestre</h2><p>Para cada noticia hagan dos cosas: <b>clasifíquenla</b> (oportunidad, amenaza o ruido) y <b>elijan una respuesta</b>. Algunas son ruido. Las marcadas como "anticipada" llegan antes gracias a su vigilancia.</p>' +
-    ayuda('<b>Ignorar</b>: sin costo; si la señal era real, la enfrentan sin preparación. <b>Vigilar</b>: sin costo; el trimestre siguiente reciben un dato adicional. <b>Preparar</b>: ' + bs(g.costoPreparar) + '; si la señal era real, reduce el golpe de la amenaza o adelanta el beneficio de la oportunidad; si era ruido, el dinero se pierde.', 4, 'Señal') ;
+  var AC = V.cat.accionesEntorno || [];
+  var html = '<div class="card"><h2>Noticias del trimestre</h2><p>Para cada noticia decidan tres cosas: <b>qué es</b> (oportunidad, amenaza o ruido), <b>qué postura toman</b> (ignorar, vigilar o actuar) y, si actúan, <b>qué acción</b> eligen y por qué. Algunas noticias son ruido. Las marcadas como "anticipada" llegan antes gracias a su vigilancia.</p>' +
+    ayuda('<b>Ignorar</b>: sin costo; si la señal era real, la enfrentan sin preparación. <b>Vigilar</b>: sin costo; el trimestre siguiente reciben un dato adicional para decidir mejor. <b>Actuar</b>: eligen una acción del menú y pagan su costo del presupuesto de innovación. Si la noticia se cumple y la acción responde a ella, reduce el golpe de una amenaza o adelanta el beneficio de una oportunidad; si la acción no tiene que ver con lo que pasó, o la noticia era un rumor, el dinero se pierde. El menú es el mismo para todas las noticias: decidir cuál conviene es parte del desafío.', 4, 'Señal');
   if (!V.noticias.length) html += '<p class="muted">No hay noticias.</p>';
   V.noticias.forEach(function (n) {
-    var r = D.respuestas[n.id] || 'ignorar';
-    html += '<div style="padding:8px 0;border-bottom:1px solid #eee"><div>' + esc(n.texto) + (n.anticipada ? ' <span class="tag ok">anticipada</span>' : '') + '</div><div class="inline" style="margin-top:4px"><b class="muted">Es:</b>' +
+    var r = D.respuestas[n.id] || 'ignorar'; if (r === 'preparar') r = 'actuar';
+    html += '<div class="ent-not"><div class="ent-txt">' + esc(n.texto) + (n.anticipada ? ' <span class="tag ok">anticipada</span>' : '') + '</div><div class="inline"><b class="muted">Es:</b>' +
       ['oportunidad', 'amenaza', 'ruido'].map(function (o) { return '<label class="chk"><input type="radio" name="n_' + n.id + '" data-not="' + n.id + '" value="' + o + '"' + (D.noticias[n.id] === o ? ' checked' : '') + '> ' + o.charAt(0).toUpperCase() + o.slice(1) + '</label>'; }).join('') +
-      '<b class="muted" style="margin-left:12px">Respuesta:</b>' + [['ignorar', 'Ignorar'], ['vigilar', 'Vigilar'], ['preparar', 'Preparar (' + bs(g.costoPreparar) + ')']].map(function (o) { return '<label class="chk"><input type="radio" name="r_' + n.id + '" data-resp="' + n.id + '" value="' + o[0] + '"' + (r === o[0] ? ' checked' : '') + '> ' + o[1] + '</label>'; }).join('') + '</div></div>';
+      '<b class="muted" style="margin-left:12px">Postura:</b>' + [['ignorar', 'Ignorar'], ['vigilar', 'Vigilar'], ['actuar', 'Actuar']].map(function (o) { return '<label class="chk"><input type="radio" name="r_' + n.id + '" data-resp="' + n.id + '" data-rerender="1" value="' + o[0] + '"' + (r === o[0] ? ' checked' : '') + '> ' + o[1] + '</label>'; }).join('') + '</div>';
+    if (r === 'actuar') {
+      var base = 'acciones.' + n.id, ac = D.acciones[n.id] || {}, A = AC.filter(function (x) { return x.id === ac.a; })[0];
+      html += '<div class="ent-acc"><div class="grid g2"><div><label>Acción</label>' + sel(base + '.a', [['', '— Elijan una acción —']].concat(AC.map(function (x) { return [x.id, x.nombre + ' (' + bs(x.costo) + ')']; })), 'data-rerender="1"') + '</div>' +
+        (A && A.seg ? '<div><label>Segmento</label>' + sel(base + '.seg', [['', '— Elijan un segmento —']].concat(V.cat.segmentos.map(function (sg) { return [sg.id, sg.id + ' ' + sg.nombre]; }))) + '</div>' : '<div></div>') + '</div>' +
+        (A ? '<p class="muted" style="margin:4px 0">' + esc(A.desc) + '</p>' : '') +
+        '<label>¿Por qué esta acción responde a la noticia? (una línea)</label>' + inp(base + '.porque', 'text', 'maxlength="200" placeholder="Ej.: nuestros envases son importados; si faltan divisas, subirán de precio."') + '</div>';
+    }
+    html += '</div>';
   });
   html += '</div>';
   var sg = V.estado.seguimiento || [];
   if (sg.length) html += '<div class="card"><h2>Lo que averiguaron de las noticias que vigilaron</h2><ul class="fb">' + sg.map(function (x) { return '<li><b>' + esc(x.texto) + '</b><br>' + esc(x.dato) + '</li>'; }).join('') + '</ul></div>';
   var ev = V.estado.noticiasEval || [];
-  if (ev.length) html += '<div class="card"><h2>Su lectura del trimestre anterior</h2><table><tr><th>Noticia</th><th>Su clasificación</th><th>Lo que era</th><th>Su respuesta</th><th></th></tr>' + ev.map(function (e) { return '<tr><td>' + esc(e.texto) + '</td><td>' + esc(e.clasif) + '</td><td>' + esc(e.real === 'ambas' ? 'oportunidad y amenaza' : e.real) + '</td><td>' + esc(e.resp || 'ignorar') + '</td><td>' + (e.ok ? '<span class="tag ok">acierto</span>' : '<span class="tag mal">error</span>') + '</td></tr>'; }).join('') + '</table></div>';
+  if (ev.length) html += '<div class="card"><h2>Su lectura del trimestre anterior</h2><table><tr><th>Noticia</th><th>Su clasificación</th><th>Lo que era</th><th>Su respuesta y lo que logró</th><th>Clasificación</th></tr>' + ev.map(function (e) { return '<tr><td>' + esc(e.texto) + '</td><td>' + esc(e.clasif) + '</td><td>' + esc(e.real === 'ambas' ? 'oportunidad y amenaza' : e.real) + '</td><td>' + esc(e.resp === 'actuar' ? 'Actuar: ' + ((V.cat.accionesEntorno || []).filter(function (x) { return x.id === e.accion; }).map(function (x) { return x.nombre; })[0] || '—') + (e.seg ? ' (' + e.seg + ')' : '') : (e.resp || 'ignorar')) + (e.efecto ? '<div class="muted" style="font-size:12px">' + esc(e.efecto) + '</div>' : '') + '</td><td>' + (e.ok ? '<span class="tag ok">acierto</span>' : '<span class="tag mal">error</span>') + '</td></tr>'; }).join('') + '</table></div>';
   if (V.flags.c4Disponible) html += '<div class="card"><h2>Respuesta a la startup de bebidas vegetales</h2><p>Puedes responder una sola vez entre T10 y T16.</p>' + sel('respuestaC4', [['', 'No responder por ahora'], ['alianza', 'Alianza (' + bs(V.cat.general.costoAlianzaC4) + ' de caja)'], ['adquisicion', 'Adquisición (' + bs(V.cat.general.costoAdquisicionC4) + ' de caja)']]) + '<p class="muted">También puedes competir con tus propios productos o con una unidad autónoma (Estrategia anual).</p></div>';
   if (V.flags.licitacion) html += '<div class="card"><h2>Licitación de alimentación escolar y universitaria</h2>' + chkB('licitacion', 'Postular (requisito: un producto con saludable ≥ 6 y nutrición ≥ 6)') + '</div>';
   return html;
@@ -2405,15 +2415,33 @@ var MANUAL = [
   ['idea', 'Repartan el trabajo: una persona en entorno e investigación, otra en proyectos, otra en productos y finanzas. Antes de enviar, revisen juntos la hipótesis y el pie de la pantalla.'],
   ['ir', [['Qué decidir en esta ronda', 'ronda']]]
 ]},
-{ id: 'entorno', t: 'Paso 1. Entorno', r: 'Clasificar noticias y elegir cómo responder.', b: [
+{ id: 'entorno', t: 'Paso 1. Entorno', r: 'Clasificar noticias, elegir una postura y, si actúan, una acción.', b: [
   ['p', 'Cada trimestre llegan noticias del entorno (económicas, tecnológicas, legales, culturales…). Algunas son señales reales; otras son <b>ruido</b> (rumores sin consecuencias).'],
   ['pasos', ['<b>Clasifiquen</b> cada noticia: oportunidad, amenaza o ruido. Algunas noticias son a la vez oportunidad y amenaza.',
-    '<b>Elijan una respuesta</b>: <b>Ignorar</b> (sin costo; si era real, la enfrentan sin preparación), <b>Vigilar</b> (sin costo; el trimestre siguiente reciben un dato adicional) o <b>Preparar</b> (Bs 8.000; si era real, reduce el golpe de una amenaza o adelanta el beneficio de una oportunidad; si era ruido, el dinero se pierde).']],
-  ['p', 'Al trimestre siguiente verán qué era cada noticia y si acertaron. El porcentaje de aciertos aparece en los indicadores.'],
+    '<b>Elijan una postura</b>: <b>Ignorar</b> (sin costo; si era real, la enfrentan sin preparación), <b>Vigilar</b> (sin costo; el trimestre siguiente reciben un dato adicional para decidir mejor) o <b>Actuar</b>.',
+    'Si actúan, <b>elijan una acción</b> del menú (y el segmento, si la acción lo pide) y <b>escriban en una línea por qué</b> esa acción responde a la noticia. Sin la justificación, la acción no se ejecuta.']],
+  ['h', 'El menú de acciones'],
+  ['p', 'Es el mismo para todas las noticias: el simulador no les dice cuál corresponde a cuál. Decidirlo es parte del desafío. El costo sale del presupuesto de innovación.'],
+  ['tabla', ['Acción', 'Qué compran', 'Costo'], [
+    ['Contratar un proveedor de leche de respaldo', 'Contrato de reserva con un segundo acopiador, con precio pactado por un año.', 'Bs 8.000'],
+    ['Comprar envases importados por adelantado', 'Envases y tapas importados para los próximos trimestres.', 'Bs 15.000'],
+    ['Reformular la receta y rediseñar la etiqueta', 'Ajuste de azúcar y grasas en la fórmula y una etiqueta nueva.', 'Bs 12.000'],
+    ['Armar rutas alternativas y stock de seguridad', 'Rutas de distribución alternativas y un depósito de reserva en la ciudad.', 'Bs 6.000'],
+    ['Preparar un plan comercial contra un competidor', 'Precios, promociones y presencia listos para responder a un rival en el segmento elegido.', 'Bs 10.000'],
+    ['Hacer un estudio rápido de un segmento', 'Entrevistas y datos de ventas sobre lo que cambia en el segmento elegido.', 'Bs 5.000'],
+    ['Lanzar una campaña anticipada de marca', 'Campaña en redes y puntos de venta en el segmento elegido, antes que los rivales.', 'Bs 10.000']]],
+  ['h', 'Qué pasa después'],
+  ['tabla', ['Si…', 'Resultado'], [
+    ['La noticia se cumple y la acción responde a ella', 'Reduce el golpe de la amenaza (por ejemplo, sus envases suben Bs 0,20 por litro en vez de Bs 0,40) o adelanta el beneficio de la oportunidad.'],
+    ['La acción ayuda solo en parte', 'Logran la mitad del efecto, y el mensaje les dice qué habría funcionado mejor.'],
+    ['La acción no tiene que ver con lo que pasó', 'El dinero se gasta sin efecto, y el mensaje explica por qué.'],
+    ['La noticia era un rumor', 'Cualquier acción se pierde.']]],
+  ['ej', 'Noticia: "Se amplía la brecha cambiaria y se retrasan las importaciones de envases." Es: amenaza. Postura: actuar. Acción: comprar envases importados por adelantado (Bs 15.000). Por qué: "Nuestros envases son importados; si faltan divisas, subirán de precio."'],
+  ['p', 'Al trimestre siguiente, en <b>Su lectura del trimestre anterior</b>, verán qué era cada noticia, si la clasificaron bien y lo que logró su acción. El porcentaje de aciertos aparece en los indicadores.'],
   ['h', 'Decisiones especiales'],
   ['lista', ['<b>Respuesta a la startup de bebidas vegetales</b>: cuando aparezca, pueden responder una sola vez con una <b>alianza</b> (Bs 60.000 de caja: presencia en apps de delivery) o una <b>adquisición</b> (Bs 450.000 de caja: su producto pasa a su portafolio). También pueden competirle con sus propios productos.',
     '<b>Licitación de alimentación escolar y universitaria</b>: cuando se abra, pueden postular si tienen un producto con atributo saludable 6 o más y nutrición 6 o más.']],
-  ['idea', 'No paguen "Preparar" en todo. Prepárense para las señales que afectan a sus segmentos y vigilen las dudosas. La vigilancia del entorno (paso 3) les trae las noticias un trimestre antes.'],
+  ['idea', 'No actúen ante todo: el presupuesto no alcanza y los rumores cuestan. Actúen ante las señales que afectan a sus productos y segmentos, y vigilen las dudosas. Una misma acción puede servir para más de una noticia. La vigilancia del entorno (paso 3) les trae las noticias un trimestre antes.'],
   ['ir', [['Ir a 1. Entorno', 'entorno']]]
 ]},
 { id: 'anual', t: 'Paso 2. Estrategia anual', r: 'Cómo repartir el esfuerzo y gestionar el clima creativo.', b: [

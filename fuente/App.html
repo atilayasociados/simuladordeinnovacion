@@ -50,7 +50,7 @@ function vigilarApertura(activar) {
   }, 30000);
 }
 function prepararBorrador() {
-  D.noticias = D.noticias || {}; D.proyectos = D.proyectos || {}; D.productos = D.productos || {}; D.respuestas = D.respuestas || {}; D.decInformes = D.decInformes || {};
+  D.noticias = D.noticias || {}; D.proyectos = D.proyectos || {}; D.productos = D.productos || {}; D.respuestas = D.respuestas || {}; D.acciones = D.acciones || {}; D.decInformes = D.decInformes || {};
   (V.estado.informes || []).forEach(function (i) { if (i.requiere && i.t === V.partida.t - 1 && D.decInformes[i.id] === undefined && i.decision) D.decInformes[i.id] = i.decision; });
   D.investigacion = D.investigacion || { metodos: [], segmentos: [] };
   D.investigacion.metodos = D.investigacion.metodos || []; D.investigacion.segmentos = D.investigacion.segmentos || [];
@@ -210,20 +210,29 @@ function grafico() {
 // ---------- Entorno ----------
 function vEntorno() {
   var g = V.cat.general;
-  var html = '<div class="card"><h2>Noticias del trimestre</h2><p>Para cada noticia hagan dos cosas: <b>clasifíquenla</b> (oportunidad, amenaza o ruido) y <b>elijan una respuesta</b>. Algunas son ruido. Las marcadas como "anticipada" llegan antes gracias a su vigilancia.</p>' +
-    ayuda('<b>Ignorar</b>: sin costo; si la señal era real, la enfrentan sin preparación. <b>Vigilar</b>: sin costo; el trimestre siguiente reciben un dato adicional. <b>Preparar</b>: ' + bs(g.costoPreparar) + '; si la señal era real, reduce el golpe de la amenaza o adelanta el beneficio de la oportunidad; si era ruido, el dinero se pierde.', 4, 'Señal') ;
+  var AC = V.cat.accionesEntorno || [];
+  var html = '<div class="card"><h2>Noticias del trimestre</h2><p>Para cada noticia decidan tres cosas: <b>qué es</b> (oportunidad, amenaza o ruido), <b>qué postura toman</b> (ignorar, vigilar o actuar) y, si actúan, <b>qué acción</b> eligen y por qué. Algunas noticias son ruido. Las marcadas como "anticipada" llegan antes gracias a su vigilancia.</p>' +
+    ayuda('<b>Ignorar</b>: sin costo; si la señal era real, la enfrentan sin preparación. <b>Vigilar</b>: sin costo; el trimestre siguiente reciben un dato adicional para decidir mejor. <b>Actuar</b>: eligen una acción del menú y pagan su costo del presupuesto de innovación. Si la noticia se cumple y la acción responde a ella, reduce el golpe de una amenaza o adelanta el beneficio de una oportunidad; si la acción no tiene que ver con lo que pasó, o la noticia era un rumor, el dinero se pierde. El menú es el mismo para todas las noticias: decidir cuál conviene es parte del desafío.', 4, 'Señal');
   if (!V.noticias.length) html += '<p class="muted">No hay noticias.</p>';
   V.noticias.forEach(function (n) {
-    var r = D.respuestas[n.id] || 'ignorar';
-    html += '<div style="padding:8px 0;border-bottom:1px solid #eee"><div>' + esc(n.texto) + (n.anticipada ? ' <span class="tag ok">anticipada</span>' : '') + '</div><div class="inline" style="margin-top:4px"><b class="muted">Es:</b>' +
+    var r = D.respuestas[n.id] || 'ignorar'; if (r === 'preparar') r = 'actuar';
+    html += '<div class="ent-not"><div class="ent-txt">' + esc(n.texto) + (n.anticipada ? ' <span class="tag ok">anticipada</span>' : '') + '</div><div class="inline"><b class="muted">Es:</b>' +
       ['oportunidad', 'amenaza', 'ruido'].map(function (o) { return '<label class="chk"><input type="radio" name="n_' + n.id + '" data-not="' + n.id + '" value="' + o + '"' + (D.noticias[n.id] === o ? ' checked' : '') + '> ' + o.charAt(0).toUpperCase() + o.slice(1) + '</label>'; }).join('') +
-      '<b class="muted" style="margin-left:12px">Respuesta:</b>' + [['ignorar', 'Ignorar'], ['vigilar', 'Vigilar'], ['preparar', 'Preparar (' + bs(g.costoPreparar) + ')']].map(function (o) { return '<label class="chk"><input type="radio" name="r_' + n.id + '" data-resp="' + n.id + '" value="' + o[0] + '"' + (r === o[0] ? ' checked' : '') + '> ' + o[1] + '</label>'; }).join('') + '</div></div>';
+      '<b class="muted" style="margin-left:12px">Postura:</b>' + [['ignorar', 'Ignorar'], ['vigilar', 'Vigilar'], ['actuar', 'Actuar']].map(function (o) { return '<label class="chk"><input type="radio" name="r_' + n.id + '" data-resp="' + n.id + '" data-rerender="1" value="' + o[0] + '"' + (r === o[0] ? ' checked' : '') + '> ' + o[1] + '</label>'; }).join('') + '</div>';
+    if (r === 'actuar') {
+      var base = 'acciones.' + n.id, ac = D.acciones[n.id] || {}, A = AC.filter(function (x) { return x.id === ac.a; })[0];
+      html += '<div class="ent-acc"><div class="grid g2"><div><label>Acción</label>' + sel(base + '.a', [['', '— Elijan una acción —']].concat(AC.map(function (x) { return [x.id, x.nombre + ' (' + bs(x.costo) + ')']; })), 'data-rerender="1"') + '</div>' +
+        (A && A.seg ? '<div><label>Segmento</label>' + sel(base + '.seg', [['', '— Elijan un segmento —']].concat(V.cat.segmentos.map(function (sg) { return [sg.id, sg.id + ' ' + sg.nombre]; }))) + '</div>' : '<div></div>') + '</div>' +
+        (A ? '<p class="muted" style="margin:4px 0">' + esc(A.desc) + '</p>' : '') +
+        '<label>¿Por qué esta acción responde a la noticia? (una línea)</label>' + inp(base + '.porque', 'text', 'maxlength="200" placeholder="Ej.: nuestros envases son importados; si faltan divisas, subirán de precio."') + '</div>';
+    }
+    html += '</div>';
   });
   html += '</div>';
   var sg = V.estado.seguimiento || [];
   if (sg.length) html += '<div class="card"><h2>Lo que averiguaron de las noticias que vigilaron</h2><ul class="fb">' + sg.map(function (x) { return '<li><b>' + esc(x.texto) + '</b><br>' + esc(x.dato) + '</li>'; }).join('') + '</ul></div>';
   var ev = V.estado.noticiasEval || [];
-  if (ev.length) html += '<div class="card"><h2>Su lectura del trimestre anterior</h2><table><tr><th>Noticia</th><th>Su clasificación</th><th>Lo que era</th><th>Su respuesta</th><th></th></tr>' + ev.map(function (e) { return '<tr><td>' + esc(e.texto) + '</td><td>' + esc(e.clasif) + '</td><td>' + esc(e.real === 'ambas' ? 'oportunidad y amenaza' : e.real) + '</td><td>' + esc(e.resp || 'ignorar') + '</td><td>' + (e.ok ? '<span class="tag ok">acierto</span>' : '<span class="tag mal">error</span>') + '</td></tr>'; }).join('') + '</table></div>';
+  if (ev.length) html += '<div class="card"><h2>Su lectura del trimestre anterior</h2><table><tr><th>Noticia</th><th>Su clasificación</th><th>Lo que era</th><th>Su respuesta y lo que logró</th><th>Clasificación</th></tr>' + ev.map(function (e) { return '<tr><td>' + esc(e.texto) + '</td><td>' + esc(e.clasif) + '</td><td>' + esc(e.real === 'ambas' ? 'oportunidad y amenaza' : e.real) + '</td><td>' + esc(e.resp === 'actuar' ? 'Actuar: ' + ((V.cat.accionesEntorno || []).filter(function (x) { return x.id === e.accion; }).map(function (x) { return x.nombre; })[0] || '—') + (e.seg ? ' (' + e.seg + ')' : '') : (e.resp || 'ignorar')) + (e.efecto ? '<div class="muted" style="font-size:12px">' + esc(e.efecto) + '</div>' : '') + '</td><td>' + (e.ok ? '<span class="tag ok">acierto</span>' : '<span class="tag mal">error</span>') + '</td></tr>'; }).join('') + '</table></div>';
   if (V.flags.c4Disponible) html += '<div class="card"><h2>Respuesta a la startup de bebidas vegetales</h2><p>Puedes responder una sola vez entre T10 y T16.</p>' + sel('respuestaC4', [['', 'No responder por ahora'], ['alianza', 'Alianza (' + bs(V.cat.general.costoAlianzaC4) + ' de caja)'], ['adquisicion', 'Adquisición (' + bs(V.cat.general.costoAdquisicionC4) + ' de caja)']]) + '<p class="muted">También puedes competir con tus propios productos o con una unidad autónoma (Estrategia anual).</p></div>';
   if (V.flags.licitacion) html += '<div class="card"><h2>Licitación de alimentación escolar y universitaria</h2>' + chkB('licitacion', 'Postular (requisito: un producto con saludable ≥ 6 y nutrición ≥ 6)') + '</div>';
   return html;

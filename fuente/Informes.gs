@@ -233,6 +233,28 @@ var EFECTO_PREP_ = {
   divisas: 'la escasez de divisas encarecerá sus envases la mitad (compraron por adelantado)',
   startup: 'su oferta para universitarios tendrá 5 % más de atractivo mientras la startup compita (prepararon la respuesta)'
 };
+/** Efecto concreto de estar preparado (nivel 1 = completo, 0,5 = parcial). */
+function efectoPrepTxt_(cl, n) {
+  if (cl === 'sequia') return 'si llega la sequía, su leche subirá ' + (8 - 4 * n) + ' % en vez de 8 %';
+  if (cl === 'bloqueos') return 'en los bloqueos perderán ' + String(15 - 7 * n).replace('.', ',') + ' % de ventas en vez de 15 %';
+  if (cl === 'divisas') return 'con la escasez de divisas sus envases subirán Bs ' + (0.40 - 0.20 * n).toFixed(2).replace('.', ',') + ' por litro en vez de Bs 0,40';
+  if (cl === 'etiquetado') return 'el sello frontal les quitará ' + (n === 1 ? 'la mitad del' : 'tres cuartos del') + ' atractivo que pierden los demás';
+  if (cl === 'startup') return 'su oferta para universitarios tendrá ' + String(5 * n).replace('.', ',') + ' % más de atractivo mientras la startup compita';
+  return '';
+}
+/** Nivel de preparación (0, 0,5 o 1) para un efecto del entorno. */
+function prepNivel_(W, k) { var v = W && W.prep && W.prep[k]; return v === true ? 1 : (Number(v) || 0); }
+var ACC_NOM_ = { leche: 'contratar un proveedor de leche de respaldo', envases: 'comprar envases importados por adelantado', etiqueta: 'reformular la receta y rediseñar la etiqueta', rutas: 'armar rutas alternativas y stock de seguridad', competidor: 'preparar un plan comercial contra el competidor', estudio: 'hacer un estudio rápido del segmento', campana: 'lanzar una campaña anticipada de marca' };
+var ACC_MEJOR_ = { sequia: 'asegurar un proveedor de leche de respaldo', bloqueos: 'armar rutas alternativas y stock de seguridad', divisas: 'comprar envases importados por adelantado', etiquetado: 'reformular la receta y rediseñar la etiqueta', startup: 'preparar un plan comercial contra el competidor en universitarios (S2)' };
+/** Qué tan bien responde la acción elegida al efecto real de la noticia: { nivel: 1 | 0.5 | 0, msg }. */
+function ajusteAccion_(a, seg, clave) {
+  var M = { sequia: { leche: 1, rutas: 0.5 }, bloqueos: { rutas: 1, leche: 0.5 }, divisas: { envases: 1, rutas: 0.5 }, etiquetado: { etiqueta: 1 } };
+  var nv = 0;
+  if (M[clave]) nv = M[clave][a] || 0;
+  else if (clave === 'startup') nv = a === 'competidor' ? (seg === 'S2' ? 1 : 0.5) : (a === 'campana' && seg === 'S2' ? 0.5 : 0);
+  else if (clave && clave.indexOf('op:') === 0) { var sid = clave.slice(3); nv = (a === 'estudio' || a === 'campana') ? (seg === sid ? 1 : 0) : 0; }
+  return { nivel: nv };
+}
 /** Dato adicional para una noticia que el equipo decidió vigilar. */
 function datoSeguimiento_(n) {
   if (n.tipo === 'ruido') return 'No aparecieron fuentes que confirmen esta información. Por ahora no hay evidencia de que sea real.';
