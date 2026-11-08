@@ -1,0 +1,28 @@
+# Publica la Edge Function "api" del Simulador de Innovación en Supabase.
+# Requiere el secreto SUPABASE_ACCESS_TOKEN (permiso solo Edge Functions read-write).
+name: Publicar Edge Function
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/api/**'
+      - '.github/workflows/desplegar-api.yml'
+  workflow_dispatch:
+concurrency:
+  group: desplegar-api
+  cancel-in-progress: false
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROYECTO: xlkjssypdayyaxwjokry
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Publicar función api
+        run: supabase functions deploy api --project-ref "$PROYECTO" --no-verify-jwt --use-api

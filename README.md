@@ -32,12 +32,12 @@ Simulador de negocios para la materia de Innovación (UAGRM). Esta versión reem
 2. **Datos iniciales**: en una computadora con Node 20+, ejecutar `node tools/semilla.mjs semilla.sql` y pegar el contenido de `semilla.sql` en el SQL Editor. Anotar la contraseña temporal que aparece en pantalla (no se guarda en ningún archivo). **No subir `semilla.sql` al repositorio.**
 3. **Edge Function**: desplegar `supabase/functions/api` con el nombre `api` y **verify_jwt = false** (la función usa su propio sistema de acceso). Archivos: `index.ts`, `nucleo.js`, `http.js`, `origen_codigo.js`.
    Variables opcionales (Edge Functions → Secrets):
-   - `ORIGENES_PERMITIDOS`: orígenes que pueden llamar a la API, separados por comas. Por defecto `https://jhonnyatilalijeron-ui.github.io,*` (el `*` es para pruebas; quitarlo al terminar).
-   - `URL_PUBLICA`: dirección de la pantalla (se usa en los enlaces de invitación). Por defecto `https://jhonnyatilalijeron-ui.github.io/simulador-innovacion/`.
+   - `ORIGENES_PERMITIDOS`: orígenes que pueden llamar a la API, separados por comas. Por defecto `https://atilayasociados.github.io,https://jhonnyatilalijeron-ui.github.io` (la segunda es la dirección antigua, se puede quitar cuando ya no se use).
+   - `URL_PUBLICA`: dirección de la pantalla (se usa en los enlaces de invitación). Por defecto `https://atilayasociados.github.io/simuladordeinnovacion/`.
    - `CORREO_SUPERADMIN`: por defecto `jdavidatila@gmail.com`.
 4. **GitHub Pages**: Settings → Pages → Deploy from a branch → `main` / carpeta `/docs`.
 5. **Logos (opcional)**: subir `docs/img/logo1.png`, `logo2.png`, `logo3.png`. Si no existen, la pantalla muestra el nombre de cada institución.
-6. Ingresar en `…/simulador-innovacion/?vista=docente` con `jdavidatila@gmail.com` y la contraseña temporal; el sistema obliga a cambiarla.
+6. Ingresar en `https://atilayasociados.github.io/simuladordeinnovacion/?vista=docente` con `jdavidatila@gmail.com` y la contraseña temporal; el sistema obliga a cambiarla.
 
 ### Cambiar la dirección pública
 
@@ -56,3 +56,13 @@ Si se cambia el nombre del repositorio o se usa un dominio propio: actualizar `U
 - Plan gratuito de Supabase: el proyecto se pausa tras 7 días sin uso (se reactiva desde el panel) y la Edge Function tiene límite de CPU por petición. Procesar un trimestre con 10 equipos tarda unos 20 ms de CPU en las pruebas locales.
 - Las peticiones que modifican una simulación se atienden de una en una (bloqueo por simulación); las de lectura no esperan.
 - La región del proyecto es us-east-1: cada acción tarda lo que tarda la red desde Bolivia (aprox. 150–300 ms) además del procesamiento.
+
+## Publicación automática del servidor (GitHub Actions)
+
+Cada `push` a `main` que cambie `supabase/functions/api/**` publica la Edge Function `api` en el proyecto
+`xlkjssypdayyaxwjokry` (`.github/workflows/desplegar-api.yml`). También se puede lanzar a mano desde la pestaña
+**Actions → Publicar Edge Function → Run workflow**. Usa el secreto `SUPABASE_ACCESS_TOKEN` del repositorio
+(token personal de Supabase con permiso solo de Edge Functions read-write sobre este proyecto).
+
+Flujo para cambiar la lógica del simulador: editar `fuente/` → `node build.js` → commit y push →
+`node tools/origen.mjs` → commit y push (este segundo push dispara la publicación).
