@@ -53,7 +53,7 @@ function prepararBorrador() {
   D.noticias = D.noticias || {}; D.proyectos = D.proyectos || {}; D.productos = D.productos || {}; D.respuestas = D.respuestas || {}; D.acciones = D.acciones || {}; D.decInformes = D.decInformes || {};
   (V.estado.informes || []).forEach(function (i) { if (i.requiere && i.t === V.partida.t - 1 && D.decInformes[i.id] === undefined && i.decision) D.decInformes[i.id] = i.decision; });
   D.investigacion = D.investigacion || { metodos: [], segmentos: [] };
-  D.investigacion.metodos = D.investigacion.metodos || []; D.investigacion.segmentos = D.investigacion.segmentos || [];
+  D.investigacion.metodos = D.investigacion.metodos || []; D.investigacion.segs = D.investigacion.segs || {};
   D.nuevosProyectos = D.nuevosProyectos || [];
   D._ini = D._ini || {};
   var O = V.estado.org;
@@ -162,7 +162,7 @@ document.addEventListener('change', function (ev) {
   } else if (el.dataset.not) { D.noticias[el.dataset.not] = el.value; }
   else if (el.dataset.resp) { D.respuestas[el.dataset.resp] = el.value; }
   else return;
-  if (el.dataset.rerender) render();
+  if (el.dataset.rerender || (el.dataset.arr && el.dataset.arr.indexOf('investigacion.segs.') === 0)) render();
   estimar();
 });
 function inp(path, tipo, attrs) { var v = getP(D, path); return '<input type="' + (tipo || 'text') + '" data-p="' + path + '" value="' + esc(v === undefined ? '' : v) + '" ' + (attrs || '') + '>'; }
@@ -319,19 +319,23 @@ function vInvestigacion() {
   };
 
   var html = '<div class="card"><h2>Investigación de este trimestre: empatizar con el cliente</h2><p>Al inicio no saben qué valora realmente cada segmento: investigar es la forma de averiguarlo antes de gastar en proyectos. Cada estudio llega como un informe cuando el docente procesa el trimestre, en <b>Resultados → Informes de investigación</b>. Allí deben escribir qué decisión toman con cada dato.</p>' +
-    ayuda('Cada método cuesta dinero y semanas-persona del equipo. Su presupuesto de innovación del año es ' + bs(pres) + ' y tienen 12 semanas-persona por trimestre: el pie de la pantalla les avisa si se pasan.', 3, 'latente') +
-    '<div class="scroll"><table><tr><th></th><th>Método</th><th>Qué recibirán</th><th class="n">Costo</th><th class="n">% del presupuesto del año</th><th class="n">Semanas</th></tr>' +
+    ayuda('Los estudios los realiza una consultora: cuestan dinero del presupuesto de innovación (' + bs(pres) + ' este año), pero <b>no consumen semanas-persona</b> de su equipo. Pueden comprar todos los que quieran si les alcanza el presupuesto. En los estudios de clientes y de marca, ustedes eligen <b>uno o dos segmentos</b> para cada estudio (el precio cubre los dos). Un estudio sin segmentos no se compra ni se cobra.', 3, 'latente') +
+    '<div class="scroll"><table><tr><th></th><th>Método</th><th>Qué recibirán</th><th>Segmentos que estudia</th><th class="n">Costo</th><th class="n">% del presupuesto del año</th></tr>' +
     V.cat.metodos.map(function (m) {
       var a = D.investigacion.metodos.indexOf(m.id) >= 0, q = QUE[m.id] || [m.desc, ''], rep = (E.ultMetodo || {})[m.id] === V.partida.t - 1, c = m.costo * (rep ? 1 + (V.cat.general.recargoRepeticion || 0.5) : 1);
-      return '<tr><td><input type="checkbox" data-arr="investigacion.metodos" value="' + m.id + '"' + (a ? ' checked' : '') + '></td><td><b>' + esc(m.nombre) + '</b><br><span class="muted">Familia ' + esc(m.fam || '') + '</span></td><td>' + esc(q[0]) + (q[1] ? '<br><span class="muted">' + esc(q[1]) + '</span>' : '') + '</td><td class="n">' + bs(c) + (rep ? '<br><span class="tag aviso">+50 % por repetir</span>' : '') + '</td><td class="n">' + (100 * c / pres).toFixed(1) + ' %</td><td class="n">' + m.sem + '</td></tr>';
+      var porSeg = ['encuesta', 'observacion', 'percepcion'].indexOf(m.id) >= 0, segsTd;
+      if (porSeg) segsTd = a ? '<div class="inv-segs">' + V.cat.segmentos.map(function (sg) { return chkA('investigacion.segs.' + m.id, sg.id, esc(sg.id + ' ' + sg.nombre), 2); }).join('') + '</div>' + (((D.investigacion.segs || {})[m.id] || []).length ? '' : '<span class="tag aviso">Elijan 1 o 2</span>') : '<span class="muted">Marquen el estudio para elegir 1 o 2 segmentos</span>';
+      else if (m.id === 'lideres') segsTd = '<span class="muted">El segmento del proyecto elegido abajo</span>';
+      else segsTd = '<span class="muted">Todo el mercado</span>';
+      return '<tr><td><input type="checkbox" data-arr="investigacion.metodos" data-rerender="1" value="' + m.id + '"' + (a ? ' checked' : '') + '></td><td><b>' + esc(m.nombre) + '</b><br><span class="muted">' + esc(({ A: 'Estudio de clientes', B: 'Estudio de mercado y competencia', C: 'Estudio de marca' })[m.fam] || '') + '</span></td><td>' + esc(q[0]) + (q[1] ? '<br><span class="muted">' + esc(q[1]) + '</span>' : '') + '</td><td>' + segsTd + '</td><td class="n">' + bs(c) + (rep ? '<br><span class="tag aviso">+50 % por repetir</span>' : '') + '</td><td class="n">' + (100 * c / pres).toFixed(1) + ' %</td></tr>';
     }).join('') + '</table></div>' +
-    '<div class="grid g2" style="margin-top:10px"><div><h3>Segmentos a estudiar (máximo 2)</h3>' + ayuda('La encuesta, la observación y el estudio de percepción estudian solo los segmentos marcados aquí. Repetir un mismo método en el trimestre siguiente cuesta 50 % más.') + V.cat.segmentos.map(function (s) { return chkA('investigacion.segmentos', s.id, esc(s.id + ' ' + s.nombre), 2); }).join('') + '</div><div>';
+    '<p class="muted" style="margin-top:6px">Repetir un mismo estudio en el trimestre siguiente cuesta 50 % más.</p><div style="margin-top:10px">';
   var act = E.proyectos.filter(function (p) { return p.estado === 'activo'; });
   html += '<h3>Proyecto que recibe las ideas de usuarios líderes</h3>';
   if (act.length) html += ayuda('Si contratan "Usuarios líderes", elijan a qué proyecto se suman sus 2 ideas. Conviene un proyecto del mismo segmento que estudian.', 3, 'Usuario líder') + sel('investigacion.proyectoLideres', [['', 'Elegir un proyecto…']].concat(act.map(function (p) { return [p.id, p.nombre + ' (' + p.segmento + ')']; })));
   else html += '<p class="muted">Todavía no tienen proyectos activos, por eso esta lista está vacía. Los usuarios líderes aportan ideas a un proyecto ya existente: creen primero un proyecto en <a href="#" onclick="irTab(\'proyectos\');return false">4. Proyectos</a> y contraten este método en el trimestre siguiente.</p>';
-  html += '</div></div></div>';
-  html += '<div class="card"><h2>Plan sugerido para el primer año</h2><ul class="fb"><li><b>T1:</b> encuesta de S1 y S2 (Bs 12.000) y estudio de la industria (Bs 18.000): 7,5 % del presupuesto.</li><li><b>T2:</b> observación del segmento donde quieran innovar (Bs 30.000), para descubrir necesidades latentes.</li><li><b>T3 o T4:</b> usuarios líderes para su proyecto principal (Bs 20.000), análisis de competidores antes de fijar precios (Bs 14.000) y, tras lanzar, percepción de marcas (Bs 16.000).</li></ul><p class="muted">Investigar todo en un solo trimestre costaría Bs 147.000 (37 % del año) y 21 semanas-persona: no alcanza. Es mejor repartirlo y ligar cada estudio a una decisión.</p></div>';
+  html += '</div></div>';
+  html += '<div class="card"><h2>Plan sugerido para el primer año</h2><ul class="fb"><li><b>T1:</b> encuesta de S1 y S2 (Bs 12.000) y estudio de la industria (Bs 18.000): 7,5 % del presupuesto.</li><li><b>T2:</b> observación del segmento donde quieran innovar (Bs 30.000), para descubrir necesidades latentes.</li><li><b>T3 o T4:</b> usuarios líderes para su proyecto principal (Bs 20.000), análisis de competidores antes de fijar precios (Bs 14.000) y, tras lanzar, percepción de marcas (Bs 16.000).</li></ul><p class="muted">Comprar todos los estudios en un solo trimestre costaría Bs 147.000 (37 % del presupuesto del año) y dejaría poco para los proyectos. Pueden hacerlo, pero suele convenir repartirlos y ligar cada estudio a una decisión.</p></div>';
   return html;
 }
 

@@ -1,0 +1,24 @@
+// Investigación: cada estudio con sus propios segmentos, sin semanas-persona, sin cobro si no se realiza.
+const { makeGas } = require('./gasmock');
+const G = makeGas(); G.instalar();
+const adm = G.apiLoginDocente(G.cfgGet_('CLAVE_DOCENTE')).token;
+const ok = (c, m) => { if (!c) { console.log('FALLA: ' + m); process.exit(1); } console.log('OK  ' + m); };
+const s1 = G.apiAdmin(adm, 'crearSimulacion', { nombre: 'Inv', sigla: 'COM505T', maxIntegrantes: 5, mandato: 'MA' });
+G.apiRegistrarEquipo(s1.codigo, { nombreEquipo: 'Halcones', pin: 'clave1', integrantes: [{ apPaterno: 'P', apMaterno: 'R', nombres: 'Ana', registro: '315001', celular: '' }] });
+G.apiAdmin(adm, 'abrir', { simId: s1.simId });
+const tk = G.apiLogin('315001', 'clave1', s1.simId).token;
+const todos = ['encuesta', 'observacion', 'extremos', 'lideres', 'industria', 'competidores', 'vigilancia', 'percepcion'];
+const dec = { hipotesis: 'Hipótesis del trimestre uno para probar.', productos: {}, decInformes: {}, investigacion: { metodos: todos, segs: { encuesta: ['S1', 'S2'], observacion: ['S4'], percepcion: [] } } };
+const est = G.apiEstimar(tk, dec);
+ok(est.semanas === 0 || est.sem === 0 || !(est.avisos || []).some(a => /semanas-persona estimadas/.test(a)), 'comprar todos los estudios no consume semanas-persona');
+ok(est.avisos.some(a => /Percepción.*elijan uno o dos segmentos/i.test(a)) && est.avisos.some(a => /Usuarios líderes: elijan el proyecto/.test(a)), 'avisa los estudios que no se comprarán (percepción sin segmentos, líderes sin proyecto)');
+const saldo0 = G.apiEstado(tk).estado.saldo;
+G.apiGuardar(tk, dec, true); G.apiAdmin(adm, 'procesar', { simId: s1.simId });
+const E = G.apiEstado(tk).estado, inf = E.informes.filter(x => x.t === 1);
+const enc = inf.filter(x => x.metodo === 'encuesta').map(x => x.segs[0]).sort(), obs = inf.filter(x => x.metodo === 'observacion').map(x => x.segs[0]);
+ok(JSON.stringify(enc) === '["S1","S2"]' && JSON.stringify(obs) === '["S4"]', 'cada estudio usa sus propios segmentos: encuesta S1 y S2, observación S4');
+ok(!inf.some(x => x.metodo === 'percepcion') && !inf.some(x => x.metodo === 'lideres'), 'percepción sin segmentos y líderes sin proyecto no se realizan');
+const gasto = saldo0 - E.saldo - 12500 /* estrategia anual de prueba: tiempo libre 10 % y reconocimiento */, esperado = 12000 + 30000 + 15000 + 18000 + 14000 + 22000;
+ok(Math.abs(gasto - esperado) < 1, 'solo se cobran los 6 estudios realizados: Bs ' + gasto.toLocaleString('es-BO') + ' (sin percepción ni líderes)');
+ok(inf.some(x => x.metodo === 'industria') && inf.some(x => x.metodo === 'competidores') && inf.some(x => x.metodo === 'vigilancia') && inf.some(x => x.metodo === 'extremos'), 'se compraron todos los demás aunque suman más de 12 semanas');
+console.log('INVESTIGACION OK');

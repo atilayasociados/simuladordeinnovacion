@@ -14,6 +14,8 @@ function segById_(P, id) { for (var i = 0; i < P.segmentos.length; i++) if (P.se
 function canalById_(P, id) { for (var i = 0; i < P.canales.length; i++) if (P.canales[i].id === id) return P.canales[i]; return null; }
 function ideaById_(P, id) { for (var i = 0; i < P.ideas.length; i++) if (P.ideas[i].id === id) return P.ideas[i]; return null; }
 function iniById_(P, id) { for (var i = 0; i < P.iniciativas.length; i++) if (P.iniciativas[i].id === id) return P.iniciativas[i]; return null; }
+var MET_SEG_ = ['encuesta', 'observacion', 'percepcion'];
+var MET_TIPO_ = { A: 'Estudio de clientes', B: 'Estudio de mercado y competencia', C: 'Estudio de marca' };
 function metById_(P, id) { for (var i = 0; i < P.metodos.length; i++) if (P.metodos[i].id === id) return P.metodos[i]; return null; }
 function esInicioAnio_(t) { return (t - 1) % 4 === 0; }
 function anioDe_(t) { return Math.floor((t - 1) / 4) + 1; }
@@ -358,7 +360,9 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   });
 
   // 4. investigación: cada método genera un informe con estructura común y queda fechado
-  var inv = dec.investigacion || {}, segsInv = (inv.segmentos || []).slice(0, 2);
+  var inv = dec.investigacion || {};
+  // Cada estudio por segmentos lleva sus propios 1 o 2 segmentos (versiones anteriores: una lista común).
+  var segsDe = function (mid) { var L = (inv.segs && Array.isArray(inv.segs[mid])) ? inv.segs[mid] : (inv.segmentos || []); return L.filter(function (x) { return !!segById_(P, x); }).slice(0, 2); };
   (dec.decInformes ? Object.keys(dec.decInformes) : []).forEach(function (iid) {
     var inf = S.informes.filter(function (x) { return x.id === iid; })[0];
     if (inf) inf.decision = String(dec.decInformes[iid] || '').slice(0, 800);
@@ -367,12 +371,15 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   (inv.metodos || []).forEach(function (mid) {
     var m = metById_(P, mid); if (!m) return;
     var cm = costoMetodo_(P, S, m, t);
-    if (!gastar(cm.costo * factorMadurez_(O), semMadurez_(O, m.sem), m.nombre + (cm.recargo ? ' (con recargo por repetir)' : ''))) return;
+    // no se compra (ni se cobra) un estudio que no puede realizarse
+    if (MET_SEG_.indexOf(mid) >= 0 && !segsDe(mid).length) { fb.push(m.nombre + ': no eligieron segmentos, así que no se compró ni se cobró.'); return; }
+    if (mid === 'lideres' && !S.proyectos.some(function (p) { return p.id === inv.proyectoLideres && p.estado === 'activo'; })) { fb.push('Usuarios líderes: no eligieron un proyecto activo que reciba sus ideas, así que no se compró ni se cobró.'); return; }
+    // los estudios los hace una consultora: cuestan dinero, no semanas-persona del equipo
+    if (!gastar(cm.costo * factorMadurez_(O), 0, m.nombre + (cm.recargo ? ' (con recargo por repetir)' : ''))) return;
     usados[mid] = true;
     if (cm.recargo) fb.push(m.nombre + ' costó 50 % más por repetirse en trimestres consecutivos.');
     if (mid === 'encuesta' || mid === 'observacion' || mid === 'percepcion') {
-      var lista = segsInv.length ? segsInv : (mid === 'percepcion' ? ['S1'] : []);
-      if (!lista.length) fb.push(m.nombre + ': no eligieron segmentos, el estudio no se realizó.');
+      var lista = segsDe(mid);
       lista.forEach(function (sid) {
         var seg = segById_(P, sid); if (!seg) return;
         if (mid === 'percepcion') { var ip = informePercepcion_(P, S, seg, t, rng); nuevoInforme_(S, m, t, { segs: [sid], pregunta: ip.pregunta, ficha: ip.ficha, limites: ip.limites, datos: ip.datos }); return; }
@@ -394,7 +401,7 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
       });
     } else if (mid === 'extremos') {
       S.conocimiento.tendencia = 'Los usuarios extremos anticipan que la sostenibilidad ganará peso en universitarios (S2) y deportistas (S4) hacia el año 5, y que los productos altos en azúcar serán rechazados.';
-      segsInv.forEach(function (sid) { S.iq[sid] = Math.min(1, (S.iq[sid] || 0) + 0.05); });
+      ['S2', 'S4'].forEach(function (sid) { S.iq[sid] = Math.min(1, (S.iq[sid] || 0) + 0.05); });
       var ie = informeExtremos_(P, S, t); nuevoInforme_(S, m, t, { pregunta: ie.pregunta, ficha: ie.ficha, limites: ie.limites, datos: ie.datos });
     } else if (mid === 'competidores') {
       var ic = informeCompetidores_(P, S, t); nuevoInforme_(S, m, t, { pregunta: ic.pregunta, ficha: ic.ficha, limites: ic.limites, datos: ic.datos });
@@ -987,8 +994,14 @@ function estimarCostos_(P, S, dec, t) {
   costo += (Number(O.tiempoLibre) || 0) * g.costoTiempoLibrePunto;
   var inv = dec.investigacion || {};
   S = migrar_(copy_(S), P);
-  (inv.metodos || []).forEach(function (mid) { var m = metById_(P, mid); if (m) { var cm = costoMetodo_(P, S, m, t); costo += cm.costo * factorMadurez_(O); sem += semMadurez_(O, m.sem); if (cm.recargo) avisos.push(m.nombre + ' cuesta 50 % más porque lo compraron el trimestre anterior.'); } });
-  if ((inv.metodos || []).some(function (m) { return m === 'encuesta' || m === 'observacion'; }) && !(inv.segmentos || []).length) avisos.push('Elige al menos un segmento para la encuesta u observación.');
+  (inv.metodos || []).forEach(function (mid) {
+    var m = metById_(P, mid); if (!m) return;
+    var segs = (inv.segs && Array.isArray(inv.segs[mid])) ? inv.segs[mid] : (inv.segmentos || []);
+    if (MET_SEG_.indexOf(mid) >= 0 && !segs.length) { avisos.push(m.nombre + ': elijan uno o dos segmentos; sin segmentos no se compra.'); return; }
+    if (mid === 'lideres' && !inv.proyectoLideres) { avisos.push('Usuarios líderes: elijan el proyecto que recibirá sus ideas; si no, no se compra.'); return; }
+    var cm = costoMetodo_(P, S, m, t); costo += cm.costo * factorMadurez_(O);
+    if (cm.recargo) avisos.push(m.nombre + ' cuesta 50 % más porque lo compraron el trimestre anterior.');
+  });
   Object.keys(dec.respuestas || {}).forEach(function (k) {
     if (dec.respuestas[k] === 'preparar') costo += g.costoPreparar;
     if (dec.respuestas[k] === 'actuar') {

@@ -49,7 +49,7 @@ var MANUAL = [
     ['Resultados', 'Qué pasó al procesar el trimestre: resumen, informes de investigación, evaluación de sus conceptos y estados financieros.'],
     ['Aprender', 'Este manual, los temas de innovación, el glosario y la bitácora del equipo.']]],
   ['h', 'El pie de la pantalla'],
-  ['p', 'Mientras están en Decidir, abajo aparece una barra con el <b>costo estimado de innovación</b> de lo que van eligiendo, las <b>semanas-persona</b> que consumen (tienen 12 por trimestre) y avisos en amarillo si algo falta o se pasan. Revísenla antes de enviar.'],
+  ['p', 'Mientras están en Decidir, abajo aparece una barra con el <b>costo estimado de innovación</b> de lo que van eligiendo, las <b>semanas-persona</b> que consumen sus proyectos y capacitaciones (tienen 12 por trimestre) y avisos en amarillo si algo falta o se pasan. Revísenla antes de enviar.'],
   ['h', 'Guardar y enviar'],
   ['lista', ['<b>Guardar borrador</b>: guarda lo que llevan. Cualquier integrante puede seguir desde otra computadora.',
     '<b>Enviar decisiones</b>: entrega las decisiones del trimestre. Pueden volver a enviar cuantas veces quieran mientras el trimestre esté abierto: <b>vale el último envío</b>.',
@@ -91,7 +91,7 @@ var MANUAL = [
   ['p', 'Al cierre de cada año el directorio fija el presupuesto siguiente según su índice de vitalidad y cuánto superaron a la empresa gemela. La mitad del presupuesto que no gastaron pasa al año siguiente.'],
   ['ojo', 'Si la caja se vuelve negativa, el banco da un préstamo de emergencia con interés alto (4 % por trimestre). Cuiden la caja.'],
   ['h', 'Semanas-persona'],
-  ['p', 'Su equipo de innovación tiene <b>12 semanas-persona por trimestre</b>. Cada método de investigación, técnica de ideación, prueba o piloto consume semanas. Si se pasan, el pie de la pantalla les avisa: no pueden hacer todo a la vez.']
+  ['p', 'Su equipo de innovación tiene <b>12 semanas-persona por trimestre</b>. Cada técnica de ideación, prueba de prototipo, piloto o capacitación consume semanas (los estudios de investigación no, porque los hace una consultora). Si se pasan, el pie de la pantalla les avisa: no pueden hacer todo a la vez.']
 ]},
 { id: 'ronda', t: 'Una ronda paso a paso', r: 'La rutina de cada trimestre, de la lectura a la bitácora.', b: [
   ['p', 'Cada trimestre se juega igual. El docente <b>abre</b> el trimestre, ustedes deciden y envían, el docente <b>procesa</b> y ustedes reciben los resultados.'],
@@ -166,21 +166,25 @@ var MANUAL = [
   ['ir', [['Ir a 2. Estrategia anual', 'anual']]]
 ]},
 { id: 'investigacion', t: 'Paso 3. Investigación', r: 'Qué método elegir, cuánto cuesta y cómo usar el informe.', b: [
-  ['p', 'Al inicio no saben qué valora cada segmento. Investigar es la forma barata de averiguarlo antes de gastar en proyectos. Marquen los métodos y hasta <b>2 segmentos</b> a estudiar. Cada estudio llega como <b>informe</b> cuando el docente procesa el trimestre.'],
-  ['tabla', ['Método', 'Qué reciben', 'Costo', 'Semanas'], [
-    ['Encuesta', 'La importancia que declaran los clientes, con margen de error. Subestima lo que no dicen.', 'Bs 12.000', '2'],
-    ['Observación etnográfica', 'Persona, citas, recorrido del cliente, mapa de empatía y la necesidad latente.', 'Bs 30.000', '6'],
-    ['Usuarios extremos', 'Una tendencia que puede volverse común.', 'Bs 15.000', '3'],
-    ['Usuarios líderes', '2 conceptos de alta calidad para un proyecto activo.', 'Bs 20.000', '4'],
-    ['Estudio de la industria', 'Participación de cada empresa del curso y tamaño de cada segmento (un trimestre de retraso).', 'Bs 18.000', '1'],
-    ['Análisis de competidores', 'Precio, envase, mensaje, canales y presencia de cada rival.', 'Bs 14.000', '1'],
-    ['Vigilancia del entorno', 'Boletín de señales durante 4 trimestres; las noticias llegan un trimestre antes.', 'Bs 22.000', '2'],
-    ['Percepción de marcas', 'Mapa perceptual y curva de valor frente al valor real de su producto.', 'Bs 16.000', '2']]],
-  ['p', 'Repetir un método en el trimestre siguiente cuesta <b>50 % más</b>.'],
+  ['p', 'Al inicio no saben qué valora cada segmento. Investigar es la forma barata de averiguarlo antes de gastar en proyectos. Los estudios los hace una consultora: cuestan dinero del presupuesto de innovación, pero <b>no consumen semanas-persona</b> del equipo. Pueden comprar todos los que quieran si les alcanza el presupuesto. Cada estudio llega como <b>informe</b> cuando el docente procesa el trimestre.'],
+  ['pasos', ['Marquen los estudios que quieren comprar.',
+    'En los estudios de clientes y de marca (encuesta, observación y percepción), elijan <b>uno o dos segmentos para cada estudio</b>. El precio cubre los dos. Pueden, por ejemplo, encuestar S1 y S2 y observar S4.',
+    'En usuarios líderes, elijan abajo el proyecto que recibirá sus ideas.',
+    'Revisen el costo en el pie de la pantalla.']],
+  ['tabla', ['Estudio', 'Tipo', 'Qué reciben', 'Segmentos', 'Costo'], [
+    ['Encuesta', 'Clientes', 'La importancia que declaran los clientes, con margen de error. Subestima lo que no dicen.', '1 o 2, a elección', 'Bs 12.000'],
+    ['Observación etnográfica', 'Clientes', 'Persona, citas, recorrido del cliente, mapa de empatía y la necesidad latente.', '1 o 2, a elección', 'Bs 30.000'],
+    ['Usuarios extremos', 'Clientes', 'Una tendencia que puede volverse común.', 'Todo el mercado', 'Bs 15.000'],
+    ['Usuarios líderes', 'Clientes', '2 conceptos de alta calidad para un proyecto activo.', 'El del proyecto', 'Bs 20.000'],
+    ['Estudio de la industria', 'Mercado', 'Participación de cada empresa del curso y tamaño de cada segmento (un trimestre de retraso).', 'Todo el mercado', 'Bs 18.000'],
+    ['Análisis de competidores', 'Mercado', 'Precio, envase, mensaje, canales y presencia de cada rival.', 'Todo el mercado', 'Bs 14.000'],
+    ['Vigilancia del entorno', 'Mercado', 'Boletín de señales durante 4 trimestres; las noticias llegan un trimestre antes.', 'Todo el mercado', 'Bs 22.000'],
+    ['Percepción de marcas', 'Marca', 'Mapa perceptual y curva de valor frente al valor real de su producto.', '1 o 2, a elección', 'Bs 16.000']]],
+  ['p', 'Repetir un estudio en el trimestre siguiente cuesta <b>50 % más</b>. Un estudio que no puede hacerse (sin segmentos, o usuarios líderes sin proyecto) <b>no se compra ni se cobra</b>.'],
   ['h', 'Cómo leer un informe'],
   ['p', 'Todos los informes tienen la misma estructura: <b>pregunta</b>, <b>método y muestra</b>, <b>hallazgos</b>, <b>limitaciones</b> y <b>¿qué decisión tomamos con este dato?</b>. Ese último campo es obligatorio para enviar el trimestre siguiente.'],
   ['ej', 'Hallazgo: S2 dice valorar el precio, pero la observación muestra que no compra lácteos porque no los puede tomar con una mano en el micro. Decisión: creamos un proyecto para S2 centrado en conveniencia y fijamos un precio objetivo de Bs 20 por litro.'],
-  ['idea', 'Comparen métodos sobre el mismo segmento (triangulación). Si la encuesta y la observación no coinciden, pesa más lo que el cliente hace que lo que dice. Repartan los estudios en el año: investigar todo en un trimestre no alcanza ni en dinero ni en semanas.'],
+  ['idea', 'Comparen métodos sobre el mismo segmento (triangulación). Si la encuesta y la observación no coinciden, pesa más lo que el cliente hace que lo que dice. Pueden comprar todos los estudios a la vez, pero cuesten lo que cuesten salen del mismo presupuesto que los proyectos: liguen cada estudio a una decisión.'],
   ['ir', [['Ir a 3. Investigación', 'investigacion'], ['Ver mis informes', 'informes']]]
 ]},
 { id: 'proyectos', t: 'Paso 4. Proyectos: cómo funcionan', r: 'Las ocho fases, una tarea por trimestre, acelerar y detener.', b: [
