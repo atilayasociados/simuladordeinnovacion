@@ -25,4 +25,4 @@ jobs:
         with:
           version: latest
       - name: Publicar función api
-        run: supabase functions deploy api --project-ref "$PROYECTO" --no-verify-jwt --use-api
+        run: supabase functions deploy api --project-ref "$PROYECTO" --no-verify-jwt --use-api --yes
