@@ -74,6 +74,12 @@ function prepararBorrador() {
 }
 function decisionLimpia() {
   var d = JSON.parse(JSON.stringify(D));
+  // investigación: segmentos propios por estudio; 'segmentos' (unión) solo por compatibilidad con servidores anteriores
+  if (d.investigacion) {
+    var sg = d.investigacion.segs = d.investigacion.segs || {}, u = [];
+    ['encuesta', 'observacion', 'percepcion'].forEach(function (m) { if (!Array.isArray(sg[m])) sg[m] = []; sg[m].forEach(function (x) { if (u.indexOf(x) < 0) u.push(x); }); });
+    d.investigacion.segmentos = u.slice(0, 2);
+  }
   Object.keys(d.proyectos).forEach(function (pid) {
     var a = d.proyectos[pid];
     a.iniciativas = Object.keys((D._ini || {})[pid] || {}).map(function (id) { return { id: id, premio: D._ini[pid][id] }; });

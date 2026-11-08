@@ -139,7 +139,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = '1793584d6bf0';
+  var V0 = '3b68d62bc3e5';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -268,6 +268,12 @@ function prepararBorrador() {
 }
 function decisionLimpia() {
   var d = JSON.parse(JSON.stringify(D));
+  // investigación: segmentos propios por estudio; 'segmentos' (unión) solo por compatibilidad con servidores anteriores
+  if (d.investigacion) {
+    var sg = d.investigacion.segs = d.investigacion.segs || {}, u = [];
+    ['encuesta', 'observacion', 'percepcion'].forEach(function (m) { if (!Array.isArray(sg[m])) sg[m] = []; sg[m].forEach(function (x) { if (u.indexOf(x) < 0) u.push(x); }); });
+    d.investigacion.segmentos = u.slice(0, 2);
+  }
   Object.keys(d.proyectos).forEach(function (pid) {
     var a = d.proyectos[pid];
     a.iniciativas = Object.keys((D._ini || {})[pid] || {}).map(function (id) { return { id: id, premio: D._ini[pid][id] }; });
