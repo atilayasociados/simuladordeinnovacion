@@ -8,7 +8,7 @@ import { crearManejador } from './http.js';
 
 // Orígenes permitidos (CORS). Cambie esta lista si cambia la dirección pública del simulador,
 // o defina la variable de entorno ORIGENES_PERMITIDOS (separados por comas). "*" permite cualquiera.
-const ORIGENES = (Deno.env.get('ORIGENES_PERMITIDOS') || 'https://atilayasociados.github.io,https://jhonnyatilalijeron-ui.github.io').split(',').map((s) => s.trim());
+const ORIGENES = (Deno.env.get('ORIGENES_PERMITIDOS') || 'https://atilayasociados.github.io').split(',').map((s) => s.trim());
 const URL_PUBLICA = Deno.env.get('URL_PUBLICA') || 'https://atilayasociados.github.io/simuladordeinnovacion/';
 const CORREO_SUPERADMIN = Deno.env.get('CORREO_SUPERADMIN') || 'jdavidatila@gmail.com';
 

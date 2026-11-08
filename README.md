@@ -32,7 +32,7 @@ Simulador de negocios para la materia de Innovación (UAGRM). Esta versión reem
 2. **Datos iniciales**: en una computadora con Node 20+, ejecutar `node tools/semilla.mjs semilla.sql` y pegar el contenido de `semilla.sql` en el SQL Editor. Anotar la contraseña temporal que aparece en pantalla (no se guarda en ningún archivo). **No subir `semilla.sql` al repositorio.**
 3. **Edge Function**: desplegar `supabase/functions/api` con el nombre `api` y **verify_jwt = false** (la función usa su propio sistema de acceso). Archivos: `index.ts`, `nucleo.js`, `http.js`, `origen_codigo.js`.
    Variables opcionales (Edge Functions → Secrets):
-   - `ORIGENES_PERMITIDOS`: orígenes que pueden llamar a la API, separados por comas. Por defecto `https://atilayasociados.github.io,https://jhonnyatilalijeron-ui.github.io` (la segunda es la dirección antigua, se puede quitar cuando ya no se use).
+   - `ORIGENES_PERMITIDOS`: orígenes que pueden llamar a la API, separados por comas. Por defecto `https://atilayasociados.github.io`.
    - `URL_PUBLICA`: dirección de la pantalla (se usa en los enlaces de invitación). Por defecto `https://atilayasociados.github.io/simuladordeinnovacion/`.
    - `CORREO_SUPERADMIN`: por defecto `jdavidatila@gmail.com`.
 4. **GitHub Pages**: Settings → Pages → Deploy from a branch → `main` / carpeta `/docs`.
