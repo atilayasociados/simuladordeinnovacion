@@ -14,6 +14,7 @@ function migrar_(S, P) {
   S.nextInf = S.nextInf || 1;
   if (!S.contrato) S.contrato = normContrato_(P, P.contratoInicial);
   if (!S.hist0 || !S.hist0.length) S.hist0 = anio0_(P);
+  if (S.t === 0 && !(S.informes || []).some(function (i) { return i.t === 0 && i.metodo === 'industria'; })) informeInicialMercado_(P, S);
   var O = S.org;
   if (O.nucleo === undefined) {
     // desde el esquema anterior: incremental/radical y clientes actuales/nuevos
@@ -40,6 +41,18 @@ function portafolioAInterno_(O) {
   O.inc = 100 - O.rad;
   O.nue = Math.round(Math.min(100, a + tr));
   O.act = 100 - O.nue;
+}
+
+/** Informe de Mercado del T0: lo entrega el contrato heredado (C.1 cada trimestre desde el Año 0), así que la empresa
+ * abre el T1 con datos. Se calcula para una sola empresa; la pantalla reparte la participación entre las empresas del curso. */
+function informeInicialMercado_(P, S) {
+  var keep = MKT_; setMercado_(1, [], []);
+  try {
+    var r = informeIndustria_(P, S, { hist: [] }, 1, { sequia: 0, bloqueos: [], ruido: {} });
+    r.datos.n1 = true;
+    var inf = nuevoInforme_(S, metById_(P, 'industria'), 0, { pregunta: r.pregunta, ficha: r.ficha + ' Entregado por su contrato continuo heredado (datos al cierre del Año 0).', limites: r.limites, datos: r.datos });
+    inf.requiere = false; inf.origen = 'contrato';
+  } finally { MKT_ = keep; }
 }
 
 /** Costo de un estudio: fijo, o base + precio por segmento (1 a 5 segmentos). */

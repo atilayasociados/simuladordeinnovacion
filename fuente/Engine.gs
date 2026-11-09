@@ -37,13 +37,19 @@ function normContrato_(P, C) {
 /** ¿Toca entrega del contrato en el trimestre t? 4 = cada trimestre; 2 = 1.º y 3.º del año; 1 = 1.º del año. */
 function entregaContrato_(t, veces) { var q = (t - 1) % 4; return veces === 4 || (veces === 2 && (q === 0 || q === 2)) || (veces === 1 && q === 0); }
 /** Costo del contrato en el trimestre t (con descuento). */
-function costoContratoTrim_(P, C, t) {
+/** Costo del contrato en el trimestre t (con descuento). parte: 'op' = seguimiento (A, C, D; presupuesto operativo),
+ * 'cli' = estudios de clientes (B; se reservan del presupuesto de innovación al inicio del año), omitida = todo. */
+function costoContratoTrim_(P, C, t, parte) {
   var K = normContrato_(P, C), tot = 0;
-  Object.keys(K).forEach(function (mid) { if (!entregaContrato_(t, K[mid].veces)) return; var m = metById_(P, mid); tot += costoMetodo_(P, null, m, t, (K[mid].segs || []).length).costo * (1 - (P.descuentoContrato || 0)); });
+  Object.keys(K).forEach(function (mid) {
+    if (!entregaContrato_(t, K[mid].veces)) return; var m = metById_(P, mid);
+    if (parte === 'op' && m.grupo === 'B') return; if (parte === 'cli' && m.grupo !== 'B') return;
+    tot += costoMetodo_(P, null, m, t, (K[mid].segs || []).length).costo * (1 - (P.descuentoContrato || 0));
+  });
   return Math.round(tot);
 }
 /** Costo anual del contrato (con descuento). */
-function costoContratoAnual_(P, C) { var tot = 0; for (var q = 1; q <= 4; q++) tot += costoContratoTrim_(P, C, q); return tot; }
+function costoContratoAnual_(P, C, parte) { var tot = 0; for (var q = 1; q <= 4; q++) tot += costoContratoTrim_(P, C, q, parte); return tot; }
 function esInicioAnio_(t) { return (t - 1) % 4 === 0; }
 function anioDe_(t) { return Math.floor((t - 1) / 4) + 1; }
 
@@ -234,7 +240,7 @@ function anio0_(P) {
   var sched = { sequia: 0, bloqueos: [], ruido: {} }, H = [];
   try {
     for (var t = -3; t <= 0; t++) {
-      var r = stepWorld_(P, W, null, t, sched, { gastoInnov: 0, gastoCap: 0, gastoOtros: 0, gastoContrato: costoContratoTrim_(P, P.contratoInicial, ((t - 1) % 4 + 4) % 4 + 1), writeoff: 0, capexExtra: 0, licitacion: false, adquisicionCaja: 0, fb: [] });
+      var r = stepWorld_(P, W, null, t, sched, { gastoInnov: 0, gastoCap: 0, gastoOtros: 0, gastoContrato: costoContratoTrim_(P, P.contratoInicial, ((t - 1) % 4 + 4) % 4 + 1, 'op'), writeoff: 0, capexExtra: 0, licitacion: false, adquisicionCaja: 0, fb: [] });
       r.t = t; r.anio0 = true; H.push(r);
     }
   } finally { MKT_ = keep; }
@@ -320,6 +326,7 @@ function titularInforme_(inf) {
     if (inf.metodo === 'extremos' && d.tendencias && d.tendencias.length) return 'Usuarios extremos: ' + d.tendencias[0].texto;
     if (inf.metodo === 'percepcion') return 'Posicionamiento' + seg + ': mapa perceptual y curva de valor de las marcas (ver informe).';
     if (inf.metodo === 'vigilancia' && d.senales) return 'Vigilancia: ' + d.senales.length + ' señales del entorno con su nivel de confianza (ver informe).';
+    if (inf.metodo === 'industria' && d.n1) return 'Mercado (cierre del Año 0, contrato heredado): participación de cada empresa y tamaño de los segmentos (ver informe).';
     if (inf.metodo === 'industria' && d.filas) { var yo = d.filas.filter(function (f) { return f.yo; })[0]; return 'Mercado: su participación estimada está entre ' + (yo ? yo.lo + ' % y ' + yo.hi + ' %' : 's/d') + '; líder: ' + d.filas[0].nombre + '.'; }
     if (inf.metodo === 'competidores') return 'Competidores: ' + (d.filas || []).length + ' rivales en góndola' + (d.entrantes && d.entrantes.length ? '; señales de ' + d.entrantes.map(function (e) { return e.quien.toLowerCase(); }).join(' y ') + '.' : '; sin señales de nuevos entrantes.');
     if (inf.metodo === 'proveedores' && d.filas) { var al = d.filas.filter(function (f) { return !/^Estable|^Sin alertas|normaliza/.test(f.tendencia); }); return 'Proveedores: ' + (al.length ? al.map(function (f) { return f.insumo.toLowerCase() + ' — ' + f.tendencia.split(':')[0].toLowerCase(); }).join('; ') : 'sin alertas de costos') + '.'; }
@@ -422,6 +429,14 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
     if (t > 1) { Object.keys(S.iq).forEach(function (k) { S.iq[k] = Math.max(0, S.iq[k] - 0.05); }); }
     var A = dec.anual;
     if (A && A.contrato && typeof A.contrato === 'object') S.contrato = normContrato_(P, A.contrato);
+    // los estudios de clientes del contrato se reservan del presupuesto de innovación del año
+    var resB = costoContratoAnual_(P, contratoDe_(P, S), 'cli');
+    if (resB > S.saldo) {
+      Object.keys(S.contrato || {}).forEach(function (k) { var m0 = metById_(P, k); if (m0 && m0.grupo === 'B') delete S.contrato[k]; });
+      fb.push('El presupuesto de innovación no alcanzó para reservar los estudios de clientes del contrato (Bs ' + resB.toLocaleString('es-BO') + '): esa parte del contrato no se firmó.'); resB = 0;
+    }
+    if (resB) { S.saldo -= resB; fb.push('Se reservaron Bs ' + resB.toLocaleString('es-BO') + ' del presupuesto de innovación para los estudios de clientes de su contrato continuo.'); }
+    S.reservaContrato = resB;
     if (A) {
       ['tiempoLibre', 'incentivo', 'politica', 'composicion', 'estructura', 'umbral'].forEach(function (k) { if (A[k] !== undefined && A[k] !== '') O[k] = A[k]; });
       ['inc', 'rad', 'act', 'nue'].forEach(function (k) { if (A[k] !== undefined && A[k] !== '') O[k] = Number(A[k]); });
@@ -746,10 +761,15 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
     var lista = MET_SEG_.indexOf(mid) >= 0 ? segsValidos_(P, c.segs) : [];
     if (MET_SEG_.indexOf(mid) >= 0 && !lista.length) return;
     var monto = Math.round(costoMetodo_(P, S, m, t, lista.length).costo * (1 - (P.descuentoContrato || 0)));
-    gastoContrato += monto; enContrato[mid] = true;
+    enContrato[mid] = true;
+    if (m.grupo === 'B') {
+      // ya reservado del presupuesto de innovación al inicio del año: se reconoce como gasto de innovación al entregarse
+      gastoInnov += monto; gastoInvAd += monto;
+      if (mid === 'lideres' && !S.proyectos.some(function (p) { return p.id === inv.proyectoLideres && p.estado === 'activo'; })) { fb.push('Usuarios líderes (contrato): no eligieron un proyecto activo que reciba los conceptos; la entrega de este trimestre se perdió.'); return; }
+    } else gastoContrato += monto;
     realizar(m, lista, 'contrato');
   });
-  if (gastoContrato) fb.push('Contrato de investigación continua: se entregaron ' + Object.keys(enContrato).map(function (k) { return metById_(P, k).nombre; }).join(', ') + ' (Bs ' + gastoContrato.toLocaleString('es-BO') + ', presupuesto operativo).');
+  if (Object.keys(enContrato).length) fb.push('Contrato de investigación continua: se entregaron ' + Object.keys(enContrato).map(function (k) { return metById_(P, k).nombre; }).join(', ') + ' (seguimiento: Bs ' + gastoContrato.toLocaleString('es-BO') + ', presupuesto operativo).');
   // b) estudios ad hoc del trimestre
   (inv.metodos || []).forEach(function (mid) {
     var m = metById_(P, mid); if (!m) return;
@@ -804,7 +824,7 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   var res = stepWorld_(P, W, S, t, sched, { gastoInnov: gastoInnov, gastoCap: gastoCap, gastoOtros: gastoOtros, gastoContrato: gastoContrato, writeoff: writeoff, capexExtra: capexExtra, licitacion: licit, adquisicionCaja: S._adquisicionCaja || 0, fb: fb });
   delete S._adquisicionCaja;
   p3PostMercado_(P, S, t, fb, sched);
-  var resTwin = stepWorld_(P, S.twin, null, t, sched, { gastoInnov: 0, gastoCap: 0, gastoOtros: 0, gastoContrato: costoContratoTrim_(P, P.contratoInicial, t), writeoff: 0, capexExtra: 0, licitacion: false, adquisicionCaja: 0, fb: [] });
+  var resTwin = stepWorld_(P, S.twin, null, t, sched, { gastoInnov: 0, gastoCap: 0, gastoOtros: 0, gastoContrato: costoContratoTrim_(P, P.contratoInicial, t, 'op'), writeoff: 0, capexExtra: 0, licitacion: false, adquisicionCaja: 0, fb: [] });
 
   // 11. KPIs
   var clima = Math.round(100 * (0.5 * O.MI + 0.3 * O.AE + 0.2 * O.DIV));
@@ -1199,7 +1219,10 @@ function estimarCostos_(P, S, dec, t) {
   if (sem > g.semanasTrimestre) avisos.push('Las semanas-persona estimadas (' + sem + ') superan las ' + g.semanasTrimestre + ' disponibles. Algunas acciones no se ejecutarán.');
   if (!dec.hipotesis || String(dec.hipotesis).trim().length < 20) avisos.push('Escribe la hipótesis del equipo (al menos 20 caracteres) antes de enviar.');
   var Kt = esInicioAnio_(t) && dec.anual && dec.anual.contrato ? dec.anual.contrato : contratoDe_(P, S);
-  return { costo: costo, semanas: Math.round(sem * 10) / 10, saldo: Math.round(S.saldo), semanasDisp: g.semanasTrimestre, avisos: avisos, operativo: { herramientas: herr, contrato: costoContratoTrim_(P, Kt, t) } };
+  var reservaB = esInicioAnio_(t) ? costoContratoAnual_(P, Kt, 'cli') : 0; costo += reservaB;
+  if (reservaB) avisos.push('Contrato continuo: se reservarán Bs ' + reservaB.toLocaleString('es-BO') + ' del presupuesto de innovación para los estudios de clientes del año.');
+  if (costo > S.saldo && reservaB) avisos.push('El costo estimado con la reserva del contrato supera su saldo de presupuesto.');
+  return { costo: costo, semanas: Math.round(sem * 10) / 10, saldo: Math.round(S.saldo), semanasDisp: g.semanasTrimestre, avisos: avisos, operativo: { herramientas: herr, contrato: costoContratoTrim_(P, Kt, t, 'op') }, reservaContrato: reservaB };
 }
 
 /** Informes recibidos que todavía no tienen la decisión escrita por el equipo. */
