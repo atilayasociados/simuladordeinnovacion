@@ -80,7 +80,7 @@ function agregarProyecto2() {
 function vProyectos2() {
   var E = V.estado, g = V.cat.general, O = E.org, html = '', t = V.partida.t, anio = Math.floor((t - 1) / 4) + 1;
   var act = E.proyectos.filter(function (p) { return p.estado === 'activo'; });
-  var maxP = anio === 1 ? (g.maxProyectosAnio1 || g.maxProyectos) : g.maxProyectos;
+  var maxP = g.maxProyectos;
   html += '<div class="card"><h2>Cómo avanza un proyecto de innovación</h2><div class="etapas">' + FASES2.map(function (f, i) { return '<span class="hecho">' + (i + 1) + '. ' + f + '</span>'; }).join('') + '</div>' +
     '<p>Cada proyecto les pide <b>una sola tarea por trimestre</b>, la de su fase. Definir: escriben el brief al crear el proyecto. Idear: cada integrante aporta ideas con una técnica, votan y arman hasta 3 fichas de concepto. Evaluar: con el test de concepto comparan los conceptos en la matriz de Pugh y eligen uno. Las fases siguientes continúan con el prototipo, el piloto y el lanzamiento.</p>' +
     ayuda('Acelerar una fase cuesta 50 % más en dinero y semanas y permite avanzar hasta dos fases en un trimestre, pero se aprende menos: en Idear llegan 30 % menos propuestas externas y el test de concepto es menos preciso (±1,0 en lugar de ±0,5).', 5, 'Stage') + '</div>';

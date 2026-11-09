@@ -94,21 +94,21 @@ function apiEstado(tok) {
   var S = migrar_(estadoPrevio_(P, eq, tVista), P);
   var sched = scheduleEvents_(pa.semilla);
   var draft = tVista <= P.general.totalTrimestres ? filtrarBorrador_(getJson_('Decisiones', eq.equipoId, tVista), ses.registro) : null;
-  var nots = tVista <= P.general.totalTrimestres ? noticiasPara_(P, tVista, S, sched).map(function (n) { return { id: n.id, texto: n.texto, anticipada: n.anticipada }; }) : [];
+  var nots = tVista <= P.general.totalTrimestres ? senalesPara_(P, tVista, S, sched).map(function (n) { return { id: n.id, texto: n.texto, anticipada: n.anticipada, fuente: n.fuente, ambito: n.ambito, micro: n.micro, informe: n.informe, metodo: n.metodo, estudio: n.estudio }; }) : [];
   var yo = integrantesDe_(pa.simId, eq.equipoId).filter(function (i) { return String(i.registro) === String(ses.registro); })[0];
   return {
     partida: { nombre: pa.nombre, sigla: pa.sigla, codigo: pa.codigo, t: tVista, estado: pa.estado, total: P.general.totalTrimestres, finalizada: tVista > P.general.totalTrimestres },
     equipo: { id: eq.equipoId, nombre: eq.nombre, mandato: P.mandatos[S.mandato] || P.mandatos.MA },
     usuario: yo ? { registro: yo.registro, nombre: (yo.nombres + ' ' + yo.apPaterno).trim() } : { registro: ses.registro, nombre: ses.registro },
     flags: {
-      anualEditable: esInicioAnio_(tVista), c4Disponible: tVista >= P.general.entradaC4 && tVista <= 16 && S.c4resp === 'ninguna',
-      licitacion: tVista === 16
+      anualEditable: esInicioAnio_(tVista), c4Disponible: S.c4resp === 'ninguna' && S.world.comps.some(function (c) { return c.id === 'C4' && c.activo; }) && !S.world.c4Adquirido,
+      licitacion: tVista === 16, normaEtiquetado: normaEtiquetado_(tVista)
     },
     cat: {
       attrs: ATTR_NOMBRES, segmentos: P.segmentos.map(function (s) { return { id: s.id, nombre: s.nombre, part: s.part, g: s.g, pref: s.pref, est: s.est, nuevo: s.nuevo }; }),
-      canales: P.canales, accionesEntorno: P.accionesEntorno || [], iniciativas: P.iniciativas, premios: P.premios, metodos: P.metodos, fidelidades: P.fidelidades, umbrales: P.umbrales, posturas: P.posturas,
+      canales: P.canales, herramientas: P.herramientas || [], iniciativas: P.iniciativas, premios: P.premios, metodos: P.metodos, gruposInv: P.gruposInv, modalidadesInv: P.modalidadesInv, descuentoContrato: P.descuentoContrato, contratoInicial: normContrato_(P, P.contratoInicial), fidelidades: P.fidelidades, umbrales: P.umbrales, posturas: P.posturas,
       p3: P3_CAT_, tecnicas: TECNICAS_, fuentesExt: FUENTES_EXT_, scamper: SCAMPER_, morfoParams: MORFO_PARAMS_, kanoNom: KANO_NOM_, tiposNom: TIPOS_NOM_, portafolioNom: PORTAFOLIO_NOM_, ptsNom: PTS_NOM_,
-      general: { semanasTrimestre: P.general.semanasTrimestre, costoValidacion: P.general.costoValidacion, costoPiloto: P.general.costoPiloto, costoLanzamiento: P.general.costoLanzamiento, costoRevision: P.general.costoRevision, costoUnidadAutonoma: P.general.costoUnidadAutonoma, costoCapacitacion: P.general.costoCapacitacion, costoTiempoLibrePunto: P.general.costoTiempoLibrePunto, maxProyectos: P.general.maxProyectos, costoAlianzaC4: P.general.costoAlianzaC4, costoAdquisicionC4: P.general.costoAdquisicionC4, costoPatente: P.general.costoPatente, costoGestionProducto: P.general.costoGestionProducto, capexEscalamiento: P.general.capexEscalamiento, promoMax: P.general.promoMax, costoPreparar: P.general.costoPreparar, recargoRepeticion: P.general.recargoRepeticion, maxProyectosAnio1: P.general.maxProyectosAnio1, costoTestConcepto: P.general.costoTestConcepto, recargoAcelerar: P.general.recargoAcelerar }
+      general: { semanasTrimestre: P.general.semanasTrimestre, costoValidacion: P.general.costoValidacion, costoPiloto: P.general.costoPiloto, costoLanzamiento: P.general.costoLanzamiento, costoRevision: P.general.costoRevision, costoUnidadAutonoma: P.general.costoUnidadAutonoma, costoCapacitacion: P.general.costoCapacitacion, costoTiempoLibrePunto: P.general.costoTiempoLibrePunto, maxProyectos: P.general.maxProyectos, costoAlianzaC4: P.general.costoAlianzaC4, costoAdquisicionC4: P.general.costoAdquisicionC4, costoPatente: P.general.costoPatente, costoGestionProducto: P.general.costoGestionProducto, capexEscalamiento: P.general.capexEscalamiento, promoMax: P.general.promoMax, costoTestConcepto: P.general.costoTestConcepto, recargoAcelerar: P.general.recargoAcelerar }
     },
     estado: vistaEquipo_(P, S),
     empresas: empresasPublicas_(pa.simId, tVista - 1, eq.equipoId),
@@ -128,7 +128,7 @@ function empresasPublicas_(simId, t, miId) {
 function vistaEquipo_(P, S) {
   return {
     t: S.t, saldo: Math.round(S.saldo), presupuestoAnual: S.presupuestoAnual, org: S.org, iq: S.iq, conocimiento: S.conocimiento,
-    vigilanciaHasta: S.vigilanciaHasta, c4resp: S.c4resp, feedback: S.feedback, noticiasEval: S.noticiasEval,
+    vigilanciaHasta: S.vigilanciaHasta, c4resp: S.c4resp, feedback: S.feedback, noticiasEval: S.noticiasEval, lecturas: (S.lecturas || []).slice(-60), calibracion: S.calibracion || {}, herr: (S.world && S.world.herr) || {},
     informes: S.informes || [], ultMetodo: S.ultMetodo || {}, seguimiento: S.seguimiento || [], coherencia: S.coherencia || [], preparados: S.preparados || {},
     proyectos: S.proyectos.map(function (p) {
       var o2 = p.flujo === 2 ? vistaProyecto2_(p) : {};
@@ -145,7 +145,8 @@ function vistaEquipo_(P, S) {
     productos: S.world.productos.filter(function (p) { return p.activo; }).map(function (p) {
       return { id: p.id, nombre: p.nombre, attrs: p.attrs, precio: p.precio, costUnit: p.costUnit, canales: p.canales, modelo: p.modelo, proteccion: p.proteccion, AW: p.AW, comunicacion: p.comunicacion, segPub: p.segPub || 'todos', pronHist: p.pronHist || [], desde: p.desde, legado: p.legado };
     }),
-    hist: S.hist
+    hist: S.hist, hist0: S.hist0 || [],
+    contrato: S.contrato || {}, contratoAnual: costoContratoAnual_(P, S.contrato || {}), contratoTrim: costoContratoTrim_(P, S.contrato || {}, Math.max(1, S.t + 1))
   };
 }
 function conceptoPublico_(P, c) {
@@ -216,6 +217,7 @@ function apiGuardar(tok, dec, enviar) {
   var est = estimarCostos_(P, S, dec, pa.t);
   if (enviar && (!dec.hipotesis || String(dec.hipotesis).trim().length < 20)) throw new Error('Para enviar, escribe la hipótesis del equipo (al menos 20 caracteres).');
   if (enviar && esInicioAnio_(pa.t)) { var fA = anualFaltantes_(dec.anual); if (fA.length) throw new Error('Para enviar, completen la Estrategia anual: falta ' + fA.join(', ') + '.'); }
+  if (enviar) { var fS = senalesFaltantes_(P, migrar_(copy_(S), P), dec, pa.t, scheduleEvents_(pa.semilla)); if (fS.length) throw new Error('Para enviar, completen la lectura del entorno (1. Entorno): ' + fS.join(' y ') + '.'); }
   if (enviar && informesPendientes_(migrar_(S, P), dec, pa.t).length) throw new Error('Para enviar, escriban en Resultados → Informes de investigación qué decisión toman con cada informe recibido (al menos 10 caracteres).');
   var lock = LockService.getScriptLock(); lock.waitLock(30000);
   try {

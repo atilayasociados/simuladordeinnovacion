@@ -17,6 +17,33 @@ function iniById_(P, id) { for (var i = 0; i < P.iniciativas.length; i++) if (P.
 var MET_SEG_ = ['encuesta', 'observacion', 'percepcion'];
 var MET_TIPO_ = { A: 'Estudio de clientes', B: 'Estudio de mercado y competencia', C: 'Estudio de marca' };
 function metById_(P, id) { for (var i = 0; i < P.metodos.length; i++) if (P.metodos[i].id === id) return P.metodos[i]; return null; }
+/** Segmentos válidos y sin repetir (1 a 5). */
+function segsValidos_(P, L) { var u = []; (Array.isArray(L) ? L : []).forEach(function (x) { if (segById_(P, x) && u.indexOf(x) < 0) u.push(x); }); return u.slice(0, 5); }
+/** Contrato vigente de investigación continua: { metodoId: { veces: 1|2|4, segs: [] } }. */
+function contratoDe_(P, S) { return (S && S.contrato) ? S.contrato : copy_(normContrato_(P, P.contratoInicial)); }
+function normContrato_(P, C) {
+  var R = {};
+  Object.keys(C || {}).forEach(function (mid) {
+    var m = metById_(P, mid), c = C[mid]; if (!m || !m.continuo) return;
+    var v = typeof c === 'number' ? c : Number(c && c.veces) || 0;
+    if (mid === 'vigilancia') v = v ? 1 : 0; else if ([1, 2, 4].indexOf(v) < 0) v = 0;
+    if (!v) return;
+    var e = { veces: v };
+    if (MET_SEG_.indexOf(mid) >= 0) { e.segs = segsValidos_(P, c && c.segs); if (!e.segs.length) return; }
+    R[mid] = e;
+  });
+  return R;
+}
+/** ¿Toca entrega del contrato en el trimestre t? 4 = cada trimestre; 2 = 1.º y 3.º del año; 1 = 1.º del año. */
+function entregaContrato_(t, veces) { var q = (t - 1) % 4; return veces === 4 || (veces === 2 && (q === 0 || q === 2)) || (veces === 1 && q === 0); }
+/** Costo del contrato en el trimestre t (con descuento). */
+function costoContratoTrim_(P, C, t) {
+  var K = normContrato_(P, C), tot = 0;
+  Object.keys(K).forEach(function (mid) { if (!entregaContrato_(t, K[mid].veces)) return; var m = metById_(P, mid); tot += costoMetodo_(P, null, m, t, (K[mid].segs || []).length).costo * (1 - (P.descuentoContrato || 0)); });
+  return Math.round(tot);
+}
+/** Costo anual del contrato (con descuento). */
+function costoContratoAnual_(P, C) { var tot = 0; for (var q = 1; q <= 4; q++) tot += costoContratoTrim_(P, C, q); return tot; }
 function esInicioAnio_(t) { return (t - 1) % 4 === 0; }
 function anioDe_(t) { return Math.floor((t - 1) / 4) + 1; }
 
@@ -80,7 +107,7 @@ function canalFactor_(P, canales, segId, t) {
 }
 function demanda_(P, seg, t, sched) {
   var g = P.general;
-  var d = g.mercadoTotal * seg.part * Math.pow(1 + seg.g, t - 1) * seg.est[(t - 1) % 4];
+  var d = g.mercadoTotal * seg.part * Math.pow(1 + seg.g, t - 1) * seg.est[((t - 1) % 4 + 4) % 4];
   if (sched.bloqueos.indexOf(t) >= 0) d *= 0.85;
   return d;
 }
@@ -142,7 +169,10 @@ function marketShares_(P, world, seg, t) {
     if (p.legado) A *= P.cal.bf[seg.id];
     A *= normaPenalP_(p, seg.id, t) * impulsoComercial_(p, seg.id);
     if (p.penalHasta && t <= p.penalHasta) A *= 0.8;
-    if (seg.id === 'S2' && prepNivel_(world, 'startup') && world.comps.some(function (c) { return c.id === 'C4' && c.activo; })) A *= 1 + 0.05 * prepNivel_(world, 'startup');
+    var camp = herrVig_(world, 'campana', t); if (camp && camp.seg === seg.id) A *= 1.06;
+    var plan = herrVig_(world, 'competidor', t);
+    if (plan && plan.seg === seg.id && rivalNuevoEn_(world, seg.id)) A *= 1.05;
+    else if (seg.id === 'S2' && prepNivel_(world, 'startup') && world.comps.some(function (c) { return c.id === 'C4' && c.activo; })) A *= 1 + 0.05 * prepNivel_(world, 'startup');
     ofertas.push({ id: p.id, tipo: 'propio', A: A, U: utility_(seg, p.attrs, p.precio, t) });
   });
   world.comps.forEach(function (c) {
@@ -194,6 +224,26 @@ function initialWorld_(P) {
   };
 }
 
+/** Año 0: los 4 trimestres anteriores a la partida (T-3 a T0), con la empresa tal como la reciben
+ * y su contrato heredado. Sirve para el análisis interno desde el T1. La caja se ajusta para cerrar
+ * en el saldo inicial. Se calcula con una sola empresa (las participaciones se muestran divididas
+ * entre las empresas del curso en la pantalla). */
+function anio0_(P) {
+  var keep = MKT_; setMercado_(1, [], []);
+  var W = initialWorld_(P); W.productos[0].desde = -99; W.productos[0].nombre = 'Leche saborizada 1 L';
+  var sched = { sequia: 0, bloqueos: [], ruido: {} }, H = [];
+  try {
+    for (var t = -3; t <= 0; t++) {
+      var r = stepWorld_(P, W, null, t, sched, { gastoInnov: 0, gastoCap: 0, gastoOtros: 0, gastoContrato: costoContratoTrim_(P, P.contratoInicial, ((t - 1) % 4 + 4) % 4 + 1), writeoff: 0, capexExtra: 0, licitacion: false, adquisicionCaja: 0, fb: [] });
+      r.t = t; r.anio0 = true; H.push(r);
+    }
+  } finally { MKT_ = keep; }
+  var ajuste = 400000 - H[H.length - 1].caja;
+  var F0 = initialWorld_(P).fin;
+  H.forEach(function (h, i) { h.caja += ajuste; if (h.balance) { h.balance.caja += ajuste; h.balance.totalActivo += ajuste; h.balance.totalPasivoPatrimonio = h.balance.totalActivo; } if (i === H.length - 1) h.balance = { caja: F0.caja, cxc: F0.cxc, inventarios: F0.inv, activoFijo: F0.af, intangibles: 0, desarrolloEnCurso: 0, totalActivo: F0.caja + F0.cxc + F0.inv + F0.af, proveedores: F0.prov, deuda: F0.deuda, emergencia: 0, capital: F0.capital, resultados: F0.resAcum, totalPasivoPatrimonio: F0.prov + F0.deuda + F0.capital + F0.resAcum }; h.twin = { ventas: h.ventas, utilidadNeta: h.utilidadNeta, caja: h.caja, cuotaTotal: h.cuotaTotal, cuotas: h.cuotas, flujoLibre: h.flujoLibre }; });
+  return H;
+}
+
 function initialState_(P, equipo) {
   var g = P.general, W0 = initialWorld_(P), T0 = initialWorld_(P);
   W0.productos[0].nombre = T0.productos[0].nombre = 'Leche saborizada 1 L';
@@ -230,6 +280,81 @@ function noticiasPara_(P, t, state, sched) {
   return lista.map(function (x) { return { x: x, k: rng() }; }).sort(function (a, b) { return a.k - b.k; }).map(function (o) { return o.x; });
 }
 
+/** Lo que falta registrar en la lectura de señales antes de enviar. */
+function senalesFaltantes_(P, S, dec, t, sched) {
+  var SEN = (dec && dec.senales) || {}, sinLeer = 0, sinPorque = 0;
+  senalesPara_(P, t, S, sched).forEach(function (n) {
+    var r = SEN[n.id] || {};
+    if (!r.cred || !r.postura) { sinLeer++; return; }
+    if ((r.postura === 'preparar' || r.postura === 'actuar') && String(r.porque || '').trim().length < 10) sinPorque++;
+  });
+  var f = [];
+  if (sinLeer) f.push(sinLeer + ' señal(es) sin credibilidad o sin postura');
+  if (sinPorque) f.push(sinPorque + ' señal(es) que atienden sin escribir por qué');
+  return f;
+}
+/** Señales del trimestre: noticias de prensa (gratis) y hallazgos de los informes recibidos. */
+function senalesPara_(P, t, state, sched) {
+  var L = noticiasPara_(P, t, state, sched).map(function (n) {
+    var meta = P.noticias.filter(function (x) { return x.id === n.id; })[0] || {};
+    var amb = meta.ambito || meta.area || (n.id === 'NSEQ' ? 'Ecológico' : (String(n.id).indexOf('NBLQ') === 0 ? 'Político' : ''));
+    if (!amb) { var A = ['Político', 'Económico', 'Social', 'Tecnológico', 'Ecológico', 'Legal']; amb = A[Math.floor(makeRng_('amb|' + n.id)() * A.length)]; }
+    var llega = meta.llega !== undefined ? meta.llega : (n.id === 'NSEQ' ? Math.max(0, sched.sequia - t) : 0);
+    return { id: n.id, texto: n.texto, tipo: n.tipo, anticipada: n.anticipada, fuente: 'prensa', ambito: amb, micro: AMB_MICRO_.indexOf(amb) >= 0, llega: llega };
+  });
+  ((state && state.informes) || []).forEach(function (inf) {
+    if (inf.t !== t - 1 || inf.boletin) return;
+    var m = metById_(P, inf.metodo) || {};
+    L.push({ id: 'I' + inf.id, texto: titularInforme_(inf), fuente: 'informe', informe: inf.id, metodo: inf.metodo, ambito: AMB_METODO_[inf.metodo] || 'Clientes', micro: (AMB_METODO_[inf.metodo] || 'Clientes') !== 'Macroentorno', estudio: (m.inciso ? m.inciso + ' ' : '') + (m.nombre || inf.nombre) });
+  });
+  return L;
+}
+var AMB_MICRO_ = ['Clientes', 'Competidores', 'Entrantes', 'Sustitutos', 'Proveedores'];
+var AMB_METODO_ = { vigilancia: 'Macroentorno', encuesta: 'Clientes', observacion: 'Clientes', extremos: 'Clientes', lideres: 'Clientes', percepcion: 'Clientes', industria: 'Competidores', competidores: 'Competidores', sustitutos: 'Sustitutos', proveedores: 'Proveedores' };
+/** Una línea con el hallazgo principal de un informe. */
+function titularInforme_(inf) {
+  var d = inf.datos || {}, seg = inf.segs && inf.segs.length ? ' (' + inf.segs.join(', ') + ')' : '';
+  try {
+    if (inf.metodo === 'encuesta' && d.filas) return 'Encuesta' + seg + ': según lo que declaran, lo más valorado es ' + d.filas[0].nombre.toLowerCase() + ' (' + d.filas[0].v + ' puntos), seguido de ' + d.filas[1].nombre.toLowerCase() + '.';
+    if (inf.metodo === 'observacion') return 'Observación' + seg + ': ' + (d.latente && d.latente.length ? 'aparecen necesidades que no declaran: ' + d.latente.join(' y ').toLowerCase() + '.' : 'el comportamiento coincide con lo que declaran.');
+    if (inf.metodo === 'extremos' && d.tendencias && d.tendencias.length) return 'Usuarios extremos: ' + d.tendencias[0].texto;
+    if (inf.metodo === 'percepcion') return 'Posicionamiento' + seg + ': mapa perceptual y curva de valor de las marcas (ver informe).';
+    if (inf.metodo === 'vigilancia' && d.senales) return 'Vigilancia: ' + d.senales.length + ' señales del entorno con su nivel de confianza (ver informe).';
+    if (inf.metodo === 'industria' && d.filas) { var yo = d.filas.filter(function (f) { return f.yo; })[0]; return 'Mercado: su participación estimada está entre ' + (yo ? yo.lo + ' % y ' + yo.hi + ' %' : 's/d') + '; líder: ' + d.filas[0].nombre + '.'; }
+    if (inf.metodo === 'competidores') return 'Competidores: ' + (d.filas || []).length + ' rivales en góndola' + (d.entrantes && d.entrantes.length ? '; señales de ' + d.entrantes.map(function (e) { return e.quien.toLowerCase(); }).join(' y ') + '.' : '; sin señales de nuevos entrantes.');
+    if (inf.metodo === 'proveedores' && d.filas) { var al = d.filas.filter(function (f) { return !/^Estable|^Sin alertas|normaliza/.test(f.tendencia); }); return 'Proveedores: ' + (al.length ? al.map(function (f) { return f.insumo.toLowerCase() + ' — ' + f.tendencia.split(':')[0].toLowerCase(); }).join('; ') : 'sin alertas de costos') + '.'; }
+    if (inf.metodo === 'sustitutos' && d.filas) return 'Sustitutos: bebidas vegetales con atractivo ' + d.filas[0].atractivo + '. ' + d.filas[0].tendencia;
+  } catch (e) { /* titular genérico */ }
+  return inf.nombre + seg + ': ' + String(inf.pregunta || '').replace(/^¿|\?$/g, '') + ' (ver informe).';
+}
+/** ¿El estudio elegido para vigilar se compra o llega por contrato en este trimestre? */
+function inv0_(dec) { return (dec && dec.investigacion) || {}; }
+function estudioCubierto_(P, S, inv, mid, t) {
+  if (mid === 'vigilancia' && S.vigilanciaHasta >= t) return true;
+  var K = contratoDe_(P, S); if (K[mid] && entregaContrato_(t, K[mid].veces)) return true;
+  return (inv.metodos || []).indexOf(mid) >= 0;
+}
+function gastoOtrosHerr_(P, dec) { var tot = 0; Object.keys((dec && dec.herramientas) || {}).forEach(function (k) { var H = (P.herramientas || []).filter(function (x) { return x.id === k; })[0]; if (H && dec.herramientas[k]) tot += H.costo; }); return tot; }
+/** ¿Hay un rival nuevo (la startup o una imitación) compitiendo en el segmento? */
+function rivalNuevoEn_(W, sid) { return W.comps.some(function (c) { return c.activo && (c.id === 'C4' || String(c.id).indexOf('CL') === 0) && (c.pres[sid] || 0) > 0; }); }
+/** La norma de etiquetado frontal existe (aprobada) desde T8 y rige desde T9. */
+function normaEtiquetado_(t) { return t >= 8; }
+function herrVig_(W, id, t) { var h = W && W.herr && W.herr[id]; return h && h.desde <= t && h.hasta >= t ? h : null; }
+/** Calibración anual: compara la lectura del equipo con lo verificable. */
+function calibracionAnual_(S, t) {
+  var anio = anioDe_(t), L = (S.lecturas || []).filter(function (x) { return anioDe_(x.t) === anio && x.fuente === 'prensa'; });
+  function bucket(n) { return n <= 0 ? '0' : (n <= 2 ? '1-2' : (n <= 4 ? '3-4' : '5+')); }
+  var cOk = 0, cN = 0, pOk = 0, pN = 0;
+  var filas = L.map(function (x) {
+    var co = (x.cred === 'real' || x.cred === 'rumor') ? x.cred === x.real : null;
+    var po = x.real === 'real' && x.plazo ? x.plazo === bucket(x.llega) : null;
+    if (co !== null) { cN++; if (co) cOk++; } if (po !== null) { pN++; if (po) pOk++; }
+    return { t: x.t, texto: x.texto, ambito: x.ambito, cred: x.cred, real: x.real, plazo: x.plazo, llega: x.real === 'real' ? bucket(x.llega) : '', postura: x.postura, sig: x.sig, credOk: co, plazoOk: po };
+  });
+  S.calibracion = S.calibracion || {};
+  S.calibracion[anio] = { anio: anio, filas: filas, credPct: cN ? Math.round(100 * cOk / cN) : null, plazoPct: pN ? Math.round(100 * pOk / pN) : null };
+}
+
 // ---------- costos ----------
 function factorMadurez_(org) { return 1 - 0.05 * (org.madurez - 1); }
 function semMadurez_(org, s) { return Math.max(1, s - 0.5 * (org.madurez - 1)); }
@@ -261,6 +386,7 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   if (esInicioAnio_(t)) {
     if (t > 1) { Object.keys(S.iq).forEach(function (k) { S.iq[k] = Math.max(0, S.iq[k] - 0.05); }); }
     var A = dec.anual;
+    if (A && A.contrato && typeof A.contrato === 'object') S.contrato = normContrato_(P, A.contrato);
     if (A) {
       ['tiempoLibre', 'incentivo', 'politica', 'composicion', 'estructura', 'umbral'].forEach(function (k) { if (A[k] !== undefined && A[k] !== '') O[k] = A[k]; });
       ['inc', 'rad', 'act', 'nue'].forEach(function (k) { if (A[k] !== undefined && A[k] !== '') O[k] = Number(A[k]); });
@@ -299,90 +425,65 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   O.AE = r2_(clamp_(O.AE + PF, 0, 1));
   if (Math.abs(O.MI - MIprev) >= 0.02) fb.push('La motivación intrínseca del equipo ' + (O.MI > MIprev ? 'subió' : 'bajó') + ' a ' + O.MI.toFixed(2) + (O.incentivo === 'alto' ? ' (los incentivos monetarios altos reducen la motivación intrínseca).' : '.'));
 
-  // 3. clasificación de noticias (tema 15)
-  var nots = noticiasPara_(P, t, prev, sched), aciertos = 0, totN = 0;
+  // 3. lectura del entorno: el equipo registra cómo lee cada señal. El motor no la califica:
+  // solo verifica después lo verificable (si era real o rumor, y cuándo ocurrió).
+  var nots = noticiasPara_(P, t, prev, sched), credOk = 0, credTot = 0;
+  var SEN = dec.senales || {};
   S.noticiasEval = [];
-  nots.forEach(function (n) {
-    var c = dec.noticias ? dec.noticias[n.id] : null; if (!c) return;
-    totN++; var ok = (n.tipo === 'ambas') ? (c === 'oportunidad' || c === 'amenaza') : (c === n.tipo);
-    if (ok) aciertos++;
-    var ac0 = (dec.acciones || {})[n.id] || {};
-    S.noticiasEval.push({ id: n.id, texto: n.texto, clasif: c, real: n.tipo, ok: ok, resp: (dec.respuestas || {})[n.id] || 'ignorar', accion: ac0.a || '', seg: ac0.seg || '', porque: ac0.porque || '' });
-  });
-  // respuesta graduada a las noticias: ignorar, vigilar o preparar
-  S.seguimiento = [];
-  nots.forEach(function (n) {
-    var r = (dec.respuestas || {})[n.id];
-    if (r === 'vigilar') S.seguimiento.push({ id: n.id, texto: n.texto, dato: datoSeguimiento_(n), t: t });
-    if (r === 'actuar') {
-      var ac = (dec.acciones || {})[n.id] || {}, A = (P.accionesEntorno || []).filter(function (x) { return x.id === ac.a; })[0];
-      var ev = S.noticiasEval.filter(function (e) { return e.id === n.id; })[0] || {};
-      var res = function (nivel, msg) { ev.nivel = nivel; ev.efecto = msg; fb.push(msg); };
-      if (!A) { res(0, 'Eligieron actuar ante "' + n.texto.slice(0, 60) + '…" pero no eligieron qué acción: no se hizo nada.'); return; }
-      if (A.seg && !ac.seg) { res(0, 'La acción "' + A.nombre + '" necesita un segmento: no se ejecutó.'); return; }
-      if (String(ac.porque || '').trim().length < 10) { res(0, 'La acción "' + A.nombre + '" no se ejecutó: falta escribir por qué responde a la noticia.'); return; }
-      if (!gastar(A.costo, 0, 'Entorno: ' + A.nombre)) { res(0, 'No alcanzó el presupuesto para "' + A.nombre + '".'); return; }
-      var cl = clavePreparacion_(n.id), costoTxt = 'Bs ' + A.costo.toLocaleString('es-BO');
-      var segTxt = A.seg ? ' en ' + ac.seg : '';
-      if (n.tipo === 'ruido') { res(0, 'Actuaron ante "' + n.texto.slice(0, 60) + '…" (' + A.nombre + segTxt + '), pero era un rumor: se perdieron ' + costoTxt + '.'); return; }
-      var aj = ajusteAccion_(A.id, ac.seg, cl);
-      if (A.id === 'estudio' && ac.seg) S.iq[ac.seg] = Math.min(1, (S.iq[ac.seg] || 0) + (aj.nivel ? 0.05 : 0.02));
-      if (!cl) { res(A.id === 'estudio' ? 0.5 : 0, 'La noticia "' + n.texto.slice(0, 60) + '…" era real, pero describe una tendencia general que ninguna acción puntual cambia' + (A.id === 'estudio' ? '; al menos su estudio les dio algo más de conocimiento de ' + ac.seg : ': ' + costoTxt + ' sin efecto') + '. Las tendencias se responden con proyectos de innovación.'); return; }
-      if (cl.indexOf('op:') === 0) {
-        var sid = cl.slice(3);
-        if (aj.nivel) {
-          if (A.id === 'campana') { W.productos.forEach(function (p) { if (p.activo) p.AW = r2_(Math.min(0.98, p.AW + 0.02)); }); S.iq[sid] = Math.min(1, (S.iq[sid] || 0) + 0.02); }
-          res(1, 'Acertaron ante la oportunidad "' + n.texto.slice(0, 60) + '…": ' + (A.id === 'campana' ? 'su campaña adelantó su marca en ' + sid + ' antes que los rivales.' : 'su estudio les dio mejor conocimiento de ' + sid + ', justo el segmento que se abre.'));
-        } else res(0, 'Ante la oportunidad "' + n.texto.slice(0, 60) + '…" eligieron ' + ACC_NOM_[A.id] + segTxt + ', que no la aprovecha: lo útil era un estudio o una campaña en ' + sid + '. Se gastaron ' + costoTxt + (A.id === 'estudio' ? ' (su estudio sí sumó algo de conocimiento de ' + ac.seg + ')' : '') + '.');
-        return;
-      }
-      if (aj.nivel) {
-        W.prep[cl] = Math.max(prepNivel_(W, cl), aj.nivel); S.preparados[cl] = W.prep[cl];
-        if (cl === 'etiquetado') W.productos.forEach(function (p) { p.flags = p.flags || {}; var e = p.flags.prepEtiq === true ? 1 : (Number(p.flags.prepEtiq) || 0); p.flags.prepEtiq = Math.max(e, aj.nivel); });
-        res(aj.nivel, (aj.nivel === 1 ? 'Acertaron ante "' : 'Su respuesta ayudó en parte ante "') + n.texto.slice(0, 60) + '…" (' + A.nombre + segTxt + '): ' + efectoPrepTxt_(cl, aj.nivel) + (aj.nivel === 1 ? '.' : '. Lo que mejor funcionaba era ' + ACC_MEJOR_[cl] + '.'));
-      } else res(0, 'Ante "' + n.texto.slice(0, 60) + '…" eligieron ' + ACC_NOM_[A.id] + segTxt + ', que no responde a ese problema: se gastaron ' + costoTxt + ' sin efecto. Lo que funcionaba era ' + ACC_MEJOR_[cl] + '.');
-      return;
+  S.lecturas = S.lecturas || [];
+  senalesPara_(P, t, prev, sched).forEach(function (n) {
+    var r = SEN[n.id] || {};
+    if (!r.cred && !r.postura) return;
+    var L = { id: n.id, t: t, texto: n.texto, fuente: n.fuente, ambito: n.ambito, cred: r.cred || '', postura: r.postura || 'ignorar', estudio: r.estudio || '', sig: r.sig || '', plazo: r.plazo || '', impacto: r.impacto || '', resp: Array.isArray(r.resp) ? r.resp.slice(0, 6) : [], porque: String(r.porque || '').slice(0, 400) };
+    if (n.fuente === 'prensa') {
+      L.real = n.tipo === 'ruido' ? 'rumor' : 'real'; L.llega = n.llega;
+      if (L.cred === 'real' || L.cred === 'rumor') { credTot++; if (L.cred === L.real) credOk++; }
     }
-    if (r === 'preparar') {
-      if (!gastar(g.costoPreparar, 0, 'Preparar respuesta a una noticia')) return;
-      var clave = clavePreparacion_(n.id);
-      if (n.tipo === 'ruido' || !clave) { fb.push('Prepararon una respuesta a "' + n.texto.slice(0, 70) + '…", pero era ruido: se perdieron Bs ' + g.costoPreparar.toLocaleString('es-BO') + '.'); return; }
-      if (clave.indexOf('op:') === 0) {
-        var sid = clave.slice(3); S.iq[sid] = Math.min(1, (S.iq[sid] || 0) + 0.05);
-        W.productos.forEach(function (p) { if (p.activo) p.AW = r2_(Math.min(0.98, p.AW + 0.02)); });
-        fb.push('Se prepararon para la oportunidad "' + n.texto.slice(0, 60) + '…": mejoró su conocimiento de ' + sid + ' y su marca se adelantó en el mercado.');
-      } else {
-        S.preparados[clave] = true; W.prep[clave] = true;
-        if (clave === 'etiquetado') W.productos.forEach(function (p) { p.flags = p.flags || {}; p.flags.prepEtiq = true; });
-        fb.push('Se prepararon ante "' + n.texto.slice(0, 60) + '…": ' + EFECTO_PREP_[clave] + '.');
-      }
-    }
+    if (L.postura === 'vigilar') L.cubierta = !!L.estudio && estudioCubierto_(P, S, inv0_(dec), L.estudio, t);
+    S.noticiasEval.push(L); S.lecturas.push(L);
   });
+  if (S.lecturas.length > 120) S.lecturas = S.lecturas.slice(-120);
+  var vigSin = S.noticiasEval.filter(function (L) { return L.postura === 'vigilar' && !L.cubierta; }).length;
+  if (vigSin) fb.push('Eligieron vigilar ' + vigSin + ' señal(es) sin comprar un estudio que las cubra: no recibirán información adicional sobre ellas.');
 
-  // 4. investigación: cada método genera un informe con estructura común y queda fechado
+  // herramientas de la empresa: se contratan en cualquier trimestre; se pagan con presupuesto operativo
+  W.herr = W.herr || {};
+  var HD = dec.herramientas || {};
+  Object.keys(HD).forEach(function (hid) {
+    var H = (P.herramientas || []).filter(function (x) { return x.id === hid; })[0], d = HD[hid];
+    if (!H || !d) return;
+    var seg = typeof d === 'object' ? d.seg : '';
+    if (H.seg && !segById_(P, seg)) { fb.push('La herramienta "' + H.nombre + '" necesita un segmento: no se contrató.'); return; }
+    var vig = W.herr[hid];
+    if (H.dur === 0 && vig) { fb.push('"' + H.nombre + '" ya estaba contratada.'); return; }
+    if (H.requiere === 'norma' && !normaEtiquetado_(t)) { fb.push('"' + H.nombre + '": no hay una norma de etiquetado vigente ni aprobada, así que no se contrató.'); return; }
+    gastoOtros += H.costo;
+    var desde = vig && vig.hasta >= t ? vig.hasta + 1 : t;
+    W.herr[hid] = { desde: vig && vig.hasta >= t ? vig.desde : t, hasta: H.dur === 0 ? 999 : desde + H.dur - 1, seg: H.seg ? seg : '' };
+    if (hid === 'etiqueta') W.productos.forEach(function (p) { if (p.activo) { p.flags = p.flags || {}; p.flags.prepEtiq = 1; } });
+    fb.push('Contrataron "' + H.nombre + '"' + (H.seg ? ' en ' + seg : '') + ': Bs ' + H.costo.toLocaleString('es-BO') + (H.dur === 0 ? ', permanente.' : ', vigente hasta T' + W.herr[hid].hasta + '.'));
+  });
+  S.herrVigentes = {}; Object.keys(W.herr).forEach(function (k) { if (W.herr[k].hasta >= t) S.herrVigentes[k] = W.herr[k]; });
+
+  // 4. investigación: cada estudio genera un informe con estructura común y queda fechado.
+  // Dos vías: el contrato anual de investigación continua (presupuesto operativo, con descuento)
+  // y los estudios ad hoc del trimestre (presupuesto de innovación).
   var inv = dec.investigacion || {};
-  // Cada estudio por segmentos lleva sus propios 1 o 2 segmentos (versiones anteriores: una lista común).
-  var segsDe = function (mid) { var L = (inv.segs && Array.isArray(inv.segs[mid])) ? inv.segs[mid] : (inv.segmentos || []); return L.filter(function (x) { return !!segById_(P, x); }).slice(0, 2); };
+  var segsDe = function (mid) { var L = (inv.segs && Array.isArray(inv.segs[mid])) ? inv.segs[mid] : (inv.segmentos || []); return segsValidos_(P, L); };
   (dec.decInformes ? Object.keys(dec.decInformes) : []).forEach(function (iid) {
     var inf = S.informes.filter(function (x) { return x.id === iid; })[0];
     if (inf) inf.decision = String(dec.decInformes[iid] || '').slice(0, 800);
   });
   var usados = {};
-  (inv.metodos || []).forEach(function (mid) {
-    var m = metById_(P, mid); if (!m) return;
-    var cm = costoMetodo_(P, S, m, t);
-    // no se compra (ni se cobra) un estudio que no puede realizarse
-    if (MET_SEG_.indexOf(mid) >= 0 && !segsDe(mid).length) { fb.push(m.nombre + ': no eligieron segmentos, así que no se compró ni se cobró.'); return; }
-    if (mid === 'lideres' && !S.proyectos.some(function (p) { return p.id === inv.proyectoLideres && p.estado === 'activo'; })) { fb.push('Usuarios líderes: no eligieron un proyecto activo que reciba sus ideas, así que no se compró ni se cobró.'); return; }
-    // los estudios los hace una consultora: cuestan dinero, no semanas-persona del equipo
-    if (!gastar(cm.costo * factorMadurez_(O), 0, m.nombre + (cm.recargo ? ' (con recargo por repetir)' : ''))) return;
+  function realizar(m, lista, origen) {
+    var mid = m.id;
     usados[mid] = true;
-    if (cm.recargo) fb.push(m.nombre + ' costó 50 % más por repetirse en trimestres consecutivos.');
+    // los informes del contrato continuo son de seguimiento: no exigen escribir una decisión
+    var marca = function (inf) { if (inf) { inf.origen = origen; if (origen === 'contrato') inf.requiere = false; } return inf; };
     if (mid === 'encuesta' || mid === 'observacion' || mid === 'percepcion') {
-      var lista = segsDe(mid);
       lista.forEach(function (sid) {
         var seg = segById_(P, sid); if (!seg) return;
-        if (mid === 'percepcion') { var ip = informePercepcion_(P, S, seg, t, rng); nuevoInforme_(S, m, t, { segs: [sid], pregunta: ip.pregunta, ficha: ip.ficha, limites: ip.limites, datos: ip.datos }); return; }
+        if (mid === 'percepcion') { var ip = informePercepcion_(P, S, seg, t, rng); marca(nuevoInforme_(S, m, t, { segs: [sid], pregunta: ip.pregunta, ficha: ip.ficha, limites: ip.limites, datos: ip.datos })); return; }
         var obs = {}, tot = 0;
         Object.keys(seg.w).forEach(function (k) {
           var v = seg.w[k];
@@ -397,31 +498,60 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
         S.iq[sid] = Math.max(S.iq[sid] || 0, iq);
         if (mid === 'observacion' && seg.latentes.length) { S.conocimiento.latentes = S.conocimiento.latentes || {}; S.conocimiento.latentes[sid] = seg.latentes.map(function (k) { return ATTR_NOMBRES[k]; }); }
         var r = mid === 'encuesta' ? informeEncuesta_(P, S, seg, obs, m) : informeObservacion_(P, S, seg, obs);
-        nuevoInforme_(S, m, t, { segs: [sid], pregunta: r.pregunta, ficha: r.ficha, limites: r.limites, datos: r.datos });
+        marca(nuevoInforme_(S, m, t, { segs: [sid], pregunta: r.pregunta, ficha: r.ficha, limites: r.limites, datos: r.datos }));
       });
     } else if (mid === 'extremos') {
       S.conocimiento.tendencia = 'Los usuarios extremos anticipan que la sostenibilidad ganará peso en universitarios (S2) y deportistas (S4) hacia el año 5, y que los productos altos en azúcar serán rechazados.';
       ['S2', 'S4'].forEach(function (sid) { S.iq[sid] = Math.min(1, (S.iq[sid] || 0) + 0.05); });
-      var ie = informeExtremos_(P, S, t); nuevoInforme_(S, m, t, { pregunta: ie.pregunta, ficha: ie.ficha, limites: ie.limites, datos: ie.datos });
+      var ie = informeExtremos_(P, S, t); marca(nuevoInforme_(S, m, t, { pregunta: ie.pregunta, ficha: ie.ficha, limites: ie.limites, datos: ie.datos }));
     } else if (mid === 'competidores') {
-      var ic = informeCompetidores_(P, S, t); nuevoInforme_(S, m, t, { pregunta: ic.pregunta, ficha: ic.ficha, limites: ic.limites, datos: ic.datos });
+      var ic = informeCompetidores_(P, S, t); marca(nuevoInforme_(S, m, t, { pregunta: ic.pregunta, ficha: ic.ficha, limites: ic.limites, datos: ic.datos }));
       S.conocimiento.competidores = { t: t, informe: true };
     } else if (mid === 'industria') {
-      var ii = informeIndustria_(P, S, prev, t, sched); nuevoInforme_(S, m, t, { pregunta: ii.pregunta, ficha: ii.ficha, limites: ii.limites, datos: ii.datos });
+      var ii = informeIndustria_(P, S, prev, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: ii.pregunta, ficha: ii.ficha, limites: ii.limites, datos: ii.datos }));
+    } else if (mid === 'sustitutos') {
+      var isu = informeSustitutos_(P, S, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: isu.pregunta, ficha: isu.ficha, limites: isu.limites, datos: isu.datos }));
+    } else if (mid === 'proveedores') {
+      var ipr = informeProveedores_(P, S, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: ipr.pregunta, ficha: ipr.ficha, limites: ipr.limites, datos: ipr.datos }));
     } else if (mid === 'vigilancia') {
-      S.vigilanciaHasta = t + 4;
-      var iv = informeVigilancia_(P, S, t, sched); nuevoInforme_(S, m, t, { pregunta: iv.pregunta, ficha: iv.ficha, limites: iv.limites, datos: iv.datos });
+      S.vigilanciaHasta = t + 3;
+      var iv = informeVigilancia_(P, S, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: iv.pregunta, ficha: iv.ficha, limites: iv.limites, datos: iv.datos }));
     } else if (mid === 'lideres') {
       var pj = S.proyectos.filter(function (p) { return p.id === inv.proyectoLideres && p.estado === 'activo'; })[0];
       if (pj) {
         var antes = pj.pool.length;
         addIdeas_(P, S, pj, { n0: 2, mu0: 6.8, s0: 0.6, id: 'lideres', nombre: 'Usuarios líderes' }, null, rng, O, t);
         var nuevas = pj.pool.slice(antes).map(function (it) { var idea = ideaById_(P, it.ideaId); return { nombre: idea.nombre, desc: idea.desc, tipo: idea.tipo, nov: idea.nov, qObs: it.qObs }; });
-        nuevoInforme_(S, m, t, { pregunta: '¿Qué soluciones han inventado ya los usuarios adelantados para el reto de "' + pj.nombre + '"?', ficha: 'Taller de co-creación con 5 usuarios líderes identificados por referidos (von Hippel, 1986). Conceptos entregados al proyecto.', limites: 'Los usuarios líderes van adelantados: lo que quieren puede no interesar todavía al cliente común. La calidad es una estimación (±1,5) hasta validarla.', datos: { proyecto: pj.nombre, conceptos: nuevas } });
+        marca(nuevoInforme_(S, m, t, { pregunta: '¿Qué soluciones han inventado ya los usuarios adelantados para el reto de "' + pj.nombre + '"?', ficha: 'Taller de co-creación con 5 usuarios líderes identificados por referidos (von Hippel, 1986). Conceptos entregados al proyecto.', limites: 'Los usuarios líderes van adelantados: lo que quieren puede no interesar todavía al cliente común. La calidad es una estimación (±1,5) hasta validarla.', datos: { proyecto: pj.nombre, conceptos: nuevas } }));
         fb.push('Los usuarios líderes aportaron ' + nuevas.length + ' ideas al proyecto "' + pj.nombre + '".');
       }
-      else fb.push('Usuarios líderes: no indicaron un proyecto activo; no se generaron ideas.');
     }
+  }
+  // a) contrato anual de investigación continua: se entrega en los trimestres pactados
+  var gastoContrato = 0, enContrato = {}, gastoInvAd = 0;
+  var K = contratoDe_(P, S);
+  Object.keys(K).forEach(function (mid) {
+    var m = metById_(P, mid), c = K[mid]; if (!m || !m.continuo || !entregaContrato_(t, c.veces)) return;
+    var lista = MET_SEG_.indexOf(mid) >= 0 ? segsValidos_(P, c.segs) : [];
+    if (MET_SEG_.indexOf(mid) >= 0 && !lista.length) return;
+    var monto = Math.round(costoMetodo_(P, S, m, t, lista.length).costo * (1 - (P.descuentoContrato || 0)));
+    gastoContrato += monto; enContrato[mid] = true;
+    realizar(m, lista, 'contrato');
+  });
+  if (gastoContrato) fb.push('Contrato de investigación continua: se entregaron ' + Object.keys(enContrato).map(function (k) { return metById_(P, k).nombre; }).join(', ') + ' (Bs ' + gastoContrato.toLocaleString('es-BO') + ', presupuesto operativo).');
+  // b) estudios ad hoc del trimestre
+  (inv.metodos || []).forEach(function (mid) {
+    var m = metById_(P, mid); if (!m) return;
+    if (enContrato[mid] && MET_SEG_.indexOf(mid) < 0) { fb.push(m.nombre + ': ya llegó este trimestre por su contrato continuo; no se compró de nuevo.'); return; }
+    var lista = MET_SEG_.indexOf(mid) >= 0 ? segsDe(mid) : [];
+    // no se compra (ni se cobra) un estudio que no puede realizarse
+    if (MET_SEG_.indexOf(mid) >= 0 && !lista.length) { fb.push(m.nombre + ': no eligieron segmentos, así que no se compró ni se cobró.'); return; }
+    if (mid === 'lideres' && !S.proyectos.some(function (p) { return p.id === inv.proyectoLideres && p.estado === 'activo'; })) { fb.push('Usuarios líderes: no eligieron un proyecto activo que reciba sus ideas, así que no se compró ni se cobró.'); return; }
+    var cm = costoMetodo_(P, S, m, t, lista.length);
+    // los estudios los hace una consultora: cuestan dinero, no semanas-persona del equipo
+    if (!gastar(cm.costo * factorMadurez_(O), 0, m.nombre)) return;
+    gastoInvAd += Math.round(cm.costo * factorMadurez_(O));
+    realizar(m, lista, 'adhoc');
   });
   // boletín trimestral de vigilancia mientras esté contratada (sin casilla obligatoria)
   if (!usados.vigilancia && S.vigilanciaHasta >= t) {
@@ -433,8 +563,8 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   // 5. nuevos proyectos
   (dec.nuevosProyectos || []).forEach(function (np) {
     var activos = S.proyectos.filter(function (p) { return p.estado === 'activo'; }).length;
-    var maxP = anioDe_(t) === 1 ? (g.maxProyectosAnio1 || g.maxProyectos) : g.maxProyectos;
-    if (activos >= maxP) { fb.push('No se creó "' + np.nombre + '": máximo ' + maxP + ' proyectos activos' + (anioDe_(t) === 1 ? ' en el primer año' : '') + '.'); return; }
+    var maxP = g.maxProyectos;
+    if (activos >= maxP) { fb.push('No se creó "' + np.nombre + '": máximo ' + maxP + ' proyectos activos' + '.'); return; }
     var seg = segById_(P, np.segmento) || P.segmentos[0];
     if (seg.nuevo && O.nue < 20) { fb.push('No se creó "' + np.nombre + '": dedicas menos de 20 % a segmentos nuevos y ' + seg.id + ' es un segmento nuevo para la empresa.'); return; }
     if (np.brief) {
@@ -605,7 +735,7 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   }
 
   // 8. respuestas a eventos
-  if (dec.respuestaC4 && S.c4resp === 'ninguna' && t >= g.entradaC4 && t <= 16) {
+  if (dec.respuestaC4 && S.c4resp === 'ninguna' && W.comps.some(function (c) { return c.id === 'C4' && c.activo; }) && !W.c4Adquirido) {
     if (dec.respuestaC4 === 'alianza') { S.c4resp = 'alianza'; W.alianza = true; gastoOtros += g.costoAlianzaC4; fb.push('Firmaste una alianza con la startup: obtienes presencia en apps de delivery y ella no invade los segmentos donde tienes más de 10 % de cuota.'); if (W.productos[0].canales.indexOf('delivery') < 0) W.productos[0].canales.push('delivery'); }
     if (dec.respuestaC4 === 'adquisicion') {
       var c4 = W.comps.filter(function (c) { return c.id === 'C4'; })[0];
@@ -634,10 +764,10 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
 
   // 10. mundo: competidores, C4, mercado y finanzas (real y contrafactual)
   var licit = (t === 16 && dec.licitacion) ? true : false;
-  var res = stepWorld_(P, W, S, t, sched, { gastoInnov: gastoInnov, gastoCap: gastoCap, gastoOtros: gastoOtros, writeoff: writeoff, capexExtra: capexExtra, licitacion: licit, adquisicionCaja: S._adquisicionCaja || 0, fb: fb });
+  var res = stepWorld_(P, W, S, t, sched, { gastoInnov: gastoInnov, gastoCap: gastoCap, gastoOtros: gastoOtros, gastoContrato: gastoContrato, writeoff: writeoff, capexExtra: capexExtra, licitacion: licit, adquisicionCaja: S._adquisicionCaja || 0, fb: fb });
   delete S._adquisicionCaja;
   p3PostMercado_(P, S, t, fb, sched);
-  var resTwin = stepWorld_(P, S.twin, null, t, sched, { gastoInnov: 0, gastoCap: 0, gastoOtros: 0, writeoff: 0, capexExtra: 0, licitacion: false, adquisicionCaja: 0, fb: [] });
+  var resTwin = stepWorld_(P, S.twin, null, t, sched, { gastoInnov: 0, gastoCap: 0, gastoOtros: 0, gastoContrato: costoContratoTrim_(P, P.contratoInicial, t), writeoff: 0, capexExtra: 0, licitacion: false, adquisicionCaja: 0, fb: [] });
 
   // 11. KPIs
   var clima = Math.round(100 * (0.5 * O.MI + 0.3 * O.AE + 0.2 * O.DIV));
@@ -646,7 +776,10 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   h.t = t; h.semanasUsadas = g.semanasTrimestre - semanas; h.gastoInnovTotal = gastoTotalInnov;
   h.intensidad = res.ventas > 0 ? r2_(100 * gastoTotalInnov / res.ventas) : 0;
   h.MI = O.MI; h.AE = O.AE; h.DIV = O.DIV; h.clima = clima; h.madurez = O.madurez;
-  h.aciertoNoticias = totN ? r2_(100 * aciertos / totN) : null;
+  h.lecturaEntorno = credTot ? r2_(100 * credOk / credTot) : null;
+  h.gastoInv = gastoInvAd;
+  h.herramientas = gastoOtrosHerr_(P, dec);
+  if (t % 4 === 0) calibracionAnual_(S, t);
   h.saldo = Math.round(S.saldo);
   h.twin = { ventas: resTwin.ventas, utilidadNeta: resTwin.utilidadNeta, caja: resTwin.caja, cuotaTotal: resTwin.cuotaTotal, cuotas: resTwin.cuotas, flujoLibre: resTwin.flujoLibre };
   h.exitos = exitos; h.fracasos = fracasos;
@@ -788,14 +921,14 @@ function stepWorld_(P, W, S, t, sched, X) {
   var sequia = sched.sequia && (t === sched.sequia || t === sched.sequia + 1);
   function costoEf(p) {
     var c = p.costUnit;
-    if (sequia && !(p.flags && p.flags.contratoLeche)) c *= 1.08 - 0.04 * prepNivel_(W, 'sequia');
-    if (t >= 12 && t <= 15 && !(p.flags && p.flags.envaseLocal)) c += 0.40 - 0.20 * prepNivel_(W, 'divisas');
+    if (sequia && !(p.flags && p.flags.contratoLeche)) c *= herrVig_(W, 'leche', t) ? 1 : 1.08 - 0.04 * prepNivel_(W, 'sequia');
+    if (t >= 12 && t <= 15 && !(p.flags && p.flags.envaseLocal)) c += herrVig_(W, 'envases', t) ? 0 : 0.40 - 0.20 * prepNivel_(W, 'divisas');
     return c;
   }
-  if (esReal && sequia && t === sched.sequia) X.fb.push('La sequía elevó el costo de la leche cruda 8 % durante dos trimestres' + '.');
-  if (esReal && t === 12) X.fb.push('Escasez de divisas: los envases importados suben Bs 0,40 por litro hasta T15 (salvo productos con envase local).');
-  if (esReal && sched.bloqueos.indexOf(t) >= 0) X.fb.push('Los bloqueos de carreteras redujeron 15 % la demanda atendida en el trimestre.');
-  if (esReal && t === 9) X.fb.push('Entró en vigor el etiquetado frontal: los productos con atributo saludable menor a 6 pierden 20 % de atractivo en S1, S4 y S5.');
+  if (esReal && sequia) X.fb.push('La sequía elevó 8 % el precio de la leche cruda' + (t === sched.sequia ? ' (durará dos trimestres)' : ' (segundo trimestre)') + '.' + (herrVig_(W, 'leche', t) ? ' Ustedes tenían vigente el proveedor de respaldo hasta T' + W.herr.leche.hasta + ': su costo de leche no subió.' : ''));
+  if (esReal && t >= 12 && t <= 15) X.fb.push((t === 12 ? 'Escasez de divisas: los envases importados suben Bs 0,40 por litro hasta T15 (salvo productos con envase local).' : 'Sigue el alza de los envases importados (Bs 0,40 por litro, hasta T15).') + (herrVig_(W, 'envases', t) ? ' Ustedes tenían envases comprados por adelantado hasta T' + W.herr.envases.hasta + ': su costo de envase no subió.' : ''));
+  if (esReal && sched.bloqueos.indexOf(t) >= 0) X.fb.push('Los bloqueos de carreteras redujeron 15 % la demanda atendida en el trimestre.' + (herrVig_(W, 'rutas', t) ? ' Ustedes tenían rutas alternativas vigentes: recuperaron cerca del 70 % de las entregas perdidas.' : ''));
+  if (esReal && t === 9) X.fb.push('Entró en vigor el etiquetado frontal: los productos con atributo saludable menor a 6 pierden 20 % de atractivo en S1, S4 y S5.' + (W.herr && W.herr.etiqueta ? ' Sus productos con la etiqueta adecuada pierden la mitad.' : ''));
 
   // difusión y olvido: sin publicidad suficiente, el conocimiento de marca cae
   W.productos.forEach(function (p) {
@@ -816,7 +949,7 @@ function stepWorld_(P, W, S, t, sched, X) {
   W.productos.forEach(function (p) { p.ventas = 0; p.unidades = 0; p.cuotaPorSeg = {}; });
   P.segmentos.forEach(function (seg) {
     var D = demanda_(P, seg, t, sched) * MKT_.N; dTot += D;
-    if (prepNivel_(W, 'bloqueos') && sched.bloqueos.indexOf(t) >= 0) D *= (0.85 + 0.07 * prepNivel_(W, 'bloqueos')) / 0.85;
+    if (sched.bloqueos.indexOf(t) >= 0) { if (herrVig_(W, 'rutas', t)) D *= (0.85 + 0.105) / 0.85; else if (prepNivel_(W, 'bloqueos')) D *= (0.85 + 0.07 * prepNivel_(W, 'bloqueos')) / 0.85; }
     var ofs = marketShares_(P, W, seg, t), cuotaSeg = 0;
     ofs.forEach(function (o) {
       if (o.tipo === 'propio') {
@@ -893,7 +1026,8 @@ function stepWorld_(P, W, S, t, sched, X) {
   });
   var intereses = F.deuda * g.tasaDeuda + F.emerg * g.tasaEmergencia;
   var bruta = ventas - costoVentas;
-  var uai = bruta - g.gastosFijos - gastoCom - X.gastoInnov - X.gastoOtros - amort - X.writeoff - intereses;
+  var invCont = Math.round(X.gastoContrato || 0);
+  var uai = bruta - g.gastosFijos - gastoCom - invCont - X.gastoInnov - X.gastoOtros - amort - X.writeoff - intereses;
   var base = uai;
   if (uai > 0 && F.perdida > 0) { var uso = Math.min(F.perdida, uai); base = uai - uso; F.perdida -= uso; }
   else if (uai < 0) { F.perdida += -uai; base = 0; }
@@ -920,7 +1054,7 @@ function stepWorld_(P, W, S, t, sched, X) {
   var cuotaTotal = r2_(100 * uTot / dTot);
   return {
     ventas: Math.round(ventas), costoVentas: Math.round(costoVentas), utilidadBruta: Math.round(bruta), gastosFijos: g.gastosFijos,
-    gastosComerciales: Math.round(gastoCom), gastosInnovacion: Math.round(X.gastoInnov), otrosGastos: Math.round(X.gastoOtros),
+    gastosComerciales: Math.round(gastoCom), investigacionContinua: invCont, gastosInnovacion: Math.round(X.gastoInnov), otrosGastos: Math.round(X.gastoOtros),
     amortizacion: Math.round(amort), bajas: Math.round(X.writeoff), intereses: Math.round(intereses), utilidadAntesImp: Math.round(uai),
     impuesto: Math.round(impuesto), utilidadNeta: Math.round(un), flujoOperativo: Math.round(flujoOp), flujoInversion: Math.round(flujoInv),
     flujoFinanciamiento: Math.round(prestamo - pago), flujoLibre: Math.round(flujoOp + flujoInv), caja: Math.round(F.caja),
@@ -994,26 +1128,22 @@ function estimarCostos_(P, S, dec, t) {
   costo += (Number(O.tiempoLibre) || 0) * g.costoTiempoLibrePunto;
   var inv = dec.investigacion || {};
   S = migrar_(copy_(S), P);
+  var Kc = esInicioAnio_(t) && dec.anual && dec.anual.contrato ? normContrato_(P, dec.anual.contrato) : contratoDe_(P, S);
   (inv.metodos || []).forEach(function (mid) {
     var m = metById_(P, mid); if (!m) return;
-    var segs = (inv.segs && Array.isArray(inv.segs[mid])) ? inv.segs[mid] : (inv.segmentos || []);
-    if (MET_SEG_.indexOf(mid) >= 0 && !segs.length) { avisos.push(m.nombre + ': elijan uno o dos segmentos; sin segmentos no se compra.'); return; }
+    var segs = segsValidos_(P, (inv.segs && Array.isArray(inv.segs[mid])) ? inv.segs[mid] : (inv.segmentos || []));
+    if (Kc[mid] && entregaContrato_(t, Kc[mid].veces) && MET_SEG_.indexOf(mid) < 0) { avisos.push(m.nombre + ': ya llega este trimestre por su contrato continuo; no hace falta comprarlo.'); return; }
+    if (MET_SEG_.indexOf(mid) >= 0 && !segs.length) { avisos.push(m.nombre + ': elijan al menos un segmento; sin segmentos no se compra.'); return; }
     if (mid === 'lideres' && !inv.proyectoLideres) { avisos.push('Usuarios líderes: elijan el proyecto que recibirá sus ideas; si no, no se compra.'); return; }
-    var cm = costoMetodo_(P, S, m, t); costo += cm.costo * factorMadurez_(O);
-    if (cm.recargo) avisos.push(m.nombre + ' cuesta 50 % más porque lo compraron el trimestre anterior.');
+    costo += costoMetodo_(P, S, m, t, segs.length).costo * factorMadurez_(O);
   });
-  Object.keys(dec.respuestas || {}).forEach(function (k) {
-    if (dec.respuestas[k] === 'preparar') costo += g.costoPreparar;
-    if (dec.respuestas[k] === 'actuar') {
-      var ac = (dec.acciones || {})[k] || {}, A = (P.accionesEntorno || []).filter(function (x) { return x.id === ac.a; })[0];
-      if (!A) avisos.push('Entorno: eligieron actuar ante una noticia pero falta elegir la acción.');
-      else { costo += A.costo; if (A.seg && !ac.seg) avisos.push('Entorno: la acción "' + A.nombre + '" necesita un segmento.'); if (String(ac.porque || '').trim().length < 10) avisos.push('Entorno: escriban por qué "' + A.nombre + '" responde a la noticia.'); }
-    }
-  });
+
+  var herr = gastoOtrosHerr_(P, dec);
+  Object.keys(dec.herramientas || {}).forEach(function (k) { var H = (P.herramientas || []).filter(function (x) { return x.id === k; })[0]; var d = dec.herramientas[k]; if (H && d && H.seg && !segById_(P, d.seg)) avisos.push('Herramienta "' + H.nombre + '": elijan el segmento.'); });
   var pend = informesPendientes_(S, dec, t);
   if (pend.length) avisos.push('Escriban qué decisión toman con ' + (pend.length === 1 ? 'el informe' : 'los ' + pend.length + ' informes') + ' de investigación recibidos (Resultados → Informes de investigación).');
-  var maxP = anioDe_(t) === 1 ? (g.maxProyectosAnio1 || g.maxProyectos) : g.maxProyectos, actP = S.proyectos.filter(function (p) { return p.estado === 'activo'; }).length;
-  if ((dec.nuevosProyectos || []).length + actP > maxP) avisos.push('Pueden tener como máximo ' + maxP + ' proyectos activos' + (anioDe_(t) === 1 ? ' en el primer año' : '') + '; algunos proyectos nuevos no se crearán.');
+  var maxP = g.maxProyectos, actP = S.proyectos.filter(function (p) { return p.estado === 'activo'; }).length;
+  if ((dec.nuevosProyectos || []).length + actP > maxP) avisos.push('Pueden tener como máximo ' + maxP + ' proyectos activos' + '; algunos proyectos nuevos no se crearán.');
   Object.keys(dec.proyectos || {}).forEach(function (pid) {
     var a = dec.proyectos[pid], pj = S.proyectos.filter(function (p) { return p.id === pid; })[0];
     if (!pj) return;
@@ -1031,7 +1161,8 @@ function estimarCostos_(P, S, dec, t) {
   if (costo > S.saldo) avisos.push('El costo estimado (Bs ' + costo.toLocaleString('es-BO') + ') supera tu saldo de presupuesto (Bs ' + Math.round(S.saldo).toLocaleString('es-BO') + '). Algunas acciones no se ejecutarán.');
   if (sem > g.semanasTrimestre) avisos.push('Las semanas-persona estimadas (' + sem + ') superan las ' + g.semanasTrimestre + ' disponibles. Algunas acciones no se ejecutarán.');
   if (!dec.hipotesis || String(dec.hipotesis).trim().length < 20) avisos.push('Escribe la hipótesis del equipo (al menos 20 caracteres) antes de enviar.');
-  return { costo: costo, semanas: Math.round(sem * 10) / 10, saldo: Math.round(S.saldo), semanasDisp: g.semanasTrimestre, avisos: avisos };
+  var Kt = esInicioAnio_(t) && dec.anual && dec.anual.contrato ? dec.anual.contrato : contratoDe_(P, S);
+  return { costo: costo, semanas: Math.round(sem * 10) / 10, saldo: Math.round(S.saldo), semanasDisp: g.semanasTrimestre, avisos: avisos, operativo: { herramientas: herr, contrato: costoContratoTrim_(P, Kt, t) } };
 }
 
 /** Informes recibidos que todavía no tienen la decisión escrita por el equipo. */

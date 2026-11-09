@@ -21,7 +21,7 @@ for (let t = 1; t <= 8; t++) {
     v.estado.productos.forEach(p => { dec.productos[p.id] = { precio: p.precio, comunicacion: i === 3 ? 0 : 20000, segPub: i === 1 ? 'S5' : 'todos', promo: i === 2 ? 30000 : 0, pronostico: 1500000, canales: p.canales }; });
     if ((t - 1) % 4 === 0) dec.anual = { p4: { producto: 40, proceso: 20, posicion: 20, paradigma: 20 }, nucleo: 60 - i * 5, adyacente: 30, transf: 10 + i * 5, postura: ['ofensiva', 'defensiva', 'imitativa', 'tradicional', 'oportunista', 'dependiente'][i], tiempoLibre: 10, incentivo: 'reconocimiento', politica: 'aprendizaje', composicion: 'multifuncional', estructura: 'integrada', capacitacion: false, umbral: 'moderado', hipotesis: 'Hipótesis anual' };
     const est = G.apiEstimar(tk, dec);
-    if (i === 5 && t > 1) ok(est.avisos.some(a => /50 %/.test(a)), 'T' + t + ' no avisa recargo');
+    if (i === 5 && t > 1) ok(!est.avisos.some(a => /50 %/.test(a)), 'T' + t + ': repetir un estudio ya no tiene recargo');
     try { G.apiGuardar(tk, dec, true); } catch (e) { fallas.push('T' + t + ' ' + n + ': ' + e.message); }
   });
   const r = G.apiAdmin(adm, 'procesar', { simId: 'S01' }); ok(/procesado/.test(r.mensaje), 'procesar T' + t);

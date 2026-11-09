@@ -70,7 +70,7 @@ try {
   // 8) tabla de cinco años del caso
   await pg.setViewportSize({ width: 1280, height: 900 });
   await pg.click('nav >> text=Situación'); await pg.waitForTimeout(300);
-  R.anios = await pg.isVisible('text=Renovación: los clientes cambian lo que valoran');
+  R.anios = await pg.isVisible('text=Cómo transcurre el tiempo') && !(await pg.isVisible('text=Renovación: los clientes cambian lo que valoran'));
 } catch (e) { R.falla = e.message; }
 console.log(JSON.stringify(R, null, 1)); console.log('Errores de página:', errs.length ? errs : 'ninguno');
 const ok = !R.falla && R.publico && R.publicoSinBotonesIr && R.publicoNavega && R.cierra && /Paso 4/.test(R.ctx || '') && R.ctxAbre && R.subMenu && R.irFunciona && R.todasAbren && R.busca.length >= 1 && R.buscaSinTilde >= 1 && R.verTodo === R.secciones && R.anchoCel && R.selCel && R.botonBarra && R.anios && !errs.length;

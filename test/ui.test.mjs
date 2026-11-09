@@ -35,6 +35,8 @@ try {
   for (const [k, v] of [['nucleo', '60'], ['adyacente', '30'], ['transf', '10']]) await pg.fill('input[data-p="anual.' + k + '"]', v);
   for (const [k, v] of [['postura', 'ofensiva'], ['estructura', 'integrada'], ['tiempoLibre', '10'], ['incentivo', 'reconocimiento'], ['politica', 'aprendizaje'], ['composicion', 'multifuncional'], ['umbral', 'moderado'], ['capacitacion', 'no']]) await pg.selectOption('select[data-p="anual.' + k + '"]', v);
   await pg.fill('textarea[data-p="anual.hipotesis"]', 'Con 30 % adyacente lanzaremos un producto para universitarios antes de T8.'); await pg.waitForTimeout(300);
+  await pg.click('nav .sub >> text=1. Entorno'); await pg.waitForTimeout(300);
+  for (const v of ['dudosa', 'ignorar']) { for (let k = 0; k < 20; k++) { const hay = await pg.evaluate((v) => { const r = document.querySelector('input[type=radio][value="' + v + '"]:not(:checked)'); if (!r) return false; r.click(); return true; }, v); if (!hay) break; await pg.waitForTimeout(120); } }
   await pg.click('nav .sub >> text=Hipótesis'); await pg.fill('textarea[data-p="hipotesis"]', 'Si observamos a los universitarios descubriremos necesidades latentes.'); await pg.dispatchEvent('textarea[data-p="hipotesis"]', 'change');
   await pg.waitForTimeout(700); await pg.click('text=Enviar decisiones'); await pg.waitForTimeout(900);
   const enviado = (s.mem.tablas.decisiones || []).some((d) => d.fila.includes('enviado') && d.fila.map(String).includes('218001234'));

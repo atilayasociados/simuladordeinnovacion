@@ -55,6 +55,22 @@ function makeGas() {
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'legacy.js'), 'utf8'), ctx, { filename: 'legacy.js' });
   // Las pruebas antiguas no completan la Estrategia anual (obligatoria desde v2.6): se completa con valores
   // de prueba solo los campos que falten. ANUAL_ESTRICTO=1 desactiva este relleno.
+  // Las pruebas antiguas no registran la lectura de señales (obligatoria desde v3): se completa con
+  // "dudosa / ignorar" solo en las señales que falten. SENALES_ESTRICTO=1 desactiva este relleno.
+  if (!process.env.SENALES_ESTRICTO) {
+    const orig0 = ctx.apiGuardar;
+    ctx.apiGuardar = function (tok, dec, enviar) {
+      try {
+        if (enviar) {
+          const ses = ctx.sess_(tok, 'equipo'), pa = ctx.partida_(ses.simId), P = ctx.getParams_();
+          const S = ctx.migrar_(ctx.estadoPrevio_(P, ctx.equipoById_(ses.equipoId), pa.t), P);
+          const SEN = dec.senales = dec.senales || {};
+          ctx.senalesPara_(P, pa.t, S, ctx.scheduleEvents_(pa.semilla)).forEach((n) => { const r = SEN[n.id] = SEN[n.id] || {}; if (!r.cred) r.cred = 'dudosa'; if (!r.postura) r.postura = 'ignorar'; if ((r.postura === 'preparar' || r.postura === 'actuar') && String(r.porque || '').length < 10) r.porque = 'Respuesta de prueba ante la señal.'; });
+        }
+      } catch (e) { }
+      return orig0(tok, dec, enviar);
+    };
+  }
   if (!process.env.ANUAL_ESTRICTO) {
     const orig = ctx.apiGuardar;
     ctx.apiGuardar = function (tok, dec, enviar) {

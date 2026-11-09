@@ -8,7 +8,7 @@ var MANUAL = [
   ['p', 'Su equipo dirige la <b>innovación</b> de una empresa láctea de Santa Cruz durante <b>5 años</b> (20 trimestres). La empresa vende una leche saborizada de 1 litro que se está quedando atrás: las familias compran cada vez menos y crecen los clientes que la empresa casi no atiende. Su encargo es <b>renovar el portafolio de productos sin poner en riesgo la caja</b>.'],
   ['p', 'Compiten contra los equipos de su curso (cada equipo es una empresa) y contra cuatro competidores que maneja el simulador. Lo que gana una empresa en el mercado lo pierden las demás.'],
   ['h', 'Qué deciden'],
-  ['lista', ['Cómo leen el entorno (noticias que pueden ser oportunidad, amenaza o simple ruido).',
+  ['lista', ['Cómo leen el entorno: señales del macro y del microentorno que pueden ser reales o rumores, y cómo responden a ellas.',
     'La estrategia de innovación del año y el clima creativo de la organización.',
     'Qué investigan sobre los clientes y la competencia.',
     'Sus proyectos de innovación, de la idea al lanzamiento: definir, idear, evaluar, prototipar, especificar, pasar la puerta, pilotear y lanzar.',
@@ -109,33 +109,29 @@ var MANUAL = [
   ['idea', 'Repartan el trabajo: una persona en entorno e investigación, otra en proyectos, otra en productos y finanzas. Antes de enviar, revisen juntos la hipótesis y el pie de la pantalla.'],
   ['ir', [['Qué decidir en esta ronda', 'ronda']]]
 ]},
-{ id: 'entorno', t: 'Paso 1. Entorno', r: 'Clasificar noticias, elegir una postura y, si actúan, una acción.', b: [
-  ['p', 'Cada trimestre llegan noticias del entorno (económicas, tecnológicas, legales, culturales…). Algunas son señales reales; otras son <b>ruido</b> (rumores sin consecuencias).'],
-  ['pasos', ['<b>Clasifiquen</b> cada noticia: oportunidad, amenaza o ruido. Algunas noticias son a la vez oportunidad y amenaza.',
-    '<b>Elijan una postura</b>: <b>Ignorar</b> (sin costo; si era real, la enfrentan sin preparación), <b>Vigilar</b> (sin costo; el trimestre siguiente reciben un dato adicional para decidir mejor) o <b>Actuar</b>.',
-    'Si actúan, <b>elijan una acción</b> del menú (y el segmento, si la acción lo pide) y <b>escriban en una línea por qué</b> esa acción responde a la noticia. Sin la justificación, la acción no se ejecuta.']],
-  ['h', 'El menú de acciones'],
-  ['p', 'Es el mismo para todas las noticias: el simulador no les dice cuál corresponde a cuál. Decidirlo es parte del desafío. El costo sale del presupuesto de innovación.'],
-  ['tabla', ['Acción', 'Qué compran', 'Costo'], [
-    ['Contratar un proveedor de leche de respaldo', 'Contrato de reserva con un segundo acopiador, con precio pactado por un año.', 'Bs 8.000'],
-    ['Comprar envases importados por adelantado', 'Envases y tapas importados para los próximos trimestres.', 'Bs 15.000'],
-    ['Reformular la receta y rediseñar la etiqueta', 'Ajuste de azúcar y grasas en la fórmula y una etiqueta nueva.', 'Bs 12.000'],
-    ['Armar rutas alternativas y stock de seguridad', 'Rutas de distribución alternativas y un depósito de reserva en la ciudad.', 'Bs 6.000'],
-    ['Preparar un plan comercial contra un competidor', 'Precios, promociones y presencia listos para responder a un rival en el segmento elegido.', 'Bs 10.000'],
-    ['Hacer un estudio rápido de un segmento', 'Entrevistas y datos de ventas sobre lo que cambia en el segmento elegido.', 'Bs 5.000'],
-    ['Lanzar una campaña anticipada de marca', 'Campaña en redes y puntos de venta en el segmento elegido, antes que los rivales.', 'Bs 10.000']]],
-  ['h', 'Qué pasa después'],
-  ['tabla', ['Si…', 'Resultado'], [
-    ['La noticia se cumple y la acción responde a ella', 'Reduce el golpe de la amenaza (por ejemplo, sus envases suben Bs 0,20 por litro en vez de Bs 0,40) o adelanta el beneficio de la oportunidad.'],
-    ['La acción ayuda solo en parte', 'Logran la mitad del efecto, y el mensaje les dice qué habría funcionado mejor.'],
-    ['La acción no tiene que ver con lo que pasó', 'El dinero se gasta sin efecto, y el mensaje explica por qué.'],
-    ['La noticia era un rumor', 'Cualquier acción se pierde.']]],
-  ['ej', 'Noticia: "Se amplía la brecha cambiaria y se retrasan las importaciones de envases." Es: amenaza. Postura: actuar. Acción: comprar envases importados por adelantado (Bs 15.000). Por qué: "Nuestros envases son importados; si faltan divisas, subirán de precio."'],
-  ['p', 'Al trimestre siguiente, en <b>Su lectura del trimestre anterior</b>, verán qué era cada noticia, si la clasificaron bien y lo que logró su acción. El porcentaje de aciertos aparece en los indicadores.'],
-  ['h', 'Decisiones especiales'],
-  ['lista', ['<b>Respuesta a la startup de bebidas vegetales</b>: cuando aparezca, pueden responder una sola vez con una <b>alianza</b> (Bs 60.000 de caja: presencia en apps de delivery) o una <b>adquisición</b> (Bs 450.000 de caja: su producto pasa a su portafolio). También pueden competirle con sus propios productos.',
-    '<b>Licitación de alimentación escolar y universitaria</b>: cuando se abra, pueden postular si tienen un producto con atributo saludable 6 o más y nutrición 6 o más.']],
-  ['idea', 'No actúen ante todo: el presupuesto no alcanza y los rumores cuestan. Actúen ante las señales que afectan a sus productos y segmentos, y vigilen las dudosas. Una misma acción puede servir para más de una noticia. La vigilancia del entorno (paso 3) les trae las noticias un trimestre antes.'],
+{ id: 'entorno', t: 'Paso 1. Entorno', r: 'Leer las señales del macro y del microentorno y decidir con qué herramientas responder.', b: [
+  ['p', 'Cada trimestre llegan <b>señales</b> por dos vías: la <b>prensa</b> (gratis, la ven todos los equipos y a veces es rumor) y los <b>informes de su consultora</b> (lo que compraron en 3. Investigación). Cada señal indica su ámbito: <b>macroentorno</b> (político, económico, social, tecnológico, ecológico, legal) o <b>microentorno</b> (clientes, competidores, entrantes, sustitutos, proveedores).'],
+  ['p', 'El simulador <b>no les dice qué hacer</b> ni cuál era la respuesta correcta: les entrega señales y les muestra lo que pasó. La misma señal puede ser una oportunidad para una empresa y una amenaza para otra (Jackson y Dutton, 1988).'],
+  ['h', '1. Registrar cómo leen cada señal'],
+  ['pasos', ['<b>¿Qué tan creíble es?</b> Real, dudosa o rumor (obligatorio).',
+    '<b>¿Qué postura toman?</b> (obligatorio, respuesta graduada según la fuerza de la señal; Ansoff, 1975): <b>Ignorar</b> (no hacen nada), <b>Vigilar</b> (compran el estudio que la cubre para confirmarla), <b>Prepararse</b> (protegen a la empresa por dentro: contratos, reservas, ajustes) o <b>Actuar</b> (mueven el mercado: campaña, plan comercial, alianza, producto o precio).',
+    'Si <b>vigilan</b>: elijan con qué estudio (la lista sugiere los que cubren ese ámbito) y márquenlo en 3. Investigación. Sin estudio no reciben información adicional.',
+    'Si se <b>preparan</b> o <b>actúan</b>: indiquen qué significa para su empresa (oportunidad, amenaza o ambas), cuándo creen que llegará, qué impacto esperan, con qué decisión responden y por qué (una o dos frases).']],
+  ['h', '2. Herramientas de la empresa'],
+  ['p', 'Están disponibles <b>en cualquier trimestre</b>, haya o no una noticia. Se pagan con el <b>presupuesto operativo</b> (aparecen en el estado de resultados como "Otros gastos") y duran un tiempo. Renovar una herramienta vigente la extiende desde su vencimiento.'],
+  ['tabla', ['Herramienta', 'Qué hace', 'Costo', 'Duración'], [
+    ['Proveedor de leche de respaldo', 'Precio de la leche cruda pactado: si el precio de mercado sube, su costo no sube.', 'Bs 25.000', '4 trimestres'],
+    ['Compra anticipada de envases importados', 'Envases al precio actual (incluye financiamiento y almacenaje): su costo de envase no sube.', 'Bs 100.000', '4 trimestres'],
+    ['Rutas y distribución alternativas', 'Si se cortan las carreteras, recupera cerca del 70 % de las entregas perdidas.', 'Bs 45.000', '2 trimestres'],
+    ['Adecuación de etiqueta y comunicación nutricional', 'Reduce a la mitad la pérdida de atractivo que cause una norma de etiquetado. Solo cuando existe una norma vigente o aprobada.', 'Bs 40.000', 'Permanente'],
+    ['Plan comercial frente a un competidor', 'Mejora 5 % el atractivo de sus productos en el segmento elegido mientras compita allí un rival nuevo.', 'Bs 10.000', '2 trimestres'],
+    ['Campaña anticipada de marca', 'Mejora 6 % el atractivo de sus productos en el segmento elegido.', 'Bs 10.000', '1 trimestre']]],
+  ['p', '<b>Corporativas:</b> mientras opere un entrante (por ejemplo, una startup), pueden negociar una sola vez una <b>alianza</b> (Bs 60.000 de caja) o una <b>adquisición</b> (Bs 450.000 de caja). Si se abre una <b>licitación pública</b>, pueden postular mientras esté abierta (requisito: un producto con saludable 6 o más y nutrición 6 o más).'],
+  ['idea', 'Ninguna herramienta conviene "por si acaso" todo el tiempo: sus costos están calibrados para que, en promedio, cubrirse siempre cueste lo mismo o más de lo que ahorra. Rinden a quien lee bien el entorno y contrata a tiempo.'],
+  ['h', '3. Qué pasa después'],
+  ['p', 'En Resultados → Resumen del trimestre verán los <b>hechos</b> y lo que tenían vigente. Por ejemplo: "La sequía elevó 8 % el precio de la leche cruda. Ustedes tenían vigente el proveedor de respaldo hasta T9: su costo de leche no subió." Si gastaron en un rumor, simplemente gastaron: nadie les dirá "acertaron" o "se equivocaron".'],
+  ['p', 'Al trimestre siguiente, en <b>Su lectura del trimestre anterior</b>, verán si cada noticia se confirmó. Al cierre de cada año reciben el <b>informe de calibración</b>: compara lo que creyeron (credibilidad y plazo) con lo que ocurrió. Solo se verifica lo verificable; si era oportunidad o amenaza no se califica.'],
+  ['ej', 'Señal (prensa): "Se amplía la brecha cambiaria y se retrasan las importaciones de envases." Creíble: real. Postura: prepararse. Para nosotros: amenaza (nuestros envases son importados). Plazo: 1 o 2 trimestres. Impacto: alto. Responden con: compra anticipada de envases. Por qué: si faltan divisas, subirá nuestro costo por litro.'],
   ['ir', [['Ir a 1. Entorno', 'entorno']]]
 ]},
 { id: 'anual', t: 'Paso 2. Estrategia anual', r: 'Cómo repartir el esfuerzo y gestionar el clima creativo.', b: [
@@ -160,27 +156,30 @@ var MANUAL = [
     ['Composición de equipos', 'Homogénea, multifuncional o con externos', 'Más diversidad: ideas más variadas, malas y excepcionales.'],
     ['Umbral de la puerta', 'Estricto (7,0), moderado (6,0) o laxo (5,0)', 'Puntaje mínimo para que un proyecto pase al piloto.'],
     ['Capacitación en Design Thinking', 'Sí o no (Bs 25.000 y 2 semanas)', 'Sube la autoeficacia y la calidad de las ideas durante el año.']]],
+  ['h', 'Bloque C. Contrato de investigación continua'],
+  ['p', 'Estudios de <b>seguimiento</b> que la consultora entrega en forma periódica durante el año, con <b>15 % de descuento</b> por contrato anual. Se pagan con el presupuesto operativo (línea propia en el estado de resultados), no con el de innovación. Pueden ir en el contrato: A.1 Vigilancia (suscripción anual), C.1 Mercado, C.2 Competidores, C.3 Posicionamiento (con sus segmentos), C.4 Sustitutos y D.1 Proveedores; cada uno una, dos o cuatro veces al año. Los estudios de clientes (B) no van en el contrato: se encargan cuando un proyecto los necesita.'],
+  ['p', 'La empresa llega con un <b>contrato heredado</b>: C.1 Mercado cada trimestre (Bs 15.300 por trimestre, Bs 61.200 al año). Al inicio de cada año deciden mantenerlo, ampliarlo, reducirlo o cancelarlo. Antes, revisen el Año 0 en Resultados.'],
   ['h', 'Hipótesis anual (obligatoria)'],
   ['p', 'Escriban qué esperan lograr en el año y por qué esta estrategia los llevará ahí. Al cierre del año la contrastarán en la bitácora.'],
   ['ej', 'Con 30 % en adyacente y capacitación en Design Thinking lanzaremos un producto para universitarios antes de T8 y llegaremos a 5 % de cuota en S2.'],
   ['ir', [['Ir a 2. Estrategia anual', 'anual']]]
 ]},
-{ id: 'investigacion', t: 'Paso 3. Investigación', r: 'Qué método elegir, cuánto cuesta y cómo usar el informe.', b: [
-  ['p', 'Al inicio no saben qué valora cada segmento. Investigar es la forma barata de averiguarlo antes de gastar en proyectos. Los estudios los hace una consultora: cuestan dinero del presupuesto de innovación, pero <b>no consumen semanas-persona</b> del equipo. Pueden comprar todos los que quieran si les alcanza el presupuesto. Cada estudio llega como <b>informe</b> cuando el docente procesa el trimestre.'],
-  ['pasos', ['Marquen los estudios que quieren comprar.',
-    'En los estudios de clientes y de marca (encuesta, observación y percepción), elijan <b>uno o dos segmentos para cada estudio</b>. El precio cubre los dos. Pueden, por ejemplo, encuestar S1 y S2 y observar S4.',
-    'En usuarios líderes, elijan abajo el proyecto que recibirá sus ideas.',
-    'Revisen el costo en el pie de la pantalla.']],
-  ['tabla', ['Estudio', 'Tipo', 'Qué reciben', 'Segmentos', 'Costo'], [
-    ['Encuesta', 'Clientes', 'La importancia que declaran los clientes, con margen de error. Subestima lo que no dicen.', '1 o 2, a elección', 'Bs 12.000'],
-    ['Observación etnográfica', 'Clientes', 'Persona, citas, recorrido del cliente, mapa de empatía y la necesidad latente.', '1 o 2, a elección', 'Bs 30.000'],
-    ['Usuarios extremos', 'Clientes', 'Una tendencia que puede volverse común.', 'Todo el mercado', 'Bs 15.000'],
-    ['Usuarios líderes', 'Clientes', '2 conceptos de alta calidad para un proyecto activo.', 'El del proyecto', 'Bs 20.000'],
-    ['Estudio de la industria', 'Mercado', 'Participación de cada empresa del curso y tamaño de cada segmento (un trimestre de retraso).', 'Todo el mercado', 'Bs 18.000'],
-    ['Análisis de competidores', 'Mercado', 'Precio, envase, mensaje, canales y presencia de cada rival.', 'Todo el mercado', 'Bs 14.000'],
-    ['Vigilancia del entorno', 'Mercado', 'Boletín de señales durante 4 trimestres; las noticias llegan un trimestre antes.', 'Todo el mercado', 'Bs 22.000'],
-    ['Percepción de marcas', 'Marca', 'Mapa perceptual y curva de valor frente al valor real de su producto.', '1 o 2, a elección', 'Bs 16.000']]],
-  ['p', 'Repetir un estudio en el trimestre siguiente cuesta <b>50 % más</b>. Un estudio que no puede hacerse (sin segmentos, o usuarios líderes sin proyecto) <b>no se compra ni se cobra</b>.'],
+{ id: 'investigacion', t: 'Paso 3. Investigación', r: 'El catálogo de la consultora: qué estudio elegir, cuánto cuesta y cómo usar el informe.', b: [
+  ['p', 'Los estudios los hace una consultora. Los que encargan cada trimestre (<b>ad hoc</b>) se pagan con el presupuesto de innovación y <b>no consumen semanas-persona</b>. Pueden comprar todos los que quieran si les alcanza. Además reciben los estudios de su <b>contrato continuo</b> (ver Paso 2, Bloque C).'],
+  ['p', 'El catálogo se ordena como el análisis externo (Aaker y Moorman, 2017; Porter, 1980): <b>A. Macroentorno</b>, <b>B. Clientes</b>, <b>C. Industria</b> y <b>D. Proveedores</b>. Cada estudio tiene una modalidad: <b>sindicado</b> (informe estándar que compran varias empresas, precio fijo), <b>a medida</b> (diseñado para ustedes; en los estudios por segmento el precio sube con cada segmento, de 1 a 5) o <b>suscripción</b> (pago único por 4 trimestres).'],
+  ['tabla', ['Inciso', 'Estudio', 'Pregunta que responde', 'Modalidad', 'Costo'], [
+    ['A.1', 'Vigilancia del entorno', '¿Qué noticias son reales y cuándo llegarán? Boletín durante 4 trimestres; las noticias llegan un trimestre antes.', 'Suscripción', 'Bs 22.000'],
+    ['B.1', 'Encuesta', '¿Qué dicen valorar los clientes? Con margen de error; subestima lo que no dicen.', 'A medida', 'Bs 8.000 + 4.000 por segmento'],
+    ['B.2', 'Observación etnográfica', '¿Qué hacen y qué necesitan sin decirlo? Persona, recorrido, mapa de empatía, necesidad latente.', 'A medida', 'Bs 15.000 por segmento'],
+    ['B.3', 'Usuarios extremos', '¿Qué necesidad puede volverse común?', 'A medida', 'Bs 15.000'],
+    ['B.4', 'Usuarios líderes (co-creación)', '¿Qué ideas proponen los clientes adelantados? 2 conceptos para un proyecto activo.', 'A medida', 'Bs 20.000'],
+    ['C.1', 'Mercado', '¿Cuánto vende cada empresa y en qué segmentos? (un trimestre de retraso)', 'Sindicado', 'Bs 18.000'],
+    ['C.2', 'Competidores actuales y potenciales', '¿Qué ofrece cada rival y quién se prepara para entrar o imitar?', 'Sindicado', 'Bs 14.000'],
+    ['C.3', 'Posicionamiento de marcas', '¿Cómo nos perciben los clientes frente a los rivales? Mapa perceptual y curva de valor.', 'A medida', 'Bs 8.000 + 4.000 por segmento'],
+    ['C.4', 'Sustitutos', '¿Qué alternativas a los lácteos ganan terreno?', 'Sindicado', 'Bs 10.000'],
+    ['D.1', 'Proveedores', '¿Cómo evolucionarán la leche, los envases importados y el transporte?', 'Sindicado', 'Bs 10.000']]],
+  ['p', 'Comprar todos los estudios con los 5 segmentos cuesta unos Bs 240.000 (60 % del presupuesto anual). Los precios son <b>didácticos</b>: en el mercado boliviano costarían cerca de tres veces más. Como referencia, las empresas latinoamericanas destinan entre 0,02 % y 0,4 % de sus ventas a investigación de mercados; la pantalla les muestra cuánto destinan ustedes.'],
+  ['p', 'Un estudio que no puede hacerse (sin segmentos, o usuarios líderes sin proyecto) <b>no se compra ni se cobra</b>. El hallazgo principal de cada informe aparece también como señal en 1. Entorno.'],
   ['h', 'Cómo leer un informe'],
   ['p', 'Todos los informes tienen la misma estructura: <b>pregunta</b>, <b>método y muestra</b>, <b>hallazgos</b>, <b>limitaciones</b> y <b>¿qué decisión tomamos con este dato?</b>. Ese último campo es obligatorio para enviar el trimestre siguiente.'],
   ['ej', 'Hallazgo: S2 dice valorar el precio, pero la observación muestra que no compra lácteos porque no los puede tomar con una mano en el micro. Decisión: creamos un proyecto para S2 centrado en conveniencia y fijamos un precio objetivo de Bs 20 por litro.'],
@@ -387,7 +386,9 @@ var MANUAL = [
     ['Motivación intrínseca y autoeficacia creativa', 'De 0 a 1: cuánto disfruta el personal el trabajo creativo y cuánto confía en su capacidad. Mejoran la calidad de las ideas.'],
     ['Clima creativo', 'Resumen de las condiciones que favorecen la creatividad en la organización.'],
     ['Madurez en innovación', 'De 1 a 5: qué tan bien gestiona la empresa la innovación. Sube con las revisiones de proyectos.'],
-    ['Acierto en noticias', 'Porcentaje de noticias que clasificaron bien.']]],
+    ['Lectura del entorno: credibilidad acertada', 'Porcentaje de noticias de prensa a las que dieron la credibilidad correcta (real o rumor).'],
+    ['Gasto en investigación (% de ventas)', 'Contrato continuo más estudios ad hoc, respecto de las ventas.']]],
+  ['p', 'Desde el T1 verán también el <b>Año 0</b> (T-3 a T0): los cuatro trimestres anteriores a la partida, para su análisis interno. El estado de resultados tiene una línea para la <b>investigación de mercados continua</b> (contrato) y otra para <b>otros gastos</b> (herramientas del entorno y alianzas).'],
   ['ir', [['Resumen del trimestre', 'resumen'], ['Estados financieros', 'resultados']]]
 ]},
 { id: 'bitacora', t: 'Aprender y la bitácora', r: 'Relacionar lo que pasó con la teoría.', b: [
@@ -398,15 +399,10 @@ var MANUAL = [
   ['ej', 'Decidimos observar a S2 en lugar de encuestar. La calidad de nuestras fichas subió a 6,8. Se cumplió la hipótesis: la observación reveló que S2 valora la conveniencia aunque declare el precio. Lo explica la diferencia entre necesidades declaradas y latentes.'],
   ['ir', [['Mi bitácora', 'bitacora'], ['Temas de innovación', 'temas']]]
 ]},
-{ id: 'calendario', t: 'Los cinco años', r: 'Qué suele estar en juego cada año.', b: [
-  ['tabla', ['Año', 'Trimestres', 'Lo que suele estar en juego'], [
-    ['1', 'T1–T4', 'Diagnóstico: conocer a los clientes, definir el problema y lograr una primera mejora rápida.'],
-    ['2', 'T5–T8', 'Exploración: apuestas hacia segmentos nuevos; los importados empiezan a mejorar.'],
-    ['3', 'T9–T12', 'Lanzamiento: los competidores reaccionan, copian lo que funciona y puede entrar un rival nuevo.'],
-    ['4', 'T13–T16', 'Turbulencia: cambian los costos y aparecen oportunidades públicas.'],
-    ['5', 'T17–T20', 'Renovación: los clientes cambian lo que valoran; ganan las empresas que renovaron su portafolio.']]],
-  ['p', 'La Estrategia anual se decide en T1, T5, T9, T13 y T17. Además pueden ocurrir sucesos que no se anuncian, como una sequía o bloqueos de carreteras.'],
-  ['idea', 'Un proyecto tarda varios trimestres. Si quieren tener productos nuevos vendiendo en el año 3 (cuando empieza a contar la vitalidad), sus primeros proyectos deben nacer en el año 1.']
+{ id: 'calendario', t: 'Cómo transcurre el tiempo', r: 'Veinte trimestres, cinco años y un entorno que cambia.', b: [
+  ['lista', ['La partida dura 20 trimestres: 5 años de 4 trimestres.', 'Cada trimestre: leen el entorno, deciden, el docente procesa y reciben resultados.', 'Al inicio de cada año (T1, T5, T9, T13 y T17) definen o revisan su Estrategia anual y su contrato de investigación continua.', 'El mercado, los competidores, los costos y lo que valoran los clientes pueden cambiar en cualquier momento. Las señales llegan por 1. Entorno y por los estudios que compren. No todo se anuncia.']],
+  ['p', 'El simulador no les dice qué hacer en cada año: ustedes leen el entorno y deciden.'],
+  ['idea', 'Un proyecto tarda varios trimestres desde la idea hasta el lanzamiento. El índice de vitalidad de la evaluación final cuenta las ventas de productos nuevos en los años 3 a 5.']
 ]},
 { id: 'consejos', t: 'Errores frecuentes y consejos', r: 'Lo que más cuesta caro y cómo evitarlo.', b: [
   ['tabla', ['Error', 'Por qué cuesta', 'Mejor'], [
@@ -429,7 +425,7 @@ var MANUAL = [
     ['¿Por qué no se creó mi proyecto?', 'Revisen "Qué pasó y por qué": suele ser el máximo de proyectos o menos de 20 % en adyacente + transformacional para un segmento nuevo.'],
     ['¿Los precios son por litro?', 'Sí. Precios, costos y cantidades se expresan por litro, salvo donde la pantalla dice "por unidad" (un envase de un tamaño dado).'],
     ['¿Cómo paso de unidades a litros?', 'Multipliquen las unidades por el tamaño del envase en litros: 1.000 botellas de 330 ml son 330 litros; 1.000 envases de 200 ml son 200 litros.'],
-    ['¿Cómo sabemos cómo les va a los otros equipos?', 'Con el Estudio de la industria (participación) y el Análisis de competidores (lo que ofrecen).'],
+    ['¿Cómo sabemos cómo les va a los otros equipos?', 'Con C.1 Mercado (participación) y C.2 Competidores actuales y potenciales (lo que ofrecen).'],
     ['¿Qué es la empresa gemela?', 'Su misma empresa, pero sin innovar. Sirve para medir el valor que crean.'],
     ['¿Quién ve nuestras contraseñas?', 'Nadie. Se guardan cifradas; el docente solo puede asignar una temporal.']]]
 ]}
