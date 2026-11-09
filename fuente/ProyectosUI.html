@@ -77,6 +77,14 @@ function agregarProyecto2() {
   D.nuevosProyectos.push(np); render(); estimar();
 }
 
+/** Qué saben del segmento antes de idear: los estudios de clientes recibidos (los del trimestre en curso llegan al cerrarlo). */
+function conocimientoSegmento(seg) {
+  var E = V.estado, K = (E.conocimiento && E.conocimiento.pesos || {})[seg], lat = E.conocimiento && E.conocimiento.latentes && E.conocimiento.latentes[seg];
+  var enCurso = ['encuesta', 'observacion'].filter(function (m) { return (D.investigacion.metodos || []).indexOf(m) >= 0 && ((D.investigacion.segs || {})[m] || []).indexOf(seg) >= 0; });
+  if (!K && !lat) return '<p class="ayuda aviso-l"><b>Antes de idear:</b> todavía no tienen estudios de clientes de ' + esc(seg) + '. Si generan ideas ahora, estarían adivinando qué valora el segmento y la calidad de sus ideas será menor. ' + (enCurso.length ? 'El estudio que encargaron este trimestre llegará recién al cerrarlo: les servirá para idear desde el próximo trimestre.' : 'Pueden encargar una encuesta u observación en 3. Investigación; llegará al trimestre siguiente, y entonces conviene idear.') + '</p>';
+  return '<p class="ayuda"><b>Lo que saben de ' + esc(seg) + ' para idear:</b> ' + (K ? esc(K.metodo) + ' de T' + K.t + '. ' : '') + (lat ? 'Necesidad latente: ' + esc(lat.join(', ')) + '. ' : 'Aún no conocen sus necesidades latentes (las revela la observación etnográfica). ') + 'Las ideas que respondan a lo que saben del cliente valen más.</p>';
+}
+
 // ---------- Cronograma de semanas-persona (trimestre a trimestre) ----------
 var CRONO_KEYS = [];
 function cronoEstado() {
@@ -167,6 +175,7 @@ function tarjeta2(p) {
   if (p.etapa !== 'idear' && p.etapa !== 'evaluar') return tarjetaProyecto(p) + '<div class="card">' + fichaCompleta2(p) + '</div>';
   var html = '<div class="card proj"><h2>' + esc(p.nombre) + ' <span class="tag">' + esc(segNom(p.segmento)) + '</span> <span class="tag">' + esc(V.cat.portafolioNom[p.portafolio] || '') + '</span> <span class="tag">' + esc(tipoNom(p.tipoDecl)) + ' (declarado)</span></h2>' + cabecera2(p);
   var malos = (p.revisionBrief || []).filter(function (r) { return !r.ok; });
+  if (p.etapa === 'idear') html += conocimientoSegmento(p.segmento);
   if (malos.length && p.etapa === 'idear') html += '<p class="ayuda"><b>Revisión del brief:</b> ' + malos.map(function (r) { return esc(r.texto); }).join(' ') + '</p>';
   html += '<div class="tarea"><p class="lbl">Tarea de este trimestre · ' + (p.etapa === 'idear' ? 'Idear' : 'Evaluar') + '</p>' + (p.etapa === 'idear' ? tareaIdear(p) : tareaEvaluar(p)) +
     chkB('proyectos.' + p.id + '.acelerar', '<b>Acelerar esta fase</b> (+50 % de costo y semanas; ' + (p.etapa === 'idear' ? 'el comité elegirá directamente el concepto con mejor resultado del test, sin matriz de Pugh' : 'pueden iniciar el prototipo en este mismo trimestre') + ')', 'data-rerender="1"') + '</div>';

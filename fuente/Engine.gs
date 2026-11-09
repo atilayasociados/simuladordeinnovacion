@@ -500,101 +500,6 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   });
   S.herrVigentes = {}; Object.keys(W.herr).forEach(function (k) { if (W.herr[k].hasta >= t) S.herrVigentes[k] = W.herr[k]; });
 
-  // 4. investigación: cada estudio genera un informe con estructura común y queda fechado.
-  // Dos vías: el contrato anual de investigación continua (presupuesto operativo, con descuento)
-  // y los estudios ad hoc del trimestre (presupuesto de innovación).
-  var inv = dec.investigacion || {};
-  var segsDe = function (mid) { var L = (inv.segs && Array.isArray(inv.segs[mid])) ? inv.segs[mid] : (inv.segmentos || []); return segsValidos_(P, L); };
-  (dec.decInformes ? Object.keys(dec.decInformes) : []).forEach(function (iid) {
-    var inf = S.informes.filter(function (x) { return x.id === iid; })[0];
-    if (inf) inf.decision = String(dec.decInformes[iid] || '').slice(0, 800);
-  });
-  var usados = {};
-  function realizar(m, lista, origen) {
-    var mid = m.id;
-    usados[mid] = true;
-    // los informes del contrato continuo son de seguimiento: no exigen escribir una decisión
-    var marca = function (inf) { if (inf) { inf.origen = origen; if (origen === 'contrato') inf.requiere = false; } return inf; };
-    if (mid === 'encuesta' || mid === 'observacion' || mid === 'percepcion') {
-      lista.forEach(function (sid) {
-        var seg = segById_(P, sid); if (!seg) return;
-        if (mid === 'percepcion') { var ip = informePercepcion_(P, S, seg, t, rng); marca(nuevoInforme_(S, m, t, { segs: [sid], pregunta: ip.pregunta, ficha: ip.ficha, limites: ip.limites, datos: ip.datos })); return; }
-        var obs = {}, tot = 0;
-        Object.keys(seg.w).forEach(function (k) {
-          var v = seg.w[k];
-          if (mid === 'encuesta' && seg.latentes.indexOf(k) >= 0) v = v * 0.5;
-          v = Math.max(0, v + rng.normal(0, m.err)); obs[k] = v; tot += v;
-        });
-        Object.keys(obs).forEach(function (k) { obs[k] = Math.round(obs[k] * 100 / tot); });
-        var err = 0; Object.keys(seg.w).forEach(function (k) { err += Math.abs(obs[k] - seg.w[k]); });
-        var iq = r2_(clamp_(1 - err / 200, 0, 1));
-        var anterior = S.conocimiento.pesos[sid];
-        if (!anterior || iq >= (S.iq[sid] || 0)) S.conocimiento.pesos[sid] = { pesos: obs, metodo: m.nombre, t: t };
-        S.iq[sid] = Math.max(S.iq[sid] || 0, iq);
-        if (mid === 'observacion' && seg.latentes.length) { S.conocimiento.latentes = S.conocimiento.latentes || {}; S.conocimiento.latentes[sid] = seg.latentes.map(function (k) { return ATTR_NOMBRES[k]; }); }
-        var r = mid === 'encuesta' ? informeEncuesta_(P, S, seg, obs, m) : informeObservacion_(P, S, seg, obs);
-        marca(nuevoInforme_(S, m, t, { segs: [sid], pregunta: r.pregunta, ficha: r.ficha, limites: r.limites, datos: r.datos }));
-      });
-    } else if (mid === 'extremos') {
-      S.conocimiento.tendencia = 'Los usuarios extremos anticipan que la sostenibilidad ganará peso en universitarios (S2) y deportistas (S4) hacia el año 5, y que los productos altos en azúcar serán rechazados.';
-      ['S2', 'S4'].forEach(function (sid) { S.iq[sid] = Math.min(1, (S.iq[sid] || 0) + 0.05); });
-      var ie = informeExtremos_(P, S, t); marca(nuevoInforme_(S, m, t, { pregunta: ie.pregunta, ficha: ie.ficha, limites: ie.limites, datos: ie.datos }));
-    } else if (mid === 'competidores') {
-      var ic = informeCompetidores_(P, S, t); marca(nuevoInforme_(S, m, t, { pregunta: ic.pregunta, ficha: ic.ficha, limites: ic.limites, datos: ic.datos }));
-      S.conocimiento.competidores = { t: t, informe: true };
-    } else if (mid === 'industria') {
-      var ii = informeIndustria_(P, S, prev, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: ii.pregunta, ficha: ii.ficha, limites: ii.limites, datos: ii.datos }));
-    } else if (mid === 'sustitutos') {
-      var isu = informeSustitutos_(P, S, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: isu.pregunta, ficha: isu.ficha, limites: isu.limites, datos: isu.datos }));
-    } else if (mid === 'proveedores') {
-      var ipr = informeProveedores_(P, S, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: ipr.pregunta, ficha: ipr.ficha, limites: ipr.limites, datos: ipr.datos }));
-    } else if (mid === 'vigilancia') {
-      S.vigilanciaHasta = t + 3;
-      var iv = informeVigilancia_(P, S, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: iv.pregunta, ficha: iv.ficha, limites: iv.limites, datos: iv.datos }));
-    } else if (mid === 'lideres') {
-      var pj = S.proyectos.filter(function (p) { return p.id === inv.proyectoLideres && p.estado === 'activo'; })[0];
-      if (pj) {
-        var antes = pj.pool.length;
-        addIdeas_(P, S, pj, { n0: 2, mu0: 6.8, s0: 0.6, id: 'lideres', nombre: 'Usuarios líderes' }, null, rng, O, t);
-        var nuevas = pj.pool.slice(antes).map(function (it) { var idea = ideaById_(P, it.ideaId); return { nombre: idea.nombre, desc: idea.desc, tipo: idea.tipo, nov: idea.nov, qObs: it.qObs }; });
-        marca(nuevoInforme_(S, m, t, { pregunta: '¿Qué soluciones han inventado ya los usuarios adelantados para el reto de "' + pj.nombre + '"?', ficha: 'Taller de co-creación con 5 usuarios líderes identificados por referidos (von Hippel, 1986). Conceptos entregados al proyecto.', limites: 'Los usuarios líderes van adelantados: lo que quieren puede no interesar todavía al cliente común. La calidad es una estimación (±1,5) hasta validarla.', datos: { proyecto: pj.nombre, conceptos: nuevas } }));
-        fb.push('Los usuarios líderes aportaron ' + nuevas.length + ' ideas al proyecto "' + pj.nombre + '".');
-      }
-    }
-  }
-  // a) contrato anual de investigación continua: se entrega en los trimestres pactados
-  var gastoContrato = 0, enContrato = {}, gastoInvAd = 0;
-  var K = contratoDe_(P, S);
-  Object.keys(K).forEach(function (mid) {
-    var m = metById_(P, mid), c = K[mid]; if (!m || !m.continuo || !entregaContrato_(t, c.veces)) return;
-    var lista = MET_SEG_.indexOf(mid) >= 0 ? segsValidos_(P, c.segs) : [];
-    if (MET_SEG_.indexOf(mid) >= 0 && !lista.length) return;
-    var monto = Math.round(costoMetodo_(P, S, m, t, lista.length).costo * (1 - (P.descuentoContrato || 0)));
-    gastoContrato += monto; enContrato[mid] = true;
-    realizar(m, lista, 'contrato');
-  });
-  if (gastoContrato) fb.push('Contrato de investigación continua: se entregaron ' + Object.keys(enContrato).map(function (k) { return metById_(P, k).nombre; }).join(', ') + ' (Bs ' + gastoContrato.toLocaleString('es-BO') + ', presupuesto operativo).');
-  // b) estudios ad hoc del trimestre
-  (inv.metodos || []).forEach(function (mid) {
-    var m = metById_(P, mid); if (!m) return;
-    if (enContrato[mid] && MET_SEG_.indexOf(mid) < 0) { fb.push(m.nombre + ': ya llegó este trimestre por su contrato continuo; no se compró de nuevo.'); return; }
-    var lista = MET_SEG_.indexOf(mid) >= 0 ? segsDe(mid) : [];
-    // no se compra (ni se cobra) un estudio que no puede realizarse
-    if (MET_SEG_.indexOf(mid) >= 0 && !lista.length) { fb.push(m.nombre + ': no eligieron segmentos, así que no se compró ni se cobró.'); return; }
-    if (mid === 'lideres' && !S.proyectos.some(function (p) { return p.id === inv.proyectoLideres && p.estado === 'activo'; })) { fb.push('Usuarios líderes: no eligieron un proyecto activo que reciba sus ideas, así que no se compró ni se cobró.'); return; }
-    var cm = costoMetodo_(P, S, m, t, lista.length);
-    // los estudios los hace una consultora: cuestan dinero, no semanas-persona del equipo
-    if (!gastar(cm.costo * factorMadurez_(O), 0, m.nombre)) return;
-    gastoInvAd += Math.round(cm.costo * factorMadurez_(O));
-    realizar(m, lista, 'adhoc');
-  });
-  // boletín trimestral de vigilancia mientras esté contratada (sin casilla obligatoria)
-  if (!usados.vigilancia && S.vigilanciaHasta >= t) {
-    var bv = informeVigilancia_(P, S, t, sched); var mv = metById_(P, 'vigilancia');
-    var infV = nuevoInforme_(S, mv, t, { pregunta: bv.pregunta, ficha: bv.ficha, limites: bv.limites, datos: bv.datos }); infV.requiere = false; infV.boletin = true;
-  }
-  S.ultMetodo = {}; Object.keys(usados).forEach(function (k) { S.ultMetodo[k] = t; });
-
   // 5. nuevos proyectos
   (dec.nuevosProyectos || []).forEach(function (np) {
     var activos = S.proyectos.filter(function (p) { return p.estado === 'activo'; }).length;
@@ -768,6 +673,103 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
       else fb.push('Revisión post-proyecto realizada (la madurez sube como máximo un nivel por año).');
     }
   }
+
+  // 7b. investigación (después de los proyectos): la consultora entrega al cierre del trimestre, así que lo que
+  // aprenden los estudios recién influye en los proyectos desde el trimestre siguiente, cuando el equipo ya tiene el informe.
+  // Cada estudio genera un informe con estructura común y queda fechado.
+  // Dos vías: el contrato anual de investigación continua (presupuesto operativo, con descuento)
+  // y los estudios ad hoc del trimestre (presupuesto de innovación).
+  var inv = dec.investigacion || {};
+  var segsDe = function (mid) { var L = (inv.segs && Array.isArray(inv.segs[mid])) ? inv.segs[mid] : (inv.segmentos || []); return segsValidos_(P, L); };
+  (dec.decInformes ? Object.keys(dec.decInformes) : []).forEach(function (iid) {
+    var inf = S.informes.filter(function (x) { return x.id === iid; })[0];
+    if (inf) inf.decision = String(dec.decInformes[iid] || '').slice(0, 800);
+  });
+  var usados = {};
+  function realizar(m, lista, origen) {
+    var mid = m.id;
+    usados[mid] = true;
+    // los informes del contrato continuo son de seguimiento: no exigen escribir una decisión
+    var marca = function (inf) { if (inf) { inf.origen = origen; if (origen === 'contrato') inf.requiere = false; } return inf; };
+    if (mid === 'encuesta' || mid === 'observacion' || mid === 'percepcion') {
+      lista.forEach(function (sid) {
+        var seg = segById_(P, sid); if (!seg) return;
+        if (mid === 'percepcion') { var ip = informePercepcion_(P, S, seg, t, rng); marca(nuevoInforme_(S, m, t, { segs: [sid], pregunta: ip.pregunta, ficha: ip.ficha, limites: ip.limites, datos: ip.datos })); return; }
+        var obs = {}, tot = 0;
+        Object.keys(seg.w).forEach(function (k) {
+          var v = seg.w[k];
+          if (mid === 'encuesta' && seg.latentes.indexOf(k) >= 0) v = v * 0.5;
+          v = Math.max(0, v + rng.normal(0, m.err)); obs[k] = v; tot += v;
+        });
+        Object.keys(obs).forEach(function (k) { obs[k] = Math.round(obs[k] * 100 / tot); });
+        var err = 0; Object.keys(seg.w).forEach(function (k) { err += Math.abs(obs[k] - seg.w[k]); });
+        var iq = r2_(clamp_(1 - err / 200, 0, 1));
+        var anterior = S.conocimiento.pesos[sid];
+        if (!anterior || iq >= (S.iq[sid] || 0)) S.conocimiento.pesos[sid] = { pesos: obs, metodo: m.nombre, t: t };
+        S.iq[sid] = Math.max(S.iq[sid] || 0, iq);
+        if (mid === 'observacion' && seg.latentes.length) { S.conocimiento.latentes = S.conocimiento.latentes || {}; S.conocimiento.latentes[sid] = seg.latentes.map(function (k) { return ATTR_NOMBRES[k]; }); }
+        var r = mid === 'encuesta' ? informeEncuesta_(P, S, seg, obs, m) : informeObservacion_(P, S, seg, obs);
+        marca(nuevoInforme_(S, m, t, { segs: [sid], pregunta: r.pregunta, ficha: r.ficha, limites: r.limites, datos: r.datos }));
+      });
+    } else if (mid === 'extremos') {
+      S.conocimiento.tendencia = 'Los usuarios extremos anticipan que la sostenibilidad ganará peso en universitarios (S2) y deportistas (S4) hacia el año 5, y que los productos altos en azúcar serán rechazados.';
+      ['S2', 'S4'].forEach(function (sid) { S.iq[sid] = Math.min(1, (S.iq[sid] || 0) + 0.05); });
+      var ie = informeExtremos_(P, S, t); marca(nuevoInforme_(S, m, t, { pregunta: ie.pregunta, ficha: ie.ficha, limites: ie.limites, datos: ie.datos }));
+    } else if (mid === 'competidores') {
+      var ic = informeCompetidores_(P, S, t); marca(nuevoInforme_(S, m, t, { pregunta: ic.pregunta, ficha: ic.ficha, limites: ic.limites, datos: ic.datos }));
+      S.conocimiento.competidores = { t: t, informe: true };
+    } else if (mid === 'industria') {
+      var ii = informeIndustria_(P, S, prev, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: ii.pregunta, ficha: ii.ficha, limites: ii.limites, datos: ii.datos }));
+    } else if (mid === 'sustitutos') {
+      var isu = informeSustitutos_(P, S, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: isu.pregunta, ficha: isu.ficha, limites: isu.limites, datos: isu.datos }));
+    } else if (mid === 'proveedores') {
+      var ipr = informeProveedores_(P, S, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: ipr.pregunta, ficha: ipr.ficha, limites: ipr.limites, datos: ipr.datos }));
+    } else if (mid === 'vigilancia') {
+      S.vigilanciaHasta = t + 3;
+      var iv = informeVigilancia_(P, S, t, sched); marca(nuevoInforme_(S, m, t, { pregunta: iv.pregunta, ficha: iv.ficha, limites: iv.limites, datos: iv.datos }));
+    } else if (mid === 'lideres') {
+      var pj = S.proyectos.filter(function (p) { return p.id === inv.proyectoLideres && p.estado === 'activo'; })[0];
+      if (pj) {
+        var antes = pj.pool.length;
+        addIdeas_(P, S, pj, { n0: 2, mu0: 6.8, s0: 0.6, id: 'lideres', nombre: 'Usuarios líderes' }, null, rng, O, t);
+        var nuevas = pj.pool.slice(antes).map(function (it) { var idea = ideaById_(P, it.ideaId); return { nombre: idea.nombre, desc: idea.desc, tipo: idea.tipo, nov: idea.nov, qObs: it.qObs }; });
+        marca(nuevoInforme_(S, m, t, { pregunta: '¿Qué soluciones han inventado ya los usuarios adelantados para el reto de "' + pj.nombre + '"?', ficha: 'Taller de co-creación con 5 usuarios líderes identificados por referidos (von Hippel, 1986). Conceptos entregados al proyecto.', limites: 'Los usuarios líderes van adelantados: lo que quieren puede no interesar todavía al cliente común. La calidad es una estimación (±1,5) hasta validarla.', datos: { proyecto: pj.nombre, conceptos: nuevas } }));
+        fb.push('Los usuarios líderes aportaron ' + nuevas.length + ' ideas al proyecto "' + pj.nombre + '".');
+      }
+    }
+  }
+  // a) contrato anual de investigación continua: se entrega en los trimestres pactados
+  var gastoContrato = 0, enContrato = {}, gastoInvAd = 0;
+  var K = contratoDe_(P, S);
+  Object.keys(K).forEach(function (mid) {
+    var m = metById_(P, mid), c = K[mid]; if (!m || !m.continuo || !entregaContrato_(t, c.veces)) return;
+    var lista = MET_SEG_.indexOf(mid) >= 0 ? segsValidos_(P, c.segs) : [];
+    if (MET_SEG_.indexOf(mid) >= 0 && !lista.length) return;
+    var monto = Math.round(costoMetodo_(P, S, m, t, lista.length).costo * (1 - (P.descuentoContrato || 0)));
+    gastoContrato += monto; enContrato[mid] = true;
+    realizar(m, lista, 'contrato');
+  });
+  if (gastoContrato) fb.push('Contrato de investigación continua: se entregaron ' + Object.keys(enContrato).map(function (k) { return metById_(P, k).nombre; }).join(', ') + ' (Bs ' + gastoContrato.toLocaleString('es-BO') + ', presupuesto operativo).');
+  // b) estudios ad hoc del trimestre
+  (inv.metodos || []).forEach(function (mid) {
+    var m = metById_(P, mid); if (!m) return;
+    if (enContrato[mid] && MET_SEG_.indexOf(mid) < 0) { fb.push(m.nombre + ': ya llegó este trimestre por su contrato continuo; no se compró de nuevo.'); return; }
+    var lista = MET_SEG_.indexOf(mid) >= 0 ? segsDe(mid) : [];
+    // no se compra (ni se cobra) un estudio que no puede realizarse
+    if (MET_SEG_.indexOf(mid) >= 0 && !lista.length) { fb.push(m.nombre + ': no eligieron segmentos, así que no se compró ni se cobró.'); return; }
+    if (mid === 'lideres' && !S.proyectos.some(function (p) { return p.id === inv.proyectoLideres && p.estado === 'activo'; })) { fb.push('Usuarios líderes: no eligieron un proyecto activo que reciba sus ideas, así que no se compró ni se cobró.'); return; }
+    var cm = costoMetodo_(P, S, m, t, lista.length);
+    // los estudios los hace una consultora: cuestan dinero, no semanas-persona del equipo
+    if (!gastar(cm.costo * factorMadurez_(O), 0, m.nombre)) return;
+    gastoInvAd += Math.round(cm.costo * factorMadurez_(O));
+    realizar(m, lista, 'adhoc');
+  });
+  // boletín trimestral de vigilancia mientras esté contratada (sin casilla obligatoria)
+  if (!usados.vigilancia && S.vigilanciaHasta >= t) {
+    var bv = informeVigilancia_(P, S, t, sched); var mv = metById_(P, 'vigilancia');
+    var infV = nuevoInforme_(S, mv, t, { pregunta: bv.pregunta, ficha: bv.ficha, limites: bv.limites, datos: bv.datos }); infV.requiere = false; infV.boletin = true;
+  }
+  S.ultMetodo = {}; Object.keys(usados).forEach(function (k) { S.ultMetodo[k] = t; });
 
   // 8. respuestas a eventos
   if (dec.respuestaC4 && S.c4resp === 'ninguna' && W.comps.some(function (c) { return c.id === 'C4' && c.activo; }) && !W.c4Adquirido) {

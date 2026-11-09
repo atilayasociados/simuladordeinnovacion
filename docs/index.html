@@ -143,7 +143,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = '92493deeac59';
+  var V0 = '85875a48c9c4';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -1714,6 +1714,14 @@ function agregarProyecto2() {
   D.nuevosProyectos.push(np); render(); estimar();
 }
 
+/** Qué saben del segmento antes de idear: los estudios de clientes recibidos (los del trimestre en curso llegan al cerrarlo). */
+function conocimientoSegmento(seg) {
+  var E = V.estado, K = (E.conocimiento && E.conocimiento.pesos || {})[seg], lat = E.conocimiento && E.conocimiento.latentes && E.conocimiento.latentes[seg];
+  var enCurso = ['encuesta', 'observacion'].filter(function (m) { return (D.investigacion.metodos || []).indexOf(m) >= 0 && ((D.investigacion.segs || {})[m] || []).indexOf(seg) >= 0; });
+  if (!K && !lat) return '<p class="ayuda aviso-l"><b>Antes de idear:</b> todavía no tienen estudios de clientes de ' + esc(seg) + '. Si generan ideas ahora, estarían adivinando qué valora el segmento y la calidad de sus ideas será menor. ' + (enCurso.length ? 'El estudio que encargaron este trimestre llegará recién al cerrarlo: les servirá para idear desde el próximo trimestre.' : 'Pueden encargar una encuesta u observación en 3. Investigación; llegará al trimestre siguiente, y entonces conviene idear.') + '</p>';
+  return '<p class="ayuda"><b>Lo que saben de ' + esc(seg) + ' para idear:</b> ' + (K ? esc(K.metodo) + ' de T' + K.t + '. ' : '') + (lat ? 'Necesidad latente: ' + esc(lat.join(', ')) + '. ' : 'Aún no conocen sus necesidades latentes (las revela la observación etnográfica). ') + 'Las ideas que respondan a lo que saben del cliente valen más.</p>';
+}
+
 // ---------- Cronograma de semanas-persona (trimestre a trimestre) ----------
 var CRONO_KEYS = [];
 function cronoEstado() {
@@ -1804,6 +1812,7 @@ function tarjeta2(p) {
   if (p.etapa !== 'idear' && p.etapa !== 'evaluar') return tarjetaProyecto(p) + '<div class="card">' + fichaCompleta2(p) + '</div>';
   var html = '<div class="card proj"><h2>' + esc(p.nombre) + ' <span class="tag">' + esc(segNom(p.segmento)) + '</span> <span class="tag">' + esc(V.cat.portafolioNom[p.portafolio] || '') + '</span> <span class="tag">' + esc(tipoNom(p.tipoDecl)) + ' (declarado)</span></h2>' + cabecera2(p);
   var malos = (p.revisionBrief || []).filter(function (r) { return !r.ok; });
+  if (p.etapa === 'idear') html += conocimientoSegmento(p.segmento);
   if (malos.length && p.etapa === 'idear') html += '<p class="ayuda"><b>Revisión del brief:</b> ' + malos.map(function (r) { return esc(r.texto); }).join(' ') + '</p>';
   html += '<div class="tarea"><p class="lbl">Tarea de este trimestre · ' + (p.etapa === 'idear' ? 'Idear' : 'Evaluar') + '</p>' + (p.etapa === 'idear' ? tareaIdear(p) : tareaEvaluar(p)) +
     chkB('proyectos.' + p.id + '.acelerar', '<b>Acelerar esta fase</b> (+50 % de costo y semanas; ' + (p.etapa === 'idear' ? 'el comité elegirá directamente el concepto con mejor resultado del test, sin matriz de Pugh' : 'pueden iniciar el prototipo en este mismo trimestre') + ')', 'data-rerender="1"') + '</div>';
@@ -2726,6 +2735,7 @@ var MANUAL = [
     ['D.1', 'Proveedores', '¿Cómo evolucionarán la leche, los envases importados y el transporte?', 'Sindicado', 'Bs 10.000']]],
   ['p', 'Comprar todos los estudios con los 5 segmentos cuesta unos Bs 240.000 (60 % del presupuesto anual). Los precios son <b>didácticos</b>: en el mercado boliviano costarían cerca de tres veces más. Como referencia, las empresas latinoamericanas destinan entre 0,02 % y 0,4 % de sus ventas a investigación de mercados; la pantalla les muestra cuánto destinan ustedes.'],
   ['p', 'Un estudio que no puede hacerse (sin segmentos, o usuarios líderes sin proyecto) <b>no se compra ni se cobra</b>. El hallazgo principal de cada informe aparece también como señal en 1. Entorno.'],
+  ['ojo', 'Los estudios se entregan <b>al trimestre siguiente</b> de la compra, y lo que revelan recién mejora sus proyectos desde ese trimestre. Si idean sin haber recibido estudios del segmento, estarían adivinando. Planifiquen: investigar primero (un trimestre) e idear después. Los conceptos de usuarios líderes también entran al proyecto al cerrar el trimestre en que los compran.'],
   ['h', 'Cómo leer un informe'],
   ['p', 'Todos los informes tienen la misma estructura: <b>pregunta</b>, <b>método y muestra</b>, <b>hallazgos</b>, <b>limitaciones</b> y <b>¿qué decisión tomamos con este dato?</b>. Ese último campo es obligatorio para enviar el trimestre siguiente.'],
   ['ej', 'Hallazgo: S2 dice valorar el precio, pero la observación muestra que no compra lácteos porque no los puede tomar con una mano en el micro. Decisión: creamos un proyecto para S2 centrado en conveniencia y fijamos un precio objetivo de Bs 20 por litro.'],
