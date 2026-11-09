@@ -21,6 +21,13 @@ try {
   const ins = await pg.$$('#axFilas .ax-fila:nth-child(1) input'); const f = ['QUISPE', 'MAMANI', 'Ana Lucía', '218001234', ''];
   for (let j = 0; j < 5; j++) await ins[j].fill(f[j]);
   await pg.click('text=✓ Registrar Equipo'); await pg.waitForTimeout(1500);
+  // Situación: tarjeta de análisis interno con enlaces a los estados financieros
+  R.casoEnl = await pg.isVisible('text=Antes de decidir: analicen su empresa');
+  await pg.click('nav .sub >> text=Situación actual'); await pg.waitForTimeout(300);
+  R.resumenA0 = await pg.isVisible('text=Estado de resultados del Año 0 (suma de T-3 a T0)') && await pg.isVisible('th:has-text("Investigación de mercados continua (contrato)")');
+  await pg.screenshot({ path: OUT + '/v3_situacion_analisis.png', fullPage: true });
+  await pg.click('text=🏦 Balance general →'); await pg.waitForTimeout(600);
+  R.irBalance = await pg.isVisible('#ef-balance') && await pg.isVisible('nav .sub button.on:has-text("Estados financieros")');
   // Resultados: Año 0 antes de decidir
   await pg.click('nav >> text=Resultados'); await pg.waitForTimeout(300); await pg.click('nav .sub >> text=Estados financieros'); await pg.waitForTimeout(400);
   R.anio0 = await pg.isVisible('text=Año 0 (T-3 a T0)') && await pg.isVisible('th:has-text("T-3")') && await pg.isVisible('text=Investigación de mercados continua (contrato)');
@@ -93,6 +100,6 @@ try {
   await pg.screenshot({ path: OUT + '/v3_entorno_cel.png' });
 } catch (e) { R.falla = e.message.split('\n')[0]; }
 console.log(JSON.stringify(R, null, 1)); console.log('Errores de página:', errs.length ? errs : 'ninguno');
-const ok = !R.falla && R.anio0 && R.senales >= 2 && R.herramientas >= 3 && R.etiquetaBloq && R.vigilarPide && R.sinComprar && R.actuarPide && R.pieOperativo && R.grupos.length === 4 && R.contratoTxt && R.precioEncuesta3 && R.ref && R.bloqueC && R.heredado && R.totalContrato && R.enviado && R.lineaT1 && R.fbContrato && R.fbCampana && R.lecturaAnt && R.senalInforme && !errs.length;
+const ok = !R.falla && R.casoEnl && R.resumenA0 && R.irBalance && R.anio0 && R.senales >= 2 && R.herramientas >= 3 && R.etiquetaBloq && R.vigilarPide && R.sinComprar && R.actuarPide && R.pieOperativo && R.grupos.length === 4 && R.contratoTxt && R.precioEncuesta3 && R.ref && R.bloqueC && R.heredado && R.totalContrato && R.enviado && R.lineaT1 && R.fbContrato && R.fbCampana && R.lecturaAnt && R.senalInforme && !errs.length;
 await br.close(); await s.cerrar();
 console.log(ok ? 'ENTORNO UI OK' : 'ENTORNO UI CON FALLAS'); process.exit(ok ? 0 : 1);

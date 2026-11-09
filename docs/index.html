@@ -124,6 +124,7 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
 .paso-a{border-top:1px solid #eee;padding-top:8px;margin-top:10px}.paso-a h3{margin-top:4px}
 @media (max-width:760px){.cadena{grid-template-columns:1fr 1fr}.cadena>div::after{display:none}}
 .como{font-size:13px;margin:6px 0;color:#33405a}.suma{margin:6px 0 2px}
+.enl-ef{display:flex;flex-wrap:wrap;gap:8px 14px;margin:8px 0 2px}.enl-ef a{display:inline-block;padding:6px 10px;border:1px solid #D8DCE6;border-radius:8px;background:#F7F9FC;text-decoration:none;font-weight:600}
 .ent-tags{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px}.ent-resp{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:0 10px;margin:2px 0 6px}.ent-resp .chk{font-size:13px}
 th.a0,td.a0{background:#F6F6F2;color:#555}
 .inv-segs{display:grid;grid-template-columns:1fr;gap:0}.inv-segs .chk{font-size:13px;padding:1px 0}
@@ -141,7 +142,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = 'd6ae48f0b90c';
+  var V0 = '27e0e7879cbd';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -332,6 +333,21 @@ var MENUS = [
 ];
 function menuDe(t) { for (var i = 0; i < MENUS.length; i++) for (var j = 0; j < MENUS[i][2].length; j++) if (MENUS[i][2][j][0] === t) return MENUS[i]; return MENUS[0]; }
 function irTab(t) { TAB = t; render(); window.scrollTo(0, 0); }
+/** Abre Resultados → Estados financieros y baja a la sección pedida. */
+function irEstados(ancla) { TAB = 'resultados'; render(); setTimeout(function () { var e = $(ancla); if (e) { e.scrollIntoView({ behavior: 'smooth', block: 'start' }); window.scrollBy(0, -140); } else window.scrollTo(0, 0); }, 60); }
+/** Tarjeta de análisis interno: dónde ver los estados financieros y resumen del Año 0. */
+function tarjetaAnalisisInterno(breve) {
+  var H0 = V.estado.hist0 || [], H = V.estado.hist || [];
+  var enl = '<div class="enl-ef"><a href="#" onclick="irEstados(\'ef-resultados\');return false">📊 Estado de resultados →</a><a href="#" onclick="irEstados(\'ef-balance\');return false">🏦 Balance general →</a><a href="#" onclick="irEstados(\'ef-flujo\');return false">💵 Flujo de efectivo →</a><a href="#" onclick="irEstados(\'ef-indicadores\');return false">📈 Mercado e indicadores →</a></div>';
+  var txt = '<p>Antes de decidir, revisen la situación de su empresa en <b>Resultados → Estados financieros e indicadores</b>. Desde el T1 ven el <b>Año 0</b> (columnas T-3 a T0, en gris): los cuatro trimestres anteriores a la partida, con la empresa tal como la reciben' + (H.length ? '; después, cada trimestre jugado' : '') + '.</p>';
+  if (breve || !H0.length) return '<div class="card"><h2>Antes de decidir: analicen su empresa</h2>' + txt + enl + '</div>';
+  function sum(k) { return H0.reduce(function (a, h) { return a + (Number(h[k]) || 0); }, 0); }
+  var ven = sum('ventas');
+  var filas = [['Ventas', sum('ventas')], ['Costo de ventas', -sum('costoVentas')], ['<b>Utilidad bruta</b>', sum('utilidadBruta')], ['Gastos operativos fijos', -sum('gastosFijos')], ['Gastos comerciales', -sum('gastosComerciales')], ['Investigación de mercados continua (contrato)', -sum('investigacionContinua')], ['Gastos de innovación', -sum('gastosInnovacion')], ['Otros gastos', -sum('otrosGastos')], ['Intereses', -sum('intereses')], ['Impuesto (IUE 25 %)', -sum('impuesto')], ['<b>Utilidad neta</b>', sum('utilidadNeta')]];
+  return '<div class="card"><h2>Antes de decidir: analicen su empresa</h2>' + txt +
+    '<h3>Estado de resultados del Año 0 (suma de T-3 a T0)</h3><div class="scroll"><table><tr><th>Concepto</th><th class="n">Miles de Bs</th><th class="n">% de las ventas</th></tr>' + filas.map(function (f) { return '<tr><th>' + f[0] + '</th><td class="n">' + kbs(f[1]) + '</td><td class="n">' + (ven ? (Math.round(1000 * f[1] / ven) / 10 || 0).toLocaleString('es-BO', { maximumFractionDigits: 1 }) + ' %' : '—') + '</td></tr>'; }).join('') + '</table></div>' +
+    '<p class="muted">Caja al cierre del T0: ' + bs(400000) + '. La investigación de mercados del Año 0 corresponde al contrato heredado (C.1 Mercado cada trimestre); al inicio de cada año deciden si lo mantienen (2. Estrategia anual, Bloque C).</p>' + enl + '</div>';
+}
 function render() {
   var p = V.partida, M = menuDe(TAB);
   $('titulo').textContent = p.nombre || 'Simulador de Innovación';
@@ -386,12 +402,13 @@ function ultimo() { var h = V.estado.hist; return h.length ? h[h.length - 1] : n
 
 // ---------- Panel ----------
 function vPanel() {
-  var h = ultimo(), O = V.estado.org, html = '';
+  var h = ultimo() || (V.estado.hist0 || []).slice(-1)[0], O = V.estado.org, html = '';
   if (V.partida.finalizada) html += '<div class="card"><h2>Partida terminada</h2><p>Revisa tus resultados finales en la pestaña Resultados y completa tu bitácora.</p></div>';
   html += '<div class="card"><h2>Mandato del directorio</h2><p><b>' + esc(V.equipo.mandato.nombre) + '.</b> ' + esc(V.equipo.mandato.texto) + '</p></div>';
+  html += tarjetaAnalisisInterno(false);
   html += '<div class="grid g4">' + [
-    ['Ventas último trimestre', h ? bs(h.ventas) : '—'], ['Utilidad neta', h ? bs(h.utilidadNeta) : '—'], ['Caja', h ? bs(h.caja) : bs(400000)],
-    ['Participación de mercado', h ? pct(h.cuotaTotal) : pct(11.2 / nEmp())], ['Índice de vitalidad', h ? pct(h.vitalidad) : '0 %'], ['Clima creativo', h ? h.clima : '—'],
+    ['Ventas último trimestre' + (h && h.anio0 ? ' (T0)' : ''), h ? bs(h.ventas) : '—'], ['Utilidad neta' + (h && h.anio0 ? ' (T0)' : ''), h ? bs(h.utilidadNeta) : '—'], ['Caja', h ? bs(h.caja) : bs(400000)],
+    ['Participación de mercado', h ? pct(h.anio0 ? h.cuotaTotal / nEmp() : h.cuotaTotal) : pct(11.2 / nEmp())], ['Índice de vitalidad', h && !h.anio0 ? pct(h.vitalidad) : '0 %'], ['Clima creativo', h && !h.anio0 ? h.clima : '—'],
     ['Presupuesto disponible', bs(V.estado.saldo)], ['Madurez en innovación', O.madurez + ' de 5']
   ].map(function (k) { return '<div class="kpi"><div class="v">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('') + '</div>';
   html += '<div class="card" style="margin-top:14px"><h2>Este trimestre</h2><ul class="fb">' + avisosRonda().map(function (a) { return '<li>' + a + '</li>'; }).join('') + '</ul><div class="inline"><button class="btn" onclick="irTab(\'ronda\')">Ir a Decidir</button>' + (h ? '<button class="btn sec" onclick="irTab(\'resumen\')">Ver qué pasó el trimestre anterior</button>' : '') + '</div></div>';
@@ -760,16 +777,16 @@ function vResultados() {
   function cu(h, v) { return h.anio0 && v !== undefined && v !== null ? v / nEmp() : v; }
   var cab = '<tr><th>Miles de Bs</th>' + cols.map(function (h) { return '<th class="n' + (h.anio0 ? ' a0' : '') + '">T' + h.t + '</th>'; }).join('') + '</tr>';
   if (H0.length) html += '<div class="card"><p><b>Año 0 (T-3 a T0):</b> los cuatro trimestres anteriores a la partida, con la empresa tal como la reciben. Úsenlos para su análisis interno antes de decidir la estrategia del año.</p></div>';
-  html += '<div class="card"><h2>Estado de resultados</h2><div class="scroll"><table>' + cab +
+  html += '<div class="card" id="ef-resultados"><h2>Estado de resultados</h2><div class="scroll"><table>' + cab +
     fila('Ventas', function (h) { return h.ventas; }) + fila('Costo de ventas', function (h) { return -h.costoVentas; }) + fila('Utilidad bruta', function (h) { return h.utilidadBruta; }) +
     fila('Gastos operativos fijos', function (h) { return -h.gastosFijos; }) + fila('Gastos comerciales', function (h) { return -h.gastosComerciales; }) + fila('Investigación de mercados continua (contrato)', function (h) { return -(h.investigacionContinua || 0); }) + fila('Gastos de innovación', function (h) { return -h.gastosInnovacion; }) +
     fila('Otros gastos (herramientas del entorno, alianzas)', function (h) { return -h.otrosGastos; }) + fila('Amortización de intangibles', function (h) { return -h.amortizacion; }) + fila('Bajas de desarrollo', function (h) { return -h.bajas; }) + fila('Intereses', function (h) { return -h.intereses; }) +
     fila('Utilidad antes de impuestos', function (h) { return h.utilidadAntesImp; }) + fila('Impuesto (IUE 25 %)', function (h) { return -h.impuesto; }) + fila('<b>Utilidad neta</b>', function (h) { return h.utilidadNeta; }) +
     fila('Utilidad neta sin innovar', function (h) { return h.twin.utilidadNeta; }) + '</table></div></div>';
-  html += '<div class="card"><h2>Flujo de efectivo</h2><div class="scroll"><table>' + cab + fila('Flujo operativo', function (h) { return h.flujoOperativo; }) + fila('Flujo de inversión', function (h) { return h.flujoInversion; }) + fila('Flujo de financiamiento', function (h) { return h.flujoFinanciamiento; }) + fila('Caja final', function (h) { return h.caja; }) + fila('Caja sin innovar', function (h) { return h.twin.caja; }) + '</table></div></div>';
+  html += '<div class="card" id="ef-flujo"><h2>Flujo de efectivo</h2><div class="scroll"><table>' + cab + fila('Flujo operativo', function (h) { return h.flujoOperativo; }) + fila('Flujo de inversión', function (h) { return h.flujoInversion; }) + fila('Flujo de financiamiento', function (h) { return h.flujoFinanciamiento; }) + fila('Caja final', function (h) { return h.caja; }) + fila('Caja sin innovar', function (h) { return h.twin.caja; }) + '</table></div></div>';
   var b = H[H.length - 1].balance;
-  html += '<div class="card"><h2>Balance general (cierre T' + H[H.length - 1].t + ', miles de Bs)</h2><div class="grid g2"><table>' + [['Caja', b.caja], ['Cuentas por cobrar', b.cxc], ['Inventarios', b.inventarios], ['Activo fijo neto', b.activoFijo], ['Intangibles', b.intangibles], ['Desarrollo en curso', b.desarrolloEnCurso], ['<b>Total activo</b>', b.totalActivo]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + kbs(r[1]) + '</td></tr>'; }).join('') + '</table><table>' + [['Proveedores', b.proveedores], ['Deuda de largo plazo', b.deuda], ['Préstamo de emergencia', b.emergencia], ['Capital', b.capital], ['Resultados acumulados', b.resultados], ['<b>Total pasivo y patrimonio</b>', b.totalPasivoPatrimonio]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + kbs(r[1]) + '</td></tr>'; }).join('') + '</table></div></div>';
-  html += '<div class="card"><h2>Mercado e indicadores</h2><div class="scroll"><table>' + cab.replace('Miles de Bs', 'Indicador') +
+  html += '<div class="card" id="ef-balance"><h2>Balance general (cierre T' + H[H.length - 1].t + ', miles de Bs)</h2><div class="grid g2"><table>' + [['Caja', b.caja], ['Cuentas por cobrar', b.cxc], ['Inventarios', b.inventarios], ['Activo fijo neto', b.activoFijo], ['Intangibles', b.intangibles], ['Desarrollo en curso', b.desarrolloEnCurso], ['<b>Total activo</b>', b.totalActivo]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + kbs(r[1]) + '</td></tr>'; }).join('') + '</table><table>' + [['Proveedores', b.proveedores], ['Deuda de largo plazo', b.deuda], ['Préstamo de emergencia', b.emergencia], ['Capital', b.capital], ['Resultados acumulados', b.resultados], ['<b>Total pasivo y patrimonio</b>', b.totalPasivoPatrimonio]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + kbs(r[1]) + '</td></tr>'; }).join('') + '</table></div></div>';
+  html += '<div class="card" id="ef-indicadores"><h2>Mercado e indicadores</h2><div class="scroll"><table>' + cab.replace('Miles de Bs', 'Indicador') +
     V.cat.segmentos.map(function (s) { return fila('Cuota ' + s.id, function (h) { return cu(h, h.cuotas[s.id]); }, pct); }).join('') + fila('Cuota total', function (h) { return cu(h, h.cuotaTotal); }, pct) + fila('Cuota total sin innovar', function (h) { return cu(h, h.twin.cuotaTotal); }, pct) +
     fila('Índice de vitalidad', function (h) { return h.vitalidad; }, pct) + fila('Intensidad de innovación', function (h) { return h.intensidad; }, pct) + fila('Gasto en innovación (miles)', function (h) { return h.gastoInnovTotal; }) +
     fila('Motivación intrínseca', function (h) { return h.MI; }, function (v) { return Number(v).toFixed(2); }) + fila('Autoeficacia creativa', function (h) { return h.AE; }, function (v) { return Number(v).toFixed(2); }) + fila('Clima creativo', function (h) { return h.clima; }, function (v) { return v; }) + fila('Madurez', function (h) { return h.madurez; }, function (v) { return v; }) +
@@ -817,9 +834,10 @@ function vCaso() {
   html += '<div class="card"><h2>Las empresas que compiten con ustedes</h2><p>El producto más innovador y mejor adaptado a cada segmento es el que el mercado acepta: lo que gane una empresa lo pierden las demás.</p>' + tablaEmpresas() + '</div>';
   html += '<div class="card"><h2>Otros competidores del mercado</h2><ul class="fb"><li><b>Líder nacional:</b> la marca más grande del país, fuerte en familias y adultos mayores, con precio parecido al suyo.</li><li><b>Marca regional:</b> compite con precio bajo; suele copiar rápido lo que funciona.</li><li><b>Importados premium:</b> productos caros, saludables y prácticos, fuertes en oficinistas y deportistas.</li><li><b>Emprendimientos:</b> existen emprendimientos locales de bebidas vegetales que venden por aplicaciones.</li></ul></div>';
   html += '<div class="card"><h2>Punto de partida financiero (miles de Bs)</h2><div class="grid g2"><table>' + [['Caja', 400], ['Cuentas por cobrar', 600], ['Inventarios', 500], ['Activo fijo neto', 2500], ['<b>Total activo</b>', 4000]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + r[1].toLocaleString('es-BO') + '</td></tr>'; }).join('') + '</table><table>' + [['Proveedores', 700], ['Deuda de largo plazo', 1300], ['Capital', 1500], ['Resultados acumulados', 500], ['<b>Total pasivo y patrimonio</b>', 4000]].map(function (r) { return '<tr><th>' + r[0] + '</th><td class="n">' + r[1].toLocaleString('es-BO') + '</td></tr>'; }).join('') + '</table></div><p class="muted">Gastos fijos de operación: Bs 500.000 por trimestre. Si la caja se vuelve negativa, el banco otorga un préstamo de emergencia con interés alto.</p></div>';
+  html += tarjetaAnalisisInterno(true);
   html += '<div class="card"><h2>Cómo transcurre el tiempo</h2><ul class="fb"><li>La partida dura <b>20 trimestres</b>, es decir, <b>5 años</b>.</li><li>Cada trimestre leen el entorno, deciden y el docente procesa los resultados.</li><li>Al inicio de cada año (T1, T5, T9, T13 y T17) definen o revisan su <b>estrategia anual</b> y su contrato de investigación continua.</li><li>El mercado, los competidores, los costos y lo que valoran los clientes pueden cambiar en cualquier momento. Las señales llegan por <b>1. Entorno</b> y por los estudios que compren; no todo se anuncia.</li></ul></div>';
   html += '<div class="card"><h2>Cómo se evalúa su gestión</h2><p>Al final se comparan las empresas de todos los equipos con estos indicadores.</p><table>' + [['Valor de la empresa al final (utilidades descontadas y valor terminal)', '30 %'], ['Índice de vitalidad (ventas de productos nuevos) en los años 3 a 5', '20 %'], ['Participación en los segmentos que crecen', '15 %'], ['Resiliencia ante cambios fuertes del mercado', '15 %'], ['Madurez en gestión de la innovación', '10 %'], ['Clima creativo promedio', '10 %']].map(function (r) { return '<tr><td>' + r[0] + '</td><td class="n">' + r[1] + '</td></tr>'; }).join('') + '</table><p class="muted">Sus resultados se comparan siempre con una “empresa gemela” que no innova: la diferencia es el valor que ustedes crearon.</p></div>';
-  html += '<div class="card"><h2>Cómo se juega cada ronda</h2><ol><li><b>Situación:</b> lean dónde está la empresa y qué saben del mercado.</li><li><b>Decidir:</b> lean las señales del entorno, definan la estrategia (al inicio del año), investiguen, avancen sus proyectos, ajusten sus productos, escriban su hipótesis y envíen.</li><li><b>Resultados:</b> cuando el docente procese el trimestre, revisen qué pasó y por qué.</li><li><b>Aprender:</b> relacionen lo que pasó con la teoría y escriban su bitácora.</li></ol><button class="btn" onclick="irTab(\'ronda\')">Empezar a decidir</button></div>';
+  html += '<div class="card"><h2>Cómo se juega cada ronda</h2><ol><li><b>Situación:</b> lean dónde está la empresa (estado de resultados, balance general y flujo de efectivo en Resultados → Estados financieros) y qué saben del mercado.</li><li><b>Decidir:</b> lean las señales del entorno, definan la estrategia (al inicio del año), investiguen, avancen sus proyectos, ajusten sus productos, escriban su hipótesis y envíen.</li><li><b>Resultados:</b> cuando el docente procese el trimestre, revisen qué pasó y por qué.</li><li><b>Aprender:</b> relacionen lo que pasó con la teoría y escriban su bitácora.</li></ol><button class="btn" onclick="irTab(\'ronda\')">Empezar a decidir</button></div>';
   return html;
 }
 
