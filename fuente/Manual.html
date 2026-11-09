@@ -91,7 +91,7 @@ var MANUAL = [
   ['p', 'Al cierre de cada año el directorio fija el presupuesto siguiente según su índice de vitalidad y cuánto superaron a la empresa gemela. La mitad del presupuesto que no gastaron pasa al año siguiente.'],
   ['ojo', 'Si la caja se vuelve negativa, el banco da un préstamo de emergencia con interés alto (4 % por trimestre). Cuiden la caja.'],
   ['h', 'Semanas-persona'],
-  ['p', 'Su equipo de innovación tiene <b>12 semanas-persona por trimestre</b>. Cada técnica de ideación, prueba de prototipo, piloto o capacitación consume semanas (los estudios de investigación no, porque los hace una consultora). Si se pasan, el pie de la pantalla les avisa: no pueden hacer todo a la vez.']
+  ['p', 'Su equipo de innovación tiene <b>12 semanas-persona por trimestre</b> (una semana-persona es el trabajo de una persona durante una semana). Cada técnica de ideación, prueba de prototipo, piloto o capacitación consume semanas; los estudios de investigación no, porque los hace una consultora. Cada trimestre elaboran un <b>cronograma</b> en 4. Proyectos: estiman las semanas de cada actividad y en qué semanas la harán. El tiempo real varía (novedad del proyecto, iteraciones, madurez, capacitación) y, si supera lo que queda, la actividad no se ejecuta.']
 ]},
 { id: 'ronda', t: 'Una ronda paso a paso', r: 'La rutina de cada trimestre, de la lectura a la bitácora.', b: [
   ['p', 'Cada trimestre se juega igual. El docente <b>abre</b> el trimestre, ustedes deciden y envían, el docente <b>procesa</b> y ustedes reciben los resultados.'],
@@ -186,7 +186,10 @@ var MANUAL = [
   ['idea', 'Comparen métodos sobre el mismo segmento (triangulación). Si la encuesta y la observación no coinciden, pesa más lo que el cliente hace que lo que dice. Pueden comprar todos los estudios a la vez, pero cuesten lo que cuesten salen del mismo presupuesto que los proyectos: liguen cada estudio a una decisión.'],
   ['ir', [['Ir a 3. Investigación', 'investigacion'], ['Ver mis informes', 'informes']]]
 ]},
-{ id: 'proyectos', t: 'Paso 4. Proyectos: cómo funcionan', r: 'Las ocho fases, una tarea por trimestre, acelerar y detener.', b: [
+{ id: 'proyectos', t: 'Paso 4. Proyectos: cómo funcionan', r: 'Las ocho fases, una tarea por trimestre, acelerar y detener, y el cronograma de semanas-persona.', b: [
+  ['h', 'Cronograma de semanas-persona (cada trimestre)'],
+  ['pasos', ['Elijan las tareas de sus proyectos (y la capacitación, si es inicio de año). Arriba aparece la tabla <b>Cronograma de semanas-persona de este trimestre</b> con cada actividad y su <b>rango de referencia</b>.', 'Para cada actividad escriban <b>su estimación</b> de semanas-persona y elijan la <b>semana de inicio y de fin</b> (1 a 12). Es obligatorio para enviar.', 'Revisen la fila <b>Carga por semana</b>: si una semana se pinta de rojo, pusieron demasiado trabajo en paralelo. Revisen también el total frente a las 12 disponibles y el máximo de la referencia.', 'Después de procesar, en Resultados → Resumen del trimestre verán <b>lo planificado frente a lo real</b> y qué actividad no se ejecutó por falta de tiempo.']],
+  ['idea', 'Las personas suelen subestimar el tiempo de sus tareas (falacia de la planificación; Kahneman y Tversky, 1979). Dejen un margen. La tabla completa de tiempos de referencia está en 2. Estrategia anual → "Planificar el tiempo del equipo".'],
   ['p', 'Un proyecto lleva una idea desde la necesidad del cliente hasta el mercado. Recorre ocho fases y cada trimestre les pide <b>una sola tarea</b>, la de la fase en la que está:'],
   ['tabla', ['Fase', 'Tarea del equipo', 'Lo que devuelve el simulador'], [
     ['1. Definir', 'Escribir el brief al crear el proyecto.', 'Revisión del brief y tipo de innovación.'],
@@ -408,7 +411,7 @@ var MANUAL = [
   ['tabla', ['Error', 'Por qué cuesta', 'Mejor'], [
     ['Crear proyectos sin investigar', 'Las ideas salen de suposiciones y el test de concepto las castiga.', 'Investigar primero el segmento del proyecto y usar la frase del informe como evidencia.'],
     ['Gastar todo el presupuesto en T1', 'No queda dinero para prototipos y pilotos.', 'Repartir: investigar en T1–T2, idear y evaluar en T2–T4.'],
-    ['Olvidar las semanas-persona', 'Lo que excede las 12 semanas no se ejecuta.', 'Mirar el pie de la pantalla antes de enviar.'],
+    ['Olvidar las semanas-persona', 'Lo que excede las 12 semanas no se ejecuta, y lo real suele tomar más de lo estimado.', 'Armar el cronograma en 4. Proyectos con margen y repartir la carga por semana.'],
     ['Elegir el concepto que más gusta', 'El comité y el mercado miran datos.', 'Justificar con el test y la matriz de Pugh.'],
     ['Pronósticos optimistas', 'Baja el puntaje de rentabilidad y sobra producto.', 'Partir de la clase de referencia y del piloto.'],
     ['Seguir con un proyecto porque ya gastaron mucho', 'Lo gastado no vuelve.', 'Decidir con lo que falta invertir.'],

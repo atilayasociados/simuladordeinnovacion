@@ -356,6 +356,35 @@ function calibracionAnual_(S, t) {
 }
 
 // ---------- costos ----------
+var SIMULACRO_ = null;
+/** Semanas-persona reales de una actividad: referencia × novedad × capacitación × incertidumbre (0,9 a 1,25). */
+function semReal_(P, S, O, t, seed, concepto, sem) {
+  var nov = 3;
+  (S.proyectos || []).forEach(function (pj) { if (pj.nombre && concepto.indexOf(pj.nombre) >= 0) { try { var id = ideaDe_(P, pj); if (id && id.nov) nov = id.nov; } catch (e) { /* sin idea aún */ } } });
+  var fNov = 1 + 0.06 * (clamp_(nov, 1, 5) - 3), fCap = O && O.capHasta >= t ? 0.9 : 1;
+  var u = makeRng_('sp|' + seed + '|' + (S.equipoId || '') + '|' + t + '|' + concepto)();
+  return Math.max(0.5, Math.round(2 * sem * fNov * fCap * (0.9 + 0.35 * u)) / 2);
+}
+/** Cronograma que el equipo planificó: { concepto: { sem, ini, fin } }. */
+function cronogramaLimpio_(C) {
+  var R = {};
+  Object.keys(C || {}).slice(0, 40).forEach(function (k) {
+    var c = C[k] || {}, sem = Number(c.sem), ini = Math.round(Number(c.ini)), fin = Math.round(Number(c.fin));
+    if (!(sem > 0)) return;
+    R[String(k).slice(0, 160)] = { sem: Math.round(sem * 2) / 2, ini: clamp_(ini || 1, 1, 12), fin: clamp_(Math.max(fin || 1, ini || 1), 1, 12) };
+  });
+  return R;
+}
+/** Actividades que consumirán semanas-persona con estas decisiones (simulacro sin efectos). */
+function actividadesPlan_(P, S, dec, t, seed, sched) {
+  var L = []; SIMULACRO_ = L;
+  try { simulateQuarter_(P, S, dec, t, seed, sched); } catch (e) { /* el plan se arma con lo que se alcanzó a recorrer */ }
+  finally { SIMULACRO_ = null; }
+  var vistos = {};
+  return L.filter(function (a) { if (vistos[a.concepto]) return false; vistos[a.concepto] = true; return true; }).map(function (a) {
+    return { concepto: a.concepto, ref: a.ref, min: Math.max(0.5, Math.round(2 * a.ref * 0.8) / 2), max: Math.round(2 * a.ref * 1.35) / 2 };
+  });
+}
 function factorMadurez_(org) { return 1 - 0.05 * (org.madurez - 1); }
 function semMadurez_(org, s) { return Math.max(1, s - 0.5 * (org.madurez - 1)); }
 
@@ -372,11 +401,17 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
 
   // presupuesto anual
   if (esInicioAnio_(t) && t > 1) { /* el saldo se fijó al cierre del año anterior */ }
+  // Semanas-persona: la referencia (sem) es lo que suele tomar la actividad; lo real varía con la novedad
+  // del proyecto, la capacitación vigente y la incertidumbre propia de cada tarea (falacia de la planificación).
+  var spLog = [];
   function gastar(monto, sem, concepto, capitalizable) {
     monto = Math.round(monto);
-    if (monto > S.saldo + 0.5) { fb.push('No se ejecutó "' + concepto + '": presupuesto insuficiente (saldo Bs ' + Math.round(S.saldo).toLocaleString('es-BO') + ').'); return false; }
-    if (sem > semanas + 1e-9) { fb.push('No se ejecutó "' + concepto + '": semanas-persona insuficientes (' + semanas + ' disponibles).'); return false; }
-    S.saldo -= monto; semanas -= sem;
+    if (SIMULACRO_) { if (sem > 0) SIMULACRO_.push({ concepto: concepto, ref: r1_(sem) }); S.saldo -= monto; return true; }
+    if (monto > S.saldo + 0.5) { fb.push('No se ejecutó "' + concepto + '": presupuesto insuficiente (saldo Bs ' + Math.round(S.saldo).toLocaleString('es-BO') + ').'); if (sem > 0) spLog.push({ concepto: concepto, ref: r1_(sem), real: 0, ejecutada: false, motivo: 'presupuesto' }); return false; }
+    var real = sem > 0 ? semReal_(P, S, O, t, seed, concepto, sem) : 0;
+    if (real > semanas + 1e-9) { fb.push('No se ejecutó "' + concepto + '": requería ' + real + ' semanas-persona y solo quedaban ' + r1_(semanas) + '.'); spLog.push({ concepto: concepto, ref: r1_(sem), real: real, ejecutada: false, motivo: 'semanas' }); return false; }
+    S.saldo -= monto; semanas -= real;
+    if (sem > 0) spLog.push({ concepto: concepto, ref: r1_(sem), real: real, ejecutada: true });
     if (capitalizable) gastoCap += monto; else gastoInnov += monto;
     return true;
   }
@@ -773,7 +808,7 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   var clima = Math.round(100 * (0.5 * O.MI + 0.3 * O.AE + 0.2 * O.DIV));
   var gastoTotalInnov = gastoInnov + gastoCap;
   var h = res;
-  h.t = t; h.semanasUsadas = g.semanasTrimestre - semanas; h.gastoInnovTotal = gastoTotalInnov;
+  h.t = t; h.semanasUsadas = r1_(g.semanasTrimestre - semanas); h.actividades = spLog; h.cronograma = cronogramaLimpio_(dec.cronograma); h.gastoInnovTotal = gastoTotalInnov;
   h.intensidad = res.ventas > 0 ? r2_(100 * gastoTotalInnov / res.ventas) : 0;
   h.MI = O.MI; h.AE = O.AE; h.DIV = O.DIV; h.clima = clima; h.madurez = O.madurez;
   h.lecturaEntorno = credTot ? r2_(100 * credOk / credTot) : null;

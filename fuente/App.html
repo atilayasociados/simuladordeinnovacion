@@ -50,7 +50,7 @@ function vigilarApertura(activar) {
   }, 30000);
 }
 function prepararBorrador() {
-  D.senales = D.senales || {}; D.herramientas = D.herramientas || {}; D.proyectos = D.proyectos || {}; D.productos = D.productos || {}; D.decInformes = D.decInformes || {};
+  D.senales = D.senales || {}; D.herramientas = D.herramientas || {}; D.cronograma = D.cronograma || {}; D.proyectos = D.proyectos || {}; D.productos = D.productos || {}; D.decInformes = D.decInformes || {};
   (V.estado.informes || []).forEach(function (i) { if (i.requiere && i.t === V.partida.t - 1 && D.decInformes[i.id] === undefined && i.decision) D.decInformes[i.id] = i.decision; });
   D.investigacion = D.investigacion || { metodos: [], segmentos: [] };
   D.investigacion.metodos = D.investigacion.metodos || []; D.investigacion.segs = D.investigacion.segs || {};
@@ -101,7 +101,7 @@ function estimar() {
   clearTimeout(estTimer);
   estTimer = setTimeout(function () {
     if (!V || V.partida.finalizada) return;
-    call('apiEstimar', TOK, decisionLimpia()).then(function (e) { EST = e; pie(); }).catch(function () { });
+    call('apiEstimar', TOK, decisionLimpia()).then(function (e) { var antes = CRONO_KEYS.join('|'); EST = e; pie(); if (TAB === 'proyectos' && (e.actividades || []).map(function (a) { return a.concepto; }).join('|') !== antes) pintarCrono(); }).catch(function () { });
   }, 500);
 }
 function guardar(enviar) {
@@ -120,9 +120,10 @@ function pie() {
   var avC = []; if (falt) avC.push('1. Entorno: ' + falt + ' señal(es) sin credibilidad o sin postura.'); if (sinP) avC.push('1. Entorno: escriban por qué atienden ' + sinP + ' señal(es).');
   Object.keys(D.herramientas || {}).forEach(function (k) { var x = D.herramientas[k], h = herrDe(k); if (x && x.on && h && h.seg && !x.seg) avC.push('Herramienta "' + h.nombre + '": elijan el segmento.'); });
   (V.noticias || []).forEach(function (n) { var r = (D.senales || {})[n.id] || {}; if (r.postura === 'vigilar' && (!r.estudio || !estudioCubierto(r.estudio))) avC.push('1. Entorno: vigilan una señal sin un estudio que la cubra; no recibirán información adicional.'); });
+  if (e.actividades && e.actividades.length) { var zc = cronoEstado(); if (zc.faltan) avC.push('4. Proyectos: completen el cronograma de semanas-persona (' + zc.faltan + ' actividad(es) sin estimar).'); if (zc.plan > zc.cap) avC.push('Cronograma: planificaron ' + zc.plan + ' semanas-persona y tienen ' + zc.cap + '.'); }
   e = JSON.parse(JSON.stringify(e)); e.avisos = avC.filter(function (x, i) { return avC.indexOf(x) === i; }).concat(e.avisos || []);
   var op = e.operativo || {}, opTxt = (op.herramientas || op.contrato) ? '<br><span class="muted">Gasto operativo del trimestre: herramientas ' + bs(op.herramientas || 0) + ' · contrato de investigación ' + bs(op.contrato || 0) + '</span>' : '';
-  $('pie').innerHTML = '<div class="est">Costo estimado de innovación: <b>' + bs(e.costo) + '</b> de ' + bs(e.saldo) + ' · Semanas-persona: <b>' + e.semanas + '</b> de ' + e.semanasDisp + ' ' + est + opTxt +
+  $('pie').innerHTML = '<div class="est">Costo estimado de innovación: <b>' + bs(e.costo) + '</b> de ' + bs(e.saldo) + ' · Semanas-persona de referencia: <b>' + e.semanas + '</b> de ' + e.semanasDisp + ' (lo real puede variar) ' + est + opTxt +
     (e.avisos && e.avisos.length ? '<div class="avisos">⚠ ' + e.avisos.map(esc).join('<br>⚠ ') + '</div>' : '') + '</div>' +
     '<div class="inline">' + (abierto ? '<button class="btn sec" onclick="guardar(false)">Guardar borrador</button><button class="btn" onclick="guardar(true)">Enviar decisiones</button>' : '<span class="tag aviso">Trimestre cerrado por el docente</span>') +
     '<button class="btn sec" onclick="cargar()">Actualizar</button></div>';
@@ -184,6 +185,12 @@ document.addEventListener('change', function (ev) {
     var i = arr.indexOf(el.value);
     if (el.checked && i < 0) arr.push(el.value); if (!el.checked && i >= 0) arr.splice(i, 1);
     if (el.dataset.max && arr.length > Number(el.dataset.max)) { arr.splice(arr.indexOf(el.value), 1); el.checked = false; aviso('Máximo ' + el.dataset.max + ' opciones.', 'err'); }
+  } else if (el.dataset.cron !== undefined) {
+    var ck = CRONO_KEYS[Number(el.dataset.cron)]; if (!ck) return;
+    D.cronograma = D.cronograma || {}; var cc = D.cronograma[ck] = D.cronograma[ck] || {};
+    cc[el.dataset.campo] = el.value === '' ? '' : Number(el.value);
+    if (cc.ini && cc.fin && cc.fin < cc.ini) cc.fin = cc.ini;
+    pintarCrono(); pie(); return;
   } else if (el.dataset.ini) {
     var pid = el.dataset.ini, id = el.value; D._ini[pid] = D._ini[pid] || {};
     if (el.checked) { if (Object.keys(D._ini[pid]).length >= 3) { el.checked = false; aviso('Máximo 3 iniciativas por proyecto y trimestre.', 'err'); return; } D._ini[pid][id] = 'medio'; }
@@ -348,7 +355,7 @@ function copiarAnual() {
   D.anual = { p4: { producto: O.p4.producto, proceso: O.p4.proceso, posicion: O.p4.posicion, paradigma: O.p4.paradigma }, nucleo: O.nucleo, adyacente: O.adyacente, transf: O.transf, postura: O.postura, estructura: O.estructura, tiempoLibre: O.tiempoLibre, incentivo: O.incentivo, politica: O.politica, composicion: O.composicion, capacitacion: '', umbral: O.umbral, hipotesis: h };
   render(); estimar(); aviso('Copiaron la estrategia del año anterior. Revísenla, decidan la capacitación y escriban la hipótesis de este año.', 'ok');
 }
-function vAnual() { return vAnual0() + bloqueContrato(V.flags.anualEditable); }
+function vAnual() { return vAnual0() + bloqueContrato(V.flags.anualEditable) + tarjetaTiempo(); }
 function vAnual0() {
   var O = V.estado.org;
   if (!V.flags.anualEditable) {
@@ -382,6 +389,15 @@ function vAnual0() {
     '<label>Hipótesis anual del equipo (obligatoria)</label>' + ayuda('Escriban qué esperan lograr este año y por qué esta estrategia los llevará ahí. Al cierre del año la contrastarán en la bitácora.', 9) + txtA('anual.hipotesis', 'Ejemplo: con 30 % radical y una unidad autónoma lanzaremos un producto para universitarios antes de T8.') + '</div>';
 }
 
+function tarjetaTiempo() {
+  var T = V.cat.tiemposRef || [], cap = V.cat.general.semanasTrimestre || 12, f = function (x) { return String(x).replace('.', ','); };
+  return '<div class="card" id="planTiempo"><h2>Planificar el tiempo del equipo: semanas-persona</h2>' +
+    '<p>Además del dinero, el equipo tiene un límite de <b>tiempo</b>: <b>' + cap + ' semanas-persona por trimestre</b>. Una semana-persona es el trabajo de una persona durante una semana. La operación normal (producir, vender, comprar) ya está cubierta por los gastos fijos; estas semanas son el tiempo que la empresa puede sacarle a su gente para innovar sin descuidar la operación.</p>' +
+    '<p><b>Ejemplo:</b> la jefa de marketing, un ingeniero de planta y un supervisor de ventas dedican un tercio de su tiempo al proyecto durante las 12 semanas del trimestre: 3 × 4 = 12 semanas-persona. Si eligen talleres de ideas (3), prototipos (4), validación (2) y capacitación (2), suman 11. Si además quieren un piloto (4), ya no alcanza: deben postergarlo, quitar otra actividad o descuidar la operación.</p>' +
+    '<p><b>Cada trimestre</b>, en <b>4. Proyectos</b>, elaboran el <b>cronograma</b>: para cada actividad elegida estiman sus semanas-persona y en qué semanas del trimestre la harán. Al procesar, el simulador compara lo planificado con lo real. Si una actividad requiere más tiempo del que queda, <b>no se ejecuta</b> y el proyecto se atrasa.</p>' +
+    '<h3>Tiempos de referencia</h3><div class="scroll"><table><tr><th>Fase</th><th>Actividad</th><th class="n">Referencia</th><th class="n">Rango habitual</th></tr>' + T.map(function (x) { return '<tr><td>' + esc(x.fase) + '</td><td>' + esc(x.actividad) + '</td><td class="n">' + f(x.ref) + '</td><td class="n">' + f(x.min) + ' a ' + f(x.max) + '</td></tr>'; }).join('') + '</table></div>' +
+    '<p class="muted">El tiempo real de cada actividad varía dentro del rango (y a veces por encima de lo estimado) según: la <b>novedad</b> del proyecto (más novedoso, más tiempo), las <b>iteraciones</b> y si <b>aceleran</b> la fase (+50 %), la <b>madurez en innovación</b> (cada nivel ahorra media semana) y la <b>capacitación</b> vigente (10 % menos). Las personas tienden a subestimar el tiempo de sus tareas, la llamada falacia de la planificación (Kahneman y Tversky, 1979; Buehler, Griffin y Ross, 1994): dejen un margen.</p></div>';
+}
 function bloqueContrato(editable) {
   var t = V.partida.t, d = V.cat.descuentoContrato || 0, ms = V.cat.metodos.filter(function (m) { return m.continuo; });
   if (!editable) { var K0 = V.estado.contrato || {}; return '<div class="card"><h2>Contrato de investigación continua</h2><p>' + esc(contratoTexto(K0)) + ' Costo anual ' + bs(costoContratoAnual(K0)) + '. Se revisa al inicio de cada año.</p></div>'; }
@@ -393,9 +409,10 @@ function bloqueContrato(editable) {
       var base = 'anual.contrato.' + m.id, c = D.anual.contrato[m.id] = D.anual.contrato[m.id] || {}, k = K[m.id];
       var opts = m.id === 'vigilancia' ? [['0', 'No contratar'], ['1', 'Suscripción anual']] : [['0', 'No contratar'], ['1', VECES_[1]], ['2', VECES_[2]], ['4', VECES_[4]]];
       var n = (c.segs || []).length, ent = Math.round(costoEstudio(m, n) * (1 - d)), anual = k ? ent * (m.id === 'vigilancia' ? 1 : k.veces) : 0;
-      return '<tr><td><b>' + esc(m.inciso + ' ' + m.nombre) + '</b></td><td>' + sel(base + '.veces', opts, 'data-rerender="1"') + '</td><td>' + (m.porSeg ? (Number(c.veces) ? '<div class="inv-segs">' + V.cat.segmentos.map(function (sg) { return chkA(base + '.segs', sg.id, esc(sg.id), 5); }).join('') + '</div>' + (n ? '' : '<span class="tag aviso">Elijan de 1 a 5</span>') : '<span class="muted">—</span>') : '<span class="muted">' + (m.id === 'vigilancia' ? 'Todo el entorno' : 'Todo el mercado') + '</span>') + '</td><td class="n">' + bs(ent) + '</td><td class="n">' + (anual ? bs(anual) : '—') + '</td></tr>';
+      return '<tr><td><b>' + esc(m.inciso + ' ' + m.nombre) + '</b><br><span class="muted">Entrega: ' + esc(m.desc) + '</span></td><td>' + sel(base + '.veces', opts, 'data-rerender="1"') + '</td><td>' + (m.porSeg ? (Number(c.veces) ? '<div class="inv-segs">' + V.cat.segmentos.map(function (sg) { return chkA(base + '.segs', sg.id, esc(sg.id), 5); }).join('') + '</div>' + (n ? '' : '<span class="tag aviso">Elijan de 1 a 5</span>') : '<span class="muted">—</span>') : '<span class="muted">' + (m.id === 'vigilancia' ? 'Todo el entorno' : 'Todo el mercado') + '</span>') + '</td><td class="n">' + bs(ent) + '</td><td class="n">' + (anual ? bs(anual) : '—') + '</td></tr>';
     }).join('') + '<tr><th colspan="4">Total anual del contrato</th><th class="n">' + bs(costoContratoAnual(K)) + '</th></tr></table></div>' +
-    '<p class="muted">Heredado de la gestión anterior: Mercado (C.1) cada trimestre. Este año quedaría: ' + esc(contratoTexto(K)) + '</p></div>';
+    '<p class="muted">Heredado de la gestión anterior: Mercado (C.1) cada trimestre. Este año quedaría: ' + esc(contratoTexto(K)) + '</p>' +
+    '<p class="muted">Los informes del contrato son de <b>seguimiento</b>: llegan en Resultados → Informes de investigación y su hallazgo aparece como señal en 1. Entorno, pero <b>no exigen escribir una decisión</b> para poder enviar (los estudios ad hoc sí).</p></div>';
 }
 
 // ---------- Investigación ----------
@@ -431,7 +448,7 @@ function vInvestigacion() {
       else if (m.id === 'lideres') alc = '<span class="muted">Un proyecto activo (elíjanlo abajo)</span>';
       else alc = '<span class="muted">' + (m.id === 'vigilancia' ? 'Todo el entorno, 4 trimestres' : 'Todo el mercado') + '</span>';
       var chk = porContrato && !m.porSeg ? '<span class="tag ok" title="Llega por su contrato continuo">contrato</span>' : '<input type="checkbox" data-arr="investigacion.metodos" data-rerender="1" value="' + m.id + '"' + (a ? ' checked' : '') + '>';
-      return '<tr><td>' + chk + '</td><td><b>' + esc(m.inciso + ' ' + m.nombre) + '</b><br><span class="tag">' + esc((V.cat.modalidadesInv || {})[m.modalidad] || '') + '</span>' + (porContrato ? ' <span class="tag ok">llega por contrato' + (m.porSeg ? ' (' + esc(K[m.id].segs.join(', ')) + ')' : '') + '</span>' : '') + '</td><td><b>' + esc(m.pregunta || '') + '</b><br>' + esc(m.desc) + '</td><td>' + alc + '</td><td class="n">' + bs(c) + '</td><td class="n">' + (100 * c / pres).toFixed(1) + ' %</td></tr>';
+      return '<tr><td>' + chk + '</td><td><b>' + esc(m.inciso + ' ' + m.nombre) + '</b><br><span class="tag">' + esc((V.cat.modalidadesInv || {})[m.modalidad] || '') + '</span>' + (porContrato ? ' <span class="tag ok">llega por contrato' + (m.porSeg ? ' (' + esc(K[m.id].segs.join(', ')) + ')' : '') + '</span>' : '') + '</td><td><b>' + esc(m.pregunta || '') + '</b><br>' + esc(m.desc) + (m.proyecto ? '<br><span class="inv-proy">Para su proyecto: ' + esc(m.proyecto) + '</span>' : '') + '</td><td>' + alc + '</td><td class="n">' + bs(c) + '</td><td class="n">' + (100 * c / pres).toFixed(1) + ' %</td></tr>';
     }).join('') + '</table></div>' + (gk === 'B' ? '<h3>Proyecto que recibe las ideas de usuarios líderes</h3>' + (act.length ? sel('investigacion.proyectoLideres', [['', 'Elegir un proyecto…']].concat(act.map(function (p) { return [p.id, p.nombre + ' (' + p.segmento + ')']; }))) : '<p class="muted">Todavía no tienen proyectos activos. Los usuarios líderes aportan ideas a un proyecto existente: créenlo en <a href="#" onclick="irTab(\'proyectos\');return false">4. Proyectos</a>.</p>') : '') + '</div>';
   });
   return html;
@@ -600,6 +617,18 @@ function vResultados() {
 }
 
 
+/** Cronograma del último trimestre: lo planificado frente a lo real. */
+function tarjetaCronoReal() {
+  var h = ultimo(); if (!h || !h.actividades || !h.actividades.length) return '';
+  var C = h.cronograma || {}, f = function (x) { return x === undefined || x === null || x === '' ? '—' : String(x).replace('.', ','); }, totP = 0, totR = 0;
+  var filas = h.actividades.map(function (a) {
+    var c = C[a.concepto] || {}; if (c.sem) totP += c.sem; if (a.ejecutada) totR += a.real;
+    var dif = c.sem && a.real ? Math.round((a.real - c.sem) * 10) / 10 : null;
+    return '<tr><td>' + esc(a.concepto) + '</td><td class="n">' + f(c.sem) + '</td><td>' + (c.ini ? 'semanas ' + c.ini + ' a ' + c.fin : '—') + '</td><td class="n">' + f(a.ref) + '</td><td class="n">' + f(a.real) + '</td><td class="n">' + (dif === null ? '—' : (dif > 0 ? '+' : '') + f(dif)) + '</td><td>' + (a.ejecutada ? 'Sí' : '<b>No</b> (' + (a.motivo === 'presupuesto' ? 'faltó presupuesto' : 'faltaron semanas-persona') + ')') + '</td></tr>';
+  }).join('');
+  return '<div class="card"><h2>Cronograma de T' + h.t + ': planificado y real</h2><p>Comparen lo que estimaron con lo que realmente tomó cada actividad. Usen la diferencia para estimar mejor el próximo trimestre.</p><div class="scroll"><table><tr><th>Actividad</th><th class="n">Estimaron</th><th>Programada</th><th class="n">Referencia</th><th class="n">Real</th><th class="n">Diferencia</th><th>¿Se ejecutó?</th></tr>' + filas +
+    '<tr><th colspan="4">Total</th><th class="n">' + f(Math.round(totR * 10) / 10) + '</th><th class="n">' + (totP ? ((totR - totP) > 0 ? '+' : '') + f(Math.round((totR - totP) * 10) / 10) : '—') + '</th><th>Estimaron ' + f(totP) + ' de ' + (V.cat.general.semanasTrimestre || 12) + '</th></tr></table></div></div>';
+}
 /** Informe de calibración del último año cerrado: lo que creyeron frente a lo que ocurrió. */
 function tarjetaCalibracion() {
   var C = V.estado.calibracion || {}, ks = Object.keys(C).map(Number).sort(function (a, b) { return b - a; });
@@ -683,6 +712,7 @@ function vResumen() {
   html += '<div class="card"><h2>Qué pasó y por qué</h2>' + (V.estado.feedback && V.estado.feedback.length ? '<ul class="fb">' + V.estado.feedback.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' : '<p class="muted">Sin comentarios.</p>') + '</div>';
   html += tarjetaCoherencia();
   html += '<div class="card"><h2>Ventas y utilidad frente a la empresa que no innova</h2>' + grafico() + '</div>';
+  html += tarjetaCronoReal();
   html += tarjetaCalibracion();
   html += '<div class="inline"><button class="btn sec" onclick="irTab(\'resultados\')">Ver estados financieros</button><button class="btn" onclick="irTab(\'bitacora\')">Escribir la bitácora</button></div>';
   return html;

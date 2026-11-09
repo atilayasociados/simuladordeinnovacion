@@ -71,10 +71,21 @@ try {
   R.totalContrato = await pg.isVisible('th.n:has-text("Bs 85.000")'); // 15.300×4 + 11.900×2
   for (const [k, v] of [['producto', '40'], ['proceso', '20'], ['posicion', '20'], ['paradigma', '20']]) await pg.fill('input[data-p="anual.p4.' + k + '"]', v);
   for (const [k, v] of [['nucleo', '60'], ['adyacente', '30'], ['transf', '10']]) await pg.fill('input[data-p="anual.' + k + '"]', v);
-  for (const [k, v] of [['postura', 'ofensiva'], ['estructura', 'integrada'], ['tiempoLibre', '10'], ['incentivo', 'reconocimiento'], ['politica', 'aprendizaje'], ['composicion', 'multifuncional'], ['umbral', 'moderado'], ['capacitacion', 'no']]) await pg.selectOption('select[data-p="anual.' + k + '"]', v);
+  for (const [k, v] of [['postura', 'ofensiva'], ['estructura', 'integrada'], ['tiempoLibre', '10'], ['incentivo', 'reconocimiento'], ['politica', 'aprendizaje'], ['composicion', 'multifuncional'], ['umbral', 'moderado'], ['capacitacion', 'si']]) await pg.selectOption('select[data-p="anual.' + k + '"]', v);
   await pg.fill('textarea[data-p="anual.hipotesis"]', 'Con 30 % adyacente lanzaremos un producto para universitarios antes de T8.'); await pg.dispatchEvent('textarea[data-p="anual.hipotesis"]', 'change'); await pg.waitForTimeout(300);
   await pg.screenshot({ path: OUT + '/v3_contrato.png', fullPage: false, clip: { x: 0, y: 0, width: 1280, height: 900 } });
   await pg.evaluate(() => { const h = [...document.querySelectorAll('h2')].find((x) => /Bloque C/.test(x.textContent)); if (h) h.scrollIntoView(); }); await pg.screenshot({ path: OUT + '/v3_contrato.png' });
+  R.tiempoAnual = await pg.isVisible('text=Planificar el tiempo del equipo: semanas-persona') && await pg.isVisible('td:has-text("Capacitación en Design Thinking")');
+  R.contratoEntrega = await pg.isVisible('text=no exigen escribir una decisión');
+  // 4. Proyectos: cronograma con la capacitación
+  await pg.click('nav .sub >> text=4. Proyectos'); await pg.waitForTimeout(1500);
+  R.crono = await pg.isVisible('#cronoCard td:has-text("Capacitación en Design Thinking")');
+  await pg.fill('#cronoCard input[data-campo="sem"]', '2'); await pg.dispatchEvent('#cronoCard input[data-campo="sem"]', 'change'); await pg.waitForTimeout(200);
+  await pg.selectOption('#cronoCard select[data-campo="ini"]', '1'); await pg.waitForTimeout(200); await pg.selectOption('#cronoCard select[data-campo="fin"]', '2'); await pg.waitForTimeout(300);
+  R.cronoGantt = (await pg.$$('#cronoCard td.cw.on')).length === 2 && !(await pg.isVisible('#cronoCard td.cw.sobre')) && await pg.isVisible('text=Total planificado: 2 de 12');
+  await pg.screenshot({ path: OUT + '/v3_cronograma.png', fullPage: false });
+  await pg.evaluate(() => document.getElementById('cronoCard').scrollIntoView()); await pg.screenshot({ path: OUT + '/v3_cronograma.png' });
+  await pg.click('nav .sub >> text=3. Investigación'); await pg.waitForTimeout(300); R.paraProyecto = await pg.isVisible('text=Para su proyecto: Fases Definir e Idear');
   await pg.click('nav .sub >> text=Hipótesis'); await pg.fill('textarea[data-p="hipotesis"]', 'Si leemos bien el entorno evitaremos golpes de costos.'); await pg.dispatchEvent('textarea[data-p="hipotesis"]', 'change');
   await pg.waitForTimeout(800); await pg.click('text=Enviar decisiones'); await pg.waitForTimeout(1200);
   R.enviado = (s.mem.tablas.decisiones || []).some((d) => d.fila.includes('enviado'));
@@ -90,6 +101,7 @@ try {
   await pg.click('nav .sub >> text=Resumen del trimestre'); await pg.waitForTimeout(300);
   R.fbContrato = await pg.isVisible('text=Contrato de investigación continua: se entregaron');
   R.fbCampana = await pg.isVisible('text=Contrataron "Campaña anticipada de marca" en S2');
+  R.cronoReal = await pg.isVisible('text=Cronograma de T1: planificado y real') && await pg.isVisible('td:has-text("semanas 1 a 2")');
   await pg.screenshot({ path: OUT + '/v3_resumen.png', fullPage: true });
   await pg.click('nav >> text=Decidir'); await pg.waitForTimeout(300); await pg.click('nav .sub >> text=1. Entorno'); await pg.waitForTimeout(400);
   R.lecturaAnt = await pg.isVisible('text=Su lectura del trimestre anterior');
@@ -100,6 +112,6 @@ try {
   await pg.screenshot({ path: OUT + '/v3_entorno_cel.png' });
 } catch (e) { R.falla = e.message.split('\n')[0]; }
 console.log(JSON.stringify(R, null, 1)); console.log('Errores de página:', errs.length ? errs : 'ninguno');
-const ok = !R.falla && R.casoEnl && R.resumenA0 && R.irBalance && R.anio0 && R.senales >= 2 && R.herramientas >= 3 && R.etiquetaBloq && R.vigilarPide && R.sinComprar && R.actuarPide && R.pieOperativo && R.grupos.length === 4 && R.contratoTxt && R.precioEncuesta3 && R.ref && R.bloqueC && R.heredado && R.totalContrato && R.enviado && R.lineaT1 && R.fbContrato && R.fbCampana && R.lecturaAnt && R.senalInforme && !errs.length;
+const ok = !R.falla && R.tiempoAnual && R.contratoEntrega && R.crono && R.cronoGantt && R.paraProyecto && R.cronoReal && R.casoEnl && R.resumenA0 && R.irBalance && R.anio0 && R.senales >= 2 && R.herramientas >= 3 && R.etiquetaBloq && R.vigilarPide && R.sinComprar && R.actuarPide && R.pieOperativo && R.grupos.length === 4 && R.contratoTxt && R.precioEncuesta3 && R.ref && R.bloqueC && R.heredado && R.totalContrato && R.enviado && R.lineaT1 && R.fbContrato && R.fbCampana && R.lecturaAnt && R.senalInforme && !errs.length;
 await br.close(); await s.cerrar();
 console.log(ok ? 'ENTORNO UI OK' : 'ENTORNO UI CON FALLAS'); process.exit(ok ? 0 : 1);

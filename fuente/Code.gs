@@ -106,7 +106,7 @@ function apiEstado(tok) {
     },
     cat: {
       attrs: ATTR_NOMBRES, segmentos: P.segmentos.map(function (s) { return { id: s.id, nombre: s.nombre, part: s.part, g: s.g, pref: s.pref, est: s.est, nuevo: s.nuevo }; }),
-      canales: P.canales, herramientas: P.herramientas || [], iniciativas: P.iniciativas, premios: P.premios, metodos: P.metodos, gruposInv: P.gruposInv, modalidadesInv: P.modalidadesInv, descuentoContrato: P.descuentoContrato, contratoInicial: normContrato_(P, P.contratoInicial), fidelidades: P.fidelidades, umbrales: P.umbrales, posturas: P.posturas,
+      canales: P.canales, herramientas: P.herramientas || [], iniciativas: P.iniciativas, premios: P.premios, metodos: P.metodos, tiemposRef: tiemposReferencia_(P), gruposInv: P.gruposInv, modalidadesInv: P.modalidadesInv, descuentoContrato: P.descuentoContrato, contratoInicial: normContrato_(P, P.contratoInicial), fidelidades: P.fidelidades, umbrales: P.umbrales, posturas: P.posturas,
       p3: P3_CAT_, tecnicas: TECNICAS_, fuentesExt: FUENTES_EXT_, scamper: SCAMPER_, morfoParams: MORFO_PARAMS_, kanoNom: KANO_NOM_, tiposNom: TIPOS_NOM_, portafolioNom: PORTAFOLIO_NOM_, ptsNom: PTS_NOM_,
       general: { semanasTrimestre: P.general.semanasTrimestre, costoValidacion: P.general.costoValidacion, costoPiloto: P.general.costoPiloto, costoLanzamiento: P.general.costoLanzamiento, costoRevision: P.general.costoRevision, costoUnidadAutonoma: P.general.costoUnidadAutonoma, costoCapacitacion: P.general.costoCapacitacion, costoTiempoLibrePunto: P.general.costoTiempoLibrePunto, maxProyectos: P.general.maxProyectos, costoAlianzaC4: P.general.costoAlianzaC4, costoAdquisicionC4: P.general.costoAdquisicionC4, costoPatente: P.general.costoPatente, costoGestionProducto: P.general.costoGestionProducto, capexEscalamiento: P.general.capexEscalamiento, promoMax: P.general.promoMax, costoTestConcepto: P.general.costoTestConcepto, recargoAcelerar: P.general.recargoAcelerar }
     },
@@ -217,6 +217,11 @@ function apiGuardar(tok, dec, enviar) {
   var est = estimarCostos_(P, S, dec, pa.t);
   if (enviar && (!dec.hipotesis || String(dec.hipotesis).trim().length < 20)) throw new Error('Para enviar, escribe la hipótesis del equipo (al menos 20 caracteres).');
   if (enviar && esInicioAnio_(pa.t)) { var fA = anualFaltantes_(dec.anual); if (fA.length) throw new Error('Para enviar, completen la Estrategia anual: falta ' + fA.join(', ') + '.'); }
+  if (enviar) {
+    var acts = actividadesPlan_(P, migrar_(copy_(S), P), dec, pa.t, pa.semilla, scheduleEvents_(pa.semilla)), Cr = cronogramaLimpio_(dec.cronograma);
+    var sinPlan = acts.filter(function (a) { return !Cr[a.concepto]; }).length;
+    if (sinPlan) throw new Error('Para enviar, completen el cronograma de semanas-persona (4. Proyectos): faltan ' + sinPlan + ' actividad(es) sin estimación o sin semanas de inicio y fin.');
+  }
   if (enviar) { var fS = senalesFaltantes_(P, migrar_(copy_(S), P), dec, pa.t, scheduleEvents_(pa.semilla)); if (fS.length) throw new Error('Para enviar, completen la lectura del entorno (1. Entorno): ' + fS.join(' y ') + '.'); }
   if (enviar && informesPendientes_(migrar_(S, P), dec, pa.t).length) throw new Error('Para enviar, escriban en Resultados → Informes de investigación qué decisión toman con cada informe recibido (al menos 10 caracteres).');
   var lock = LockService.getScriptLock(); lock.waitLock(30000);
@@ -232,7 +237,9 @@ function apiGuardar(tok, dec, enviar) {
 function apiEstimar(tok, dec) {
   var ses = sess_(tok, 'equipo'), P = getParams_(), pa = partida_(ses.simId);
   var eq = equipoById_(ses.equipoId), S = estadoPrevio_(P, eq, Math.min(pa.t, P.general.totalTrimestres));
-  return estimarCostos_(P, S, dec, pa.t);
+  var r = estimarCostos_(P, S, dec, pa.t);
+  try { r.actividades = actividadesPlan_(P, S, dec || {}, pa.t, pa.semilla, scheduleEvents_(pa.semilla)); } catch (e) { r.actividades = []; }
+  return r;
 }
 function apiBitacora(tok, datos) {
   var ses = sess_(tok, 'equipo'), pa = partida_(ses.simId), t = Math.max(1, Math.min(pa.t - 1, 20));
@@ -593,3 +600,26 @@ function rankingClase_(P, pa) {
   datos.sort(function (a, b) { return b.puntaje - a.puntaje; });
   return { filas: datos, t: tUlt };
 }
+
+/** Tiempos de referencia (semanas-persona) de las actividades que consumen tiempo del equipo, con su rango. */
+function tiemposReferencia_(P) {
+  var g = P.general, r = function (x) { return Math.max(0.5, Math.round(2 * x) / 2); };
+  var L = [
+    ['Idear', 'Técnica de ideación: ' + TECNICAS_.scamper.nombre, TECNICAS_.scamper.sem],
+    ['Idear', 'Técnica de ideación: ' + TECNICAS_.flor.nombre, TECNICAS_.flor.sem],
+    ['Idear', 'Técnica de ideación: ' + TECNICAS_.morfo.nombre, TECNICAS_.morfo.sem],
+    ['Idear', 'Ideas de afuera: ' + FUENTES_EXT_.concurso.nombre, FUENTES_EXT_.concurso.sem],
+    ['Idear', 'Ideas de afuera: ' + FUENTES_EXT_.intra.nombre, FUENTES_EXT_.intra.sem],
+    ['Idear', 'Ideas de afuera: ' + FUENTES_EXT_.startups.nombre, FUENTES_EXT_.startups.sem],
+    ['Evaluar', 'Test de concepto con clientes', 1],
+    ['Prototipar', 'Prototipo y prueba con 5 u 8 usuarios', 1],
+    ['Prototipar', 'Prototipo y prueba con 12 usuarios', 2],
+    ['Especificar', 'Planta piloto y comité (puerta)', 2],
+    ['Piloto', 'Piloto en tiendas', g.semPiloto],
+    ['Lanzar', 'Lanzamiento', g.semLanzamiento],
+    ['Revisar', 'Revisión después de la acción', g.semRevision],
+    ['Estrategia anual', 'Capacitación en Design Thinking', g.semCapacitacion]
+  ];
+  return L.map(function (x) { return { fase: x[0], actividad: x[1], ref: x[2], min: r(x[2] * 0.8), max: r(x[2] * 1.35) }; });
+}
+

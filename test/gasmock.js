@@ -65,6 +65,8 @@ function makeGas() {
           const ses = ctx.sess_(tok, 'equipo'), pa = ctx.partida_(ses.simId), P = ctx.getParams_();
           const S = ctx.migrar_(ctx.estadoPrevio_(P, ctx.equipoById_(ses.equipoId), pa.t), P);
           const SEN = dec.senales = dec.senales || {};
+          const Cr = dec.cronograma = dec.cronograma || {};
+          ctx.actividadesPlan_(P, S, dec, pa.t, pa.semilla, ctx.scheduleEvents_(pa.semilla)).forEach((a) => { if (!Cr[a.concepto]) Cr[a.concepto] = { sem: a.ref, ini: 1, fin: 12 }; });
           ctx.senalesPara_(P, pa.t, S, ctx.scheduleEvents_(pa.semilla)).forEach((n) => { const r = SEN[n.id] = SEN[n.id] || {}; if (!r.cred) r.cred = 'dudosa'; if (!r.postura) r.postura = 'ignorar'; if ((r.postura === 'preparar' || r.postura === 'actuar') && String(r.porque || '').length < 10) r.porque = 'Respuesta de prueba ante la señal.'; });
         }
       } catch (e) { }
