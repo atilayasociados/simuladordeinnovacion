@@ -71,6 +71,22 @@ textarea{min-height:70px}
 footer.acciones{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--borde);padding:10px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;z-index:6}
 footer .est{font-size:13px}
 footer .avisos{font-size:12px;color:var(--aviso);max-width:640px}
+/* v3.2 · Pie en bloques: resumen del borrador y avisos antes de enviar */
+footer.acciones{align-items:stretch;box-shadow:0 -2px 8px rgba(31,56,100,.08)}
+.pie-tit{font-weight:700;font-size:11px;line-height:1.3;letter-spacing:.06em;text-transform:uppercase;color:var(--azul);margin:0 0 5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pie-tit .tag{text-transform:none;letter-spacing:0;font-weight:500}
+.pie-res{flex:1 1 360px;min-width:0}
+.pie-kpis{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.pie-kpi{display:inline-flex;flex-direction:column;background:var(--claro);border:1px solid var(--borde);border-left:3px solid var(--azul2);border-radius:6px;padding:3px 9px;font-size:13px;line-height:1.3}
+.pie-kpi small{font-size:10.5px;color:var(--suave)}
+.pie-av{flex:1 1 320px;max-width:640px;min-width:0;background:#FFF1E6;border:1px solid #F2B77C;border-left:4px solid #C2410C;border-radius:6px;padding:6px 10px;max-height:118px;overflow:auto}
+.pie-av .pie-tit{color:#9A3412}
+.pie-av ul{margin:0;padding-left:16px;font-size:12px;color:#7C2D12}
+.pie-av li{margin:1px 0}
+.pie-av.ok{background:#ECF8F0;border-color:#A6D8B6;border-left-color:var(--ok);max-height:none}
+.pie-av.ok .pie-tit{color:var(--ok);margin:0}
+.pie-btn{align-self:center}
+@media (max-width:700px){.pie-av{max-height:84px}.pie-kpi{font-size:12px}}
 .login{max-width:420px;margin:60px auto}
 .msg{padding:8px 12px;border-radius:6px;margin:8px 0;font-size:13px}
 .msg.err{background:#FDECEA;color:var(--mal)}.msg.ok{background:#E3F3EA;color:var(--ok)}
@@ -157,7 +173,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = 'bbf74d1542f1';
+  var V0 = '64976e88c735';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -334,10 +350,18 @@ function pie() {
   (V.noticias || []).forEach(function (n) { var r = (D.senales || {})[n.id] || {}; if (r.postura === 'vigilar' && (!r.estudio || !estudioCubierto(r.estudio))) avC.push('1. Entorno: vigilan una señal sin un estudio que la cubra; no recibirán información adicional.'); });
   if (e.actividades && e.actividades.length) { var zc = cronoEstado(); if (zc.faltan) avC.push('4. Proyectos: completen el cronograma de semanas-persona (' + zc.faltan + ' actividad(es) sin estimar).'); if (zc.plan > zc.cap) avC.push('Cronograma: planificaron ' + zc.plan + ' semanas-persona y tienen ' + zc.cap + '.'); }
   e = JSON.parse(JSON.stringify(e)); e.avisos = avC.filter(function (x, i) { return avC.indexOf(x) === i; }).concat(e.avisos || []);
-  var op = e.operativo || {}, opTxt = (op.herramientas || op.contrato) ? '<br><span class="muted">Gasto operativo del trimestre: herramientas ' + bs(op.herramientas || 0) + ' · contrato de investigación ' + bs(op.contrato || 0) + '</span>' : '';
-  $('pie').innerHTML = '<div class="est">Costo estimado de innovación: <b>' + bs(e.costo) + '</b> de ' + bs(e.saldo) + ' · Semanas-persona de referencia: <b>' + e.semanas + '</b> de ' + e.semanasDisp + ' (lo real puede variar) ' + est + ' <span class="leyenda-dec"><i></i>en amarillo: lo que decide el equipo</span>' + opTxt +
-    (e.avisos && e.avisos.length ? '<div class="avisos">⚠ ' + e.avisos.map(esc).join('<br>⚠ ') + '</div>' : '') + '</div>' +
-    '<div class="inline">' + (abierto ? '<button class="btn sec" onclick="guardar(false)">Guardar borrador</button><button class="btn" onclick="guardar(true)">Enviar decisiones</button>' : '<span class="tag aviso">Trimestre cerrado por el docente</span>') +
+  var op = e.operativo || {};
+  var kpi = function (t, v, x) { return '<span class="pie-kpi"><small>' + t + '</small><span><b>' + v + '</b>' + (x ? ' ' + x : '') + '</span></span>'; };
+  var resumen = '<div class="pie-res"><p class="pie-tit">Resumen de su borrador ' + est + '</p><div class="pie-kpis">' +
+    kpi('Costo estimado de innovación', bs(e.costo), 'de ' + bs(e.saldo)) +
+    kpi('Semanas-persona de referencia', e.semanas, 'de ' + e.semanasDisp + ' <span class="muted">(lo real puede variar)</span>') +
+    ((op.herramientas || op.contrato) ? kpi('Gasto operativo del trimestre', bs((op.herramientas || 0) + (op.contrato || 0)), '<span class="muted">herramientas ' + bs(op.herramientas || 0) + ' · contrato de investigación ' + bs(op.contrato || 0) + '</span>') : '') +
+    '</div><span class="leyenda-dec"><i></i>en amarillo: lo que decide el equipo</span></div>';
+  var nA = (e.avisos || []).length;
+  var avisos = nA ? '<div class="pie-av"><p class="pie-tit">⚠ Pendientes y avisos antes de enviar (' + nA + ')</p><ul>' + e.avisos.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>'
+    : '<div class="pie-av ok"><p class="pie-tit">✓ Sin pendientes: pueden enviar</p></div>';
+  $('pie').innerHTML = resumen + avisos +
+    '<div class="inline pie-btn">' + (abierto ? '<button class="btn sec" onclick="guardar(false)">Guardar borrador</button><button class="btn" onclick="guardar(true)">Enviar decisiones</button>' : '<span class="tag aviso">Trimestre cerrado por el docente</span>') +
     '<button class="btn sec" onclick="cargar()">Actualizar</button></div>';
 }
 

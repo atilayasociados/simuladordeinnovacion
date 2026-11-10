@@ -122,10 +122,18 @@ function pie() {
   (V.noticias || []).forEach(function (n) { var r = (D.senales || {})[n.id] || {}; if (r.postura === 'vigilar' && (!r.estudio || !estudioCubierto(r.estudio))) avC.push('1. Entorno: vigilan una señal sin un estudio que la cubra; no recibirán información adicional.'); });
   if (e.actividades && e.actividades.length) { var zc = cronoEstado(); if (zc.faltan) avC.push('4. Proyectos: completen el cronograma de semanas-persona (' + zc.faltan + ' actividad(es) sin estimar).'); if (zc.plan > zc.cap) avC.push('Cronograma: planificaron ' + zc.plan + ' semanas-persona y tienen ' + zc.cap + '.'); }
   e = JSON.parse(JSON.stringify(e)); e.avisos = avC.filter(function (x, i) { return avC.indexOf(x) === i; }).concat(e.avisos || []);
-  var op = e.operativo || {}, opTxt = (op.herramientas || op.contrato) ? '<br><span class="muted">Gasto operativo del trimestre: herramientas ' + bs(op.herramientas || 0) + ' · contrato de investigación ' + bs(op.contrato || 0) + '</span>' : '';
-  $('pie').innerHTML = '<div class="est">Costo estimado de innovación: <b>' + bs(e.costo) + '</b> de ' + bs(e.saldo) + ' · Semanas-persona de referencia: <b>' + e.semanas + '</b> de ' + e.semanasDisp + ' (lo real puede variar) ' + est + ' <span class="leyenda-dec"><i></i>en amarillo: lo que decide el equipo</span>' + opTxt +
-    (e.avisos && e.avisos.length ? '<div class="avisos">⚠ ' + e.avisos.map(esc).join('<br>⚠ ') + '</div>' : '') + '</div>' +
-    '<div class="inline">' + (abierto ? '<button class="btn sec" onclick="guardar(false)">Guardar borrador</button><button class="btn" onclick="guardar(true)">Enviar decisiones</button>' : '<span class="tag aviso">Trimestre cerrado por el docente</span>') +
+  var op = e.operativo || {};
+  var kpi = function (t, v, x) { return '<span class="pie-kpi"><small>' + t + '</small><span><b>' + v + '</b>' + (x ? ' ' + x : '') + '</span></span>'; };
+  var resumen = '<div class="pie-res"><p class="pie-tit">Resumen de su borrador ' + est + '</p><div class="pie-kpis">' +
+    kpi('Costo estimado de innovación', bs(e.costo), 'de ' + bs(e.saldo)) +
+    kpi('Semanas-persona de referencia', e.semanas, 'de ' + e.semanasDisp + ' <span class="muted">(lo real puede variar)</span>') +
+    ((op.herramientas || op.contrato) ? kpi('Gasto operativo del trimestre', bs((op.herramientas || 0) + (op.contrato || 0)), '<span class="muted">herramientas ' + bs(op.herramientas || 0) + ' · contrato de investigación ' + bs(op.contrato || 0) + '</span>') : '') +
+    '</div><span class="leyenda-dec"><i></i>en amarillo: lo que decide el equipo</span></div>';
+  var nA = (e.avisos || []).length;
+  var avisos = nA ? '<div class="pie-av"><p class="pie-tit">⚠ Pendientes y avisos antes de enviar (' + nA + ')</p><ul>' + e.avisos.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>'
+    : '<div class="pie-av ok"><p class="pie-tit">✓ Sin pendientes: pueden enviar</p></div>';
+  $('pie').innerHTML = resumen + avisos +
+    '<div class="inline pie-btn">' + (abierto ? '<button class="btn sec" onclick="guardar(false)">Guardar borrador</button><button class="btn" onclick="guardar(true)">Enviar decisiones</button>' : '<span class="tag aviso">Trimestre cerrado por el docente</span>') +
     '<button class="btn sec" onclick="cargar()">Actualizar</button></div>';
 }
 
