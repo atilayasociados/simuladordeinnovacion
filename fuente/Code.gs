@@ -121,8 +121,10 @@ function empresasPublicas_(simId, t, miId) {
   var res = t >= 1 ? rows_('Resultados').filter(function (r) { return String(r.simId) === String(simId) && Number(r.trimestre) === t; }) : [];
   return equiposDe_(simId).map(function (e) {
     var yo = String(e.equipoId) === String(miId);
-    var r = yo ? res.filter(function (x) { return String(x.equipoId) === String(e.equipoId); })[0] : null;
-    return { nombre: e.nombre, yo: yo, ventas: r ? Number(r.ventas) : null, cuota: r ? Number(r.cuotaTotal) : null, productos: r ? Number(r.productosActivos) : null };
+    // La participación y los productos en el mercado son observables (los muestra el informe de Mercado);
+    // las ventas de las otras empresas son privadas.
+    var r = res.filter(function (x) { return String(x.equipoId) === String(e.equipoId); })[0] || null;
+    return { nombre: e.nombre, yo: yo, ventas: r && yo ? Number(r.ventas) : null, cuota: r ? Number(r.cuotaTotal) : null, productos: r ? Number(r.productosActivos) : null, t: r ? t : null };
   });
 }
 function vistaEquipo_(P, S) {

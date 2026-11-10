@@ -409,7 +409,7 @@ function procesarFases2_(P, S, pj, a, ctx) {
       if (conIdeas.length && ctx.gastar(0, semMadurez_(O, TECNICAS_[tec].sem) * acel, TECNICAS_[tec].nombre + ' (' + pj.nombre + ')')) {
         conIdeas.forEach(function (r) { var L = textosIdeas_(tec, a.ind[r]); total += L.length; if (L.length >= minimoTecnica_(tec)) part++; pj.ideas.push({ t: t, autor: r, tecnica: tec, textos: L }); });
         pj.tecnica = tec; pj.participantes = part;
-        fb.push('“' + pj.nombre + '”: ' + conIdeas.length + ' integrantes aportaron ' + total + ' ideas con ' + TECNICAS_[tec].nombre + '.');
+        fb.push('“' + pj.nombre + '”: ' + conIdeas.length + (conIdeas.length === 1 ? ' integrante aportó ' : ' integrantes aportaron ') + total + ' ideas con ' + TECNICAS_[tec].nombre + '.');
       }
     }
     // 2. ideas de afuera

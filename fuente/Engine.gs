@@ -14,7 +14,7 @@ function segById_(P, id) { for (var i = 0; i < P.segmentos.length; i++) if (P.se
 function canalById_(P, id) { for (var i = 0; i < P.canales.length; i++) if (P.canales[i].id === id) return P.canales[i]; return null; }
 function ideaById_(P, id) { for (var i = 0; i < P.ideas.length; i++) if (P.ideas[i].id === id) return P.ideas[i]; return null; }
 function iniById_(P, id) { for (var i = 0; i < P.iniciativas.length; i++) if (P.iniciativas[i].id === id) return P.iniciativas[i]; return null; }
-var MET_SEG_ = ['encuesta', 'observacion', 'percepcion'];
+var MET_SEG_ = ['encuesta', 'observacion', 'percepcion', 'extremos'];
 var MET_TIPO_ = { A: 'Estudio de clientes', B: 'Estudio de mercado y competencia', C: 'Estudio de marca' };
 function metById_(P, id) { for (var i = 0; i < P.metodos.length; i++) if (P.metodos[i].id === id) return P.metodos[i]; return null; }
 /** Segmentos válidos y sin repetir (1 a 5). */
@@ -742,9 +742,15 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
         marca(nuevoInforme_(S, m, t, { segs: [sid], pregunta: r.pregunta, ficha: r.ficha, limites: r.limites, datos: r.datos }));
       });
     } else if (mid === 'extremos') {
+      // Usuarios extremos de un segmento (Kelley y Kelley, 2013; Brown, 2019): contacto directo que revela necesidades
+      // latentes como hipótesis, sin medir pesos. Cuenta como conocimiento cualitativo del segmento.
       S.conocimiento.tendencia = 'Los usuarios extremos anticipan que la sostenibilidad ganará peso en universitarios (S2) y deportistas (S4) hacia el año 5, y que los productos altos en azúcar serán rechazados.';
-      ['S2', 'S4'].forEach(function (sid) { S.iq[sid] = Math.min(1, (S.iq[sid] || 0) + 0.05); });
-      var ie = informeExtremos_(P, S, t); marca(nuevoInforme_(S, m, t, { pregunta: ie.pregunta, ficha: ie.ficha, limites: ie.limites, datos: ie.datos }));
+      lista.forEach(function (sid) {
+        var seg = segById_(P, sid); if (!seg) return;
+        S.iq[sid] = Math.max(S.iq[sid] || 0, 0.45);
+        if (seg.latentes.length) { S.conocimiento.latentes = S.conocimiento.latentes || {}; S.conocimiento.latentes[sid] = seg.latentes.map(function (k) { return ATTR_NOMBRES[k]; }); }
+        var ie = informeExtremos_(P, S, t, seg); marca(nuevoInforme_(S, m, t, { segs: [sid], pregunta: ie.pregunta, ficha: ie.ficha, limites: ie.limites, datos: ie.datos }));
+      });
     } else if (mid === 'competidores') {
       var ic = informeCompetidores_(P, S, t); marca(nuevoInforme_(S, m, t, { pregunta: ic.pregunta, ficha: ic.ficha, limites: ic.limites, datos: ic.datos }));
       S.conocimiento.competidores = { t: t, informe: true };

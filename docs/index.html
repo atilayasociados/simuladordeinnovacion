@@ -173,7 +173,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = '04b5e185f8be';
+  var V0 = 'acb6f896c97c';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -909,9 +909,9 @@ function tarjetaCalibracion() {
 }
 function nEmp() { return (V.empresas && V.empresas.length) || 1; }
 function tablaEmpresas() {
-  var E = (V.empresas || []).slice(), conDatos = false;
+  var E = (V.empresas || []).slice(), conDatos = E.some(function (e) { return e.cuota !== null && e.cuota !== undefined; });
   if (conDatos) E.sort(function (a, b) { return (b.cuota || 0) - (a.cuota || 0); });
-  return '<div class="scroll"><table><tr><th>Empresa</th><th class="n">Ventas último trimestre</th><th class="n">Participación de mercado</th><th class="n">Productos en el mercado</th></tr>' + E.map(function (e) { return '<tr><td>' + esc(e.nombre) + (e.yo ? ' <span class="tag">su empresa</span>' : '') + '</td><td class="n">' + (e.ventas === null ? '—' : bs(e.ventas)) + '</td><td class="n">' + (e.cuota === null ? pct(11.2 / nEmp()) : pct(e.cuota)) + '</td><td class="n">' + (e.productos === null ? '1' : e.productos) + '</td></tr>'; }).join('') + '</table></div>' + (conDatos ? '' : '<p class="muted">Todas parten iguales. Los datos se actualizan cuando el docente procesa cada trimestre.</p>');
+  return '<div class="scroll"><table><tr><th>Empresa</th><th class="n">Ventas último trimestre (solo la suya)</th><th class="n">Participación de mercado</th><th class="n">Productos en el mercado</th></tr>' + E.map(function (e) { return '<tr><td>' + esc(e.nombre) + (e.yo ? ' <span class="tag">su empresa</span>' : '') + '</td><td class="n">' + (e.ventas === null ? '—' : bs(e.ventas)) + '</td><td class="n">' + (e.cuota === null ? pct(11.2 / nEmp()) : pct(e.cuota)) + '</td><td class="n">' + (e.productos === null ? '1' : e.productos) + '</td></tr>'; }).join('') + '</table></div>' + (conDatos ? '<p class="muted">Participación de mercado del último trimestre procesado (la misma que muestra el informe de Mercado). Las ventas de las otras empresas no se publican.</p>' : '<p class="muted">Todas parten iguales. Los datos se actualizan cuando el docente procesa cada trimestre.</p>');
 }
 function vDecidirCerrado() {
   if (V.partida.finalizada) return '<div class="card"><h2>La partida terminó</h2><p>Ya no hay decisiones por tomar. Revise sus resultados finales y complete su bitácora en Aprender.</p></div>';
@@ -1654,7 +1654,7 @@ function hallazgos(inf) {
       (d.latente.length ? '<p class="okbox"><b>Necesidad latente descubierta:</b> ' + esc(d.latente.join(' y ')) + '. Los clientes la valoran más de lo que dicen.</p>' : '<p class="muted">No apareció una necesidad latente clara en este segmento.</p>') +
       '<h3>Lo que dicen frente a lo que hacen</h3><table><tr><th>Atributo</th><th class="n">Lugar en lo que dicen</th><th class="n">Lugar en lo que hacen</th></tr>' + d.comparacion.map(function (c) { return '<tr><td>' + esc(c.nombre) + '</td><td class="n">' + c.dice + '.º</td><td class="n"><b>' + c.hace + '.º</b></td></tr>'; }).join('') + '</table>';
   }
-  if (m === 'extremos') return '<div class="grid g2">' + d.casos.map(function (c) { return '<div class="box"><b>' + esc(c[0]) + '</b><br>' + esc(c[1]) + '</div>'; }).join('') + '</div><h3>Tendencias detectadas</h3><table><tr><th>Tendencia</th><th>Atributo</th><th>Segmentos</th><th>Fuerza de la señal</th><th>Horizonte</th></tr>' + d.tendencias.map(function (x) { return '<tr><td>' + esc(x.texto) + '</td><td>' + esc(x.atributo) + '</td><td>' + esc(x.segmentos) + '</td><td>' + esc(x.fuerza) + '</td><td>' + esc(x.horizonte) + '</td></tr>'; }).join('') + '</table>';
+  if (m === 'extremos') return (d.seg ? '<p class="muted">Segmento: ' + esc(d.seg) + '</p>' : '') + '<div class="grid g2">' + d.casos.map(function (c) { return '<div class="box"><b>' + esc(c[0]) + '</b><br>' + esc(c[1]) + '</div>'; }).join('') + '</div>' + (d.latentes && d.latentes.length ? '<p><b>Necesidad que estos casos exageran y el resto del segmento no dice:</b> ' + esc(d.latentes.join(', ')) + '. Es una hipótesis para su reto: confírmenla con observación o encuesta.</p>' : '<p class="muted">Estos casos no revelan una necesidad oculta distinta de lo que el segmento ya declara.</p>') + '<h3>Tendencias detectadas</h3><table><tr><th>Tendencia</th><th>Atributo</th><th>Segmentos</th><th>Fuerza de la señal</th><th>Horizonte</th></tr>' + d.tendencias.map(function (x) { return '<tr><td>' + esc(x.texto) + '</td><td>' + esc(x.atributo) + '</td><td>' + esc(x.segmentos) + '</td><td>' + esc(x.fuerza) + '</td><td>' + esc(x.horizonte) + '</td></tr>'; }).join('') + '</table>';
   if (m === 'lideres') return '<p>Conceptos entregados al proyecto <b>' + esc(d.proyecto) + '</b>:</p><div class="grid g2">' + d.conceptos.map(function (c) { return '<div class="box"><b>' + esc(c.nombre) + '</b><br><span class="muted">' + esc(c.desc) + '</span><br>Tipo: ' + esc(c.tipo) + ' · novedad ' + c.nov + '/5 · calidad estimada <b>' + Number(c.qObs).toFixed(1) + '</b> de 9 (±1,5 sin validar)</div>'; }).join('') + '</div>';
   if (m === 'industria') {
     if (d.n1) { var nE = nEmp(), F = []; d.filas.forEach(function (f) { if (f.yo && nE > 1) { F.push({ nombre: 'Su empresa', yo: true, lo: f.lo / nE, hi: f.hi / nE }); F.push({ nombre: 'Otras ' + (nE - 1) + ' empresas del curso (juntas)', lo: f.lo * (nE - 1) / nE, hi: f.hi * (nE - 1) / nE }); } else F.push(f); }); d = JSON.parse(JSON.stringify(d)); d.filas = F; }
@@ -2858,7 +2858,7 @@ var MANUAL = [
     ['A.1', 'Vigilancia del entorno', '¿Qué noticias son reales y cuándo llegarán? Boletín durante 4 trimestres; las noticias llegan un trimestre antes.', 'Suscripción', 'Bs 22.000'],
     ['B.1', 'Encuesta', '¿Qué dicen valorar los clientes? Con margen de error; subestima lo que no dicen.', 'A medida', 'Bs 8.000 + 4.000 por segmento'],
     ['B.2', 'Observación etnográfica', '¿Qué hacen y qué necesitan sin decirlo? Persona, recorrido, mapa de empatía, necesidad latente.', 'A medida', 'Bs 15.000 por segmento'],
-    ['B.3', 'Usuarios extremos', '¿Qué necesidad puede volverse común?', 'A medida', 'Bs 15.000'],
+    ['B.3', 'Usuarios extremos', '¿Qué necesidades viven de forma exagerada las personas en los extremos del segmento? Dos casos, la necesidad oculta que revelan y una tendencia.', 'A medida', 'Bs 15.000 por segmento'],
     ['B.4', 'Usuarios líderes (co-creación)', '¿Qué ideas proponen los clientes adelantados? 2 conceptos para un proyecto activo.', 'A medida', 'Bs 20.000'],
     ['C.1', 'Mercado', '¿Cuánto vende cada empresa y en qué segmentos? (un trimestre de retraso)', 'Sindicado', 'Bs 18.000'],
     ['C.2', 'Competidores actuales y potenciales', '¿Qué ofrece cada rival y quién se prepara para entrar o imitar?', 'Sindicado', 'Bs 14.000'],

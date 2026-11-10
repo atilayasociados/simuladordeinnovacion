@@ -681,9 +681,9 @@ function tarjetaCalibracion() {
 }
 function nEmp() { return (V.empresas && V.empresas.length) || 1; }
 function tablaEmpresas() {
-  var E = (V.empresas || []).slice(), conDatos = false;
+  var E = (V.empresas || []).slice(), conDatos = E.some(function (e) { return e.cuota !== null && e.cuota !== undefined; });
   if (conDatos) E.sort(function (a, b) { return (b.cuota || 0) - (a.cuota || 0); });
-  return '<div class="scroll"><table><tr><th>Empresa</th><th class="n">Ventas último trimestre</th><th class="n">Participación de mercado</th><th class="n">Productos en el mercado</th></tr>' + E.map(function (e) { return '<tr><td>' + esc(e.nombre) + (e.yo ? ' <span class="tag">su empresa</span>' : '') + '</td><td class="n">' + (e.ventas === null ? '—' : bs(e.ventas)) + '</td><td class="n">' + (e.cuota === null ? pct(11.2 / nEmp()) : pct(e.cuota)) + '</td><td class="n">' + (e.productos === null ? '1' : e.productos) + '</td></tr>'; }).join('') + '</table></div>' + (conDatos ? '' : '<p class="muted">Todas parten iguales. Los datos se actualizan cuando el docente procesa cada trimestre.</p>');
+  return '<div class="scroll"><table><tr><th>Empresa</th><th class="n">Ventas último trimestre (solo la suya)</th><th class="n">Participación de mercado</th><th class="n">Productos en el mercado</th></tr>' + E.map(function (e) { return '<tr><td>' + esc(e.nombre) + (e.yo ? ' <span class="tag">su empresa</span>' : '') + '</td><td class="n">' + (e.ventas === null ? '—' : bs(e.ventas)) + '</td><td class="n">' + (e.cuota === null ? pct(11.2 / nEmp()) : pct(e.cuota)) + '</td><td class="n">' + (e.productos === null ? '1' : e.productos) + '</td></tr>'; }).join('') + '</table></div>' + (conDatos ? '<p class="muted">Participación de mercado del último trimestre procesado (la misma que muestra el informe de Mercado). Las ventas de las otras empresas no se publican.</p>' : '<p class="muted">Todas parten iguales. Los datos se actualizan cuando el docente procesa cada trimestre.</p>');
 }
 function vDecidirCerrado() {
   if (V.partida.finalizada) return '<div class="card"><h2>La partida terminó</h2><p>Ya no hay decisiones por tomar. Revise sus resultados finales y complete su bitácora en Aprender.</p></div>';

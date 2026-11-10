@@ -230,18 +230,27 @@ function informeVigilancia_(P, S, t, sched) {
 }
 
 /** Tendencias anticipadas por usuarios extremos (alineadas con los cambios reales del motor). */
-function informeExtremos_(P, S, t) {
-  var T = [];
+var EXTREMOS_ = {
+  S1: [['Uso intenso', 'Una madre de cuatro niños compra seis litros por semana; busca porciones individuales que no se derramen en la lonchera.'], ['Uso mínimo', 'Un padre dejó de comprar leche saborizada: dice que sus hijos la dejan a medias y se desperdicia.']],
+  S2: [['Uso intenso', 'Un estudiante que vive a dos horas del campus desayuna todos los días en el micro, con una mano libre.'], ['Uso mínimo', 'Una estudiante no compra lácteos: no encuentra dónde comprarlos cerca de la facultad ni puede llevarlos sin que se calienten.']],
+  S3: [['Uso intenso', 'Un cajero con turno doble toma tres lácteos al día en su escritorio, sin pausa para comer.'], ['Uso mínimo', 'Una contadora dejó de comprar: no hay refrigerador en su oficina y no quiere cargar una caja de litro.']],
+  S4: [['Uso intenso', 'Un corredor de montaña toma cuatro lácteos al día; busca proteína alta, poca azúcar y porciones que pueda llevar.'], ['Uso mínimo', 'Una persona a dieta evita los lácteos saborizados por el azúcar, aunque le gustan.']],
+  S5: [['Uso intenso', 'Un jubilado toma leche tres veces al día; le preocupa su fuerza y sus huesos, pero le cuesta abrir el envase.'], ['Uso mínimo', 'Una adulta mayor dejó de comprar: le cuesta abrir los envases y desperdicia la caja de litro porque vive sola.']]
+};
+function informeExtremos_(P, S, t, seg) {
+  var T = [], sid = seg ? seg.id : 'S2';
   if (t < 12) T.push({ texto: 'Los productos con mucha azúcar serán rechazados por familias, deportistas y adultos mayores.', atributo: 'Saludable', segmentos: 'S1, S4, S5', fuerza: t < 6 ? 'moderada' : 'fuerte', horizonte: t < 6 ? '1 a 2 años' : 'menos de 1 año' });
   T.push({ texto: 'La sostenibilidad del envase y del producto ganará peso en universitarios y deportistas.', atributo: 'Sostenibilidad', segmentos: 'S2, S4', fuerza: t < 12 ? 'débil' : 'moderada', horizonte: t < 12 ? '3 a 4 años' : '1 a 2 años' });
   if (t < 10) T.push({ texto: 'Comprar por aplicación y recibir en el lugar donde se está será lo normal para universitarios y oficinistas.', atributo: 'Conveniencia', segmentos: 'S2, S3', fuerza: 'moderada', horizonte: '1 año' });
   return {
-    pregunta: '¿Qué necesidad, hoy exagerada en usuarios extremos, podría volverse común en el mercado?',
-    ficha: 'Entrevistas en profundidad a 6 usuarios en los dos extremos del uso (uso intenso y casi nulo). Análisis de patrones comunes.',
-    limites: 'Es una hipótesis sobre el futuro, no una certeza. Puede no cumplirse o tardar más. Conviene confirmarla con vigilancia del entorno.',
+    pregunta: '¿Qué necesidades viven de forma exagerada los usuarios extremos de ' + sid + (seg ? ' (' + seg.nombre + ')' : '') + ' y cuáles podrían volverse comunes?',
+    ficha: 'Entrevistas en profundidad y acompañamiento a 6 personas de ' + sid + ' en los dos extremos del uso (uso intenso y casi nulo). Análisis de patrones comunes.',
+    limites: 'Los extremos exageran las necesidades: sirven para inspirar y formular hipótesis, no para medir cuánto pesa cada atributo en el segmento (para eso, encuesta u observación). Las tendencias son hipótesis sobre el futuro.',
     datos: {
-      casos: [['Uso intenso', 'Un corredor de montaña toma cuatro lácteos al día; busca proteína alta, poca azúcar y porciones que pueda llevar.'], ['Uso mínimo', 'Una adulta mayor dejó de comprar: le cuesta abrir los envases y desperdicia la caja de litro.']],
-      tendencias: T
+      seg: sid,
+      casos: EXTREMOS_[sid] || EXTREMOS_.S2,
+      latentes: seg && seg.latentes && seg.latentes.length ? seg.latentes.map(function (k) { return ATTR_NOMBRES[k]; }) : [],
+      tendencias: T.filter(function (x) { return x.segmentos.indexOf(sid) >= 0; }).length ? T.filter(function (x) { return x.segmentos.indexOf(sid) >= 0; }) : T
     }
   };
 }

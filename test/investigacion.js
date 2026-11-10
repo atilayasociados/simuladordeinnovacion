@@ -8,7 +8,7 @@ G.apiRegistrarEquipo(s1.codigo, { nombreEquipo: 'Halcones', pin: 'clave1', integ
 G.apiAdmin(adm, 'abrir', { simId: s1.simId });
 const tk = G.apiLogin('315001', 'clave1', s1.simId).token;
 const todos = ['encuesta', 'observacion', 'extremos', 'lideres', 'industria', 'competidores', 'vigilancia', 'percepcion', 'sustitutos', 'proveedores'];
-const dec = { hipotesis: 'Hipótesis del trimestre uno para probar.', productos: {}, decInformes: {}, investigacion: { metodos: todos, segs: { encuesta: ['S1', 'S2'], observacion: ['S4'], percepcion: [] } } };
+const dec = { hipotesis: 'Hipótesis del trimestre uno para probar.', productos: {}, decInformes: {}, investigacion: { metodos: todos, segs: { encuesta: ['S1', 'S2'], observacion: ['S4'], percepcion: [], extremos: ['S5'] } } };
 const est = G.apiEstimar(tk, dec);
 ok(est.semanas === 0 || est.sem === 0 || !(est.avisos || []).some(a => /semanas-persona estimadas/.test(a)), 'comprar todos los estudios no consume semanas-persona');
 ok(est.avisos.some(a => /Mercado: ya llega este trimestre por su contrato/.test(a)), 'Mercado (C.1) ya llega por el contrato heredado: no se cobra aparte');
