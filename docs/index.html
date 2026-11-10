@@ -132,6 +132,17 @@ th.sub-g{background:#E8EEF7;color:#1F3B63;font-size:13px}
 .ent-tags{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px}.ent-resp{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:0 10px;margin:2px 0 6px}.ent-resp .chk{font-size:13px}
 th.a0,td.a0{background:#F6F6F2;color:#555}
 .inv-segs{display:grid;grid-template-columns:1fr;gap:0}.inv-segs .chk{font-size:13px;padding:1px 0}
+/* v3.2 · Dónde decide el equipo: campos y zonas de decisión con fondo ámbar claro */
+:root{--dec:#FFF3C4;--dec-borde:#C9971C;--dec-zona:#FFFAEA}
+#app input[data-p]:not([type=checkbox]):not([type=radio]),#app input[data-campo],#app input[data-cron],#app select[data-p],#app select[data-campo],#app select[data-cron],#app textarea[data-p],#app input[id^="np"],#app select[id^="np"],#app textarea[id^="np"]{background:var(--dec);border-color:var(--dec-borde)}
+#app input[data-p]:focus,#app input[data-campo]:focus,#app select[data-p]:focus,#app select[data-campo]:focus,#app textarea[data-p]:focus,#app [id^="np"]:focus{background:#fff;outline:2px solid var(--dec-borde);outline-offset:0}
+#app input[data-p]:disabled,#app select[data-p]:disabled,#app textarea[data-p]:disabled{background:#F1F1F1;border-color:var(--borde)}
+#app label.chk:has(input[data-p]),#app label.chk:has(input[data-arr]){background:var(--dec);border:1px solid #EAD18A;border-radius:5px;padding:3px 7px}
+#app label.chk:has(input:disabled){background:#F4F4F4;border-color:#E2E2E2}
+.tarea{background:var(--dec-zona);border:1px solid #EAD18A;border-left:4px solid var(--dec-borde)}
+.box.dec,.decbox{background:var(--dec-zona);border-color:var(--dec-borde)}
+.leyenda-dec{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--suave)}
+.leyenda-dec i{display:inline-block;width:14px;height:14px;background:var(--dec);border:1px solid var(--dec-borde);border-radius:3px}
 </style>
 
 </head>
@@ -146,7 +157,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = '25790da22e30';
+  var V0 = 'bbf74d1542f1';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -324,7 +335,7 @@ function pie() {
   if (e.actividades && e.actividades.length) { var zc = cronoEstado(); if (zc.faltan) avC.push('4. Proyectos: completen el cronograma de semanas-persona (' + zc.faltan + ' actividad(es) sin estimar).'); if (zc.plan > zc.cap) avC.push('Cronograma: planificaron ' + zc.plan + ' semanas-persona y tienen ' + zc.cap + '.'); }
   e = JSON.parse(JSON.stringify(e)); e.avisos = avC.filter(function (x, i) { return avC.indexOf(x) === i; }).concat(e.avisos || []);
   var op = e.operativo || {}, opTxt = (op.herramientas || op.contrato) ? '<br><span class="muted">Gasto operativo del trimestre: herramientas ' + bs(op.herramientas || 0) + ' · contrato de investigación ' + bs(op.contrato || 0) + '</span>' : '';
-  $('pie').innerHTML = '<div class="est">Costo estimado de innovación: <b>' + bs(e.costo) + '</b> de ' + bs(e.saldo) + ' · Semanas-persona de referencia: <b>' + e.semanas + '</b> de ' + e.semanasDisp + ' (lo real puede variar) ' + est + opTxt +
+  $('pie').innerHTML = '<div class="est">Costo estimado de innovación: <b>' + bs(e.costo) + '</b> de ' + bs(e.saldo) + ' · Semanas-persona de referencia: <b>' + e.semanas + '</b> de ' + e.semanasDisp + ' (lo real puede variar) ' + est + ' <span class="leyenda-dec"><i></i>en amarillo: lo que decide el equipo</span>' + opTxt +
     (e.avisos && e.avisos.length ? '<div class="avisos">⚠ ' + e.avisos.map(esc).join('<br>⚠ ') + '</div>' : '') + '</div>' +
     '<div class="inline">' + (abierto ? '<button class="btn sec" onclick="guardar(false)">Guardar borrador</button><button class="btn" onclick="guardar(true)">Enviar decisiones</button>' : '<span class="tag aviso">Trimestre cerrado por el docente</span>') +
     '<button class="btn sec" onclick="cargar()">Actualizar</button></div>';
@@ -2675,6 +2686,8 @@ var MANUAL = [
     '<b>Enviar decisiones</b>: entrega las decisiones del trimestre. Pueden volver a enviar cuantas veces quieran mientras el trimestre esté abierto: <b>vale el último envío</b>.',
     '<b>Actualizar</b>: trae lo último que guardaron sus compañeros (por ejemplo, sus ideas o votos).']],
   ['ojo', 'Si dos integrantes editan la misma pantalla a la vez, cada uno guarda lo suyo y puede pisar al otro. Repártanse las pantallas o guarden y actualicen seguido.'],
+  ['h', 'Dónde deciden'],
+  ['p', 'Todo lo que el equipo escribe o elige tiene <b>fondo amarillo</b>: campos, listas, casillas y la caja de decisión de los proyectos. Las tareas de cada proyecto están en un recuadro de fondo amarillo claro con borde dorado. Lo que está en blanco o en celeste es información: léanla, pero no se edita.'],
   ['h', 'Ayudas dentro de cada pantalla'],
   ['p', 'Los recuadros celestes explican cada decisión. Sus enlaces <b>Aprender: unidad N</b> y <b>Glosario</b> llevan a la teoría. Arriba de cada pantalla hay un enlace a la sección de este manual que la explica.']
 ]},

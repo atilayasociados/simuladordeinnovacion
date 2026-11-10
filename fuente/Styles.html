@@ -123,4 +123,15 @@ th.sub-g{background:#E8EEF7;color:#1F3B63;font-size:13px}
 .ent-tags{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px}.ent-resp{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:0 10px;margin:2px 0 6px}.ent-resp .chk{font-size:13px}
 th.a0,td.a0{background:#F6F6F2;color:#555}
 .inv-segs{display:grid;grid-template-columns:1fr;gap:0}.inv-segs .chk{font-size:13px;padding:1px 0}
+/* v3.2 · Dónde decide el equipo: campos y zonas de decisión con fondo ámbar claro */
+:root{--dec:#FFF3C4;--dec-borde:#C9971C;--dec-zona:#FFFAEA}
+#app input[data-p]:not([type=checkbox]):not([type=radio]),#app input[data-campo],#app input[data-cron],#app select[data-p],#app select[data-campo],#app select[data-cron],#app textarea[data-p],#app input[id^="np"],#app select[id^="np"],#app textarea[id^="np"]{background:var(--dec);border-color:var(--dec-borde)}
+#app input[data-p]:focus,#app input[data-campo]:focus,#app select[data-p]:focus,#app select[data-campo]:focus,#app textarea[data-p]:focus,#app [id^="np"]:focus{background:#fff;outline:2px solid var(--dec-borde);outline-offset:0}
+#app input[data-p]:disabled,#app select[data-p]:disabled,#app textarea[data-p]:disabled{background:#F1F1F1;border-color:var(--borde)}
+#app label.chk:has(input[data-p]),#app label.chk:has(input[data-arr]){background:var(--dec);border:1px solid #EAD18A;border-radius:5px;padding:3px 7px}
+#app label.chk:has(input:disabled){background:#F4F4F4;border-color:#E2E2E2}
+.tarea{background:var(--dec-zona);border:1px solid #EAD18A;border-left:4px solid var(--dec-borde)}
+.box.dec,.decbox{background:var(--dec-zona);border-color:var(--dec-borde)}
+.leyenda-dec{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--suave)}
+.leyenda-dec i{display:inline-block;width:14px;height:14px;background:var(--dec);border:1px solid var(--dec-borde);border-radius:3px}
 </style>

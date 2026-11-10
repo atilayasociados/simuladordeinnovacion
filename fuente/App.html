@@ -123,7 +123,7 @@ function pie() {
   if (e.actividades && e.actividades.length) { var zc = cronoEstado(); if (zc.faltan) avC.push('4. Proyectos: completen el cronograma de semanas-persona (' + zc.faltan + ' actividad(es) sin estimar).'); if (zc.plan > zc.cap) avC.push('Cronograma: planificaron ' + zc.plan + ' semanas-persona y tienen ' + zc.cap + '.'); }
   e = JSON.parse(JSON.stringify(e)); e.avisos = avC.filter(function (x, i) { return avC.indexOf(x) === i; }).concat(e.avisos || []);
   var op = e.operativo || {}, opTxt = (op.herramientas || op.contrato) ? '<br><span class="muted">Gasto operativo del trimestre: herramientas ' + bs(op.herramientas || 0) + ' · contrato de investigación ' + bs(op.contrato || 0) + '</span>' : '';
-  $('pie').innerHTML = '<div class="est">Costo estimado de innovación: <b>' + bs(e.costo) + '</b> de ' + bs(e.saldo) + ' · Semanas-persona de referencia: <b>' + e.semanas + '</b> de ' + e.semanasDisp + ' (lo real puede variar) ' + est + opTxt +
+  $('pie').innerHTML = '<div class="est">Costo estimado de innovación: <b>' + bs(e.costo) + '</b> de ' + bs(e.saldo) + ' · Semanas-persona de referencia: <b>' + e.semanas + '</b> de ' + e.semanasDisp + ' (lo real puede variar) ' + est + ' <span class="leyenda-dec"><i></i>en amarillo: lo que decide el equipo</span>' + opTxt +
     (e.avisos && e.avisos.length ? '<div class="avisos">⚠ ' + e.avisos.map(esc).join('<br>⚠ ') + '</div>' : '') + '</div>' +
     '<div class="inline">' + (abierto ? '<button class="btn sec" onclick="guardar(false)">Guardar borrador</button><button class="btn" onclick="guardar(true)">Enviar decisiones</button>' : '<span class="tag aviso">Trimestre cerrado por el docente</span>') +
     '<button class="btn sec" onclick="cargar()">Actualizar</button></div>';
