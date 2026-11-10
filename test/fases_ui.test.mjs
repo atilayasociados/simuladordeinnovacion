@@ -97,11 +97,16 @@ try {
   R.rutaActiva = await pg.isVisible('.etapas span.on:has-text("Prototipar y probar")');
   await pg.evaluate(() => { const x = [...document.querySelectorAll('summary')].find((s) => /ficha completa/.test(s.textContent)); if (x) x.scrollIntoView({ block: 'start' }); });
   await pg.screenshot({ path: OUT + '/f31_registro.png', fullPage: false });
+  await pg.click('nav .sub >> text=2. Estrategia anual'); await pg.waitForTimeout(500);
+  R.metaReal = await pg.isVisible('text=su meta frente a lo real') && await pg.isVisible('text=4P: dónde dijeron que buscarían');
+  await pg.evaluate(() => { const h = [...document.querySelectorAll('h2')].find((x) => /meta frente a lo real/.test(x.textContent)); if (h) h.scrollIntoView({ block: 'start' }); window.scrollBy(0, -120); });
+  await pg.screenshot({ path: OUT + '/f32_meta_real.png', fullPage: false });
+  await pg.click('nav .sub >> text=4. Proyectos'); await pg.waitForTimeout(400);
   await pg.setViewportSize({ width: 390, height: 844 }); await pg.waitForTimeout(300);
   R.anchoCel = await pg.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   if (!R.anchoCel) R.desborde = await pg.evaluate(() => { const W = window.innerWidth, out = []; document.querySelectorAll('body *').forEach((e) => { const b = e.getBoundingClientRect(); if (b.right > W + 1 && b.width > 0) { let q = e.parentElement, scr = false; while (q && q !== document.body) { if (/auto|scroll|hidden/.test(getComputedStyle(q).overflowX)) { scr = true; break; } q = q.parentElement; } if (!scr) out.push(e.tagName + '.' + e.className + ' w=' + Math.round(b.width) + ' ' + (e.textContent || '').slice(0, 40)); } }); return out.slice(0, 6); });
 } catch (e) { R.falla = e.message.split('\n')[0]; }
 console.log(JSON.stringify(R, null, 1)); console.log('Errores de página:', errs.length ? errs : 'ninguno');
-const ok = !R.falla && R.ruta && R.form && R.contacto && R.insightOk && R.briefEnviado && R.reglaVisible && R.cajaDecision && R.avisoPie && R.camposSegmento && R.avisoDesaparece && R.hipotesisProto && R.registro && R.rutaActiva && R.anchoCel && !errs.length;
+const ok = !R.falla && R.ruta && R.form && R.contacto && R.insightOk && R.briefEnviado && R.reglaVisible && R.cajaDecision && R.avisoPie && R.camposSegmento && R.avisoDesaparece && R.hipotesisProto && R.registro && R.rutaActiva && R.anchoCel && R.metaReal && !errs.length;
 await br.close(); await s.cerrar();
 console.log(ok ? 'FASES UI OK' : 'FASES UI CON FALLAS'); process.exit(ok ? 0 : 1);

@@ -447,8 +447,14 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
         portafolioAInterno_(O);
       }
       if (A.postura && P.posturas[A.postura]) O.postura = A.postura;
-      if (A.p4 && ['producto', 'proceso', 'posicion', 'paradigma'].reduce(function (s, k) { return s + (Number(A.p4[k]) || 0); }, 0) > 0) O.p4 = { producto: Number(A.p4.producto) || 0, proceso: Number(A.p4.proceso) || 0, posicion: Number(A.p4.posicion) || 0, paradigma: Number(A.p4.paradigma) || 0 };
+      if (A.mapa4p && typeof A.mapa4p === 'object' && K4_.some(function (k) { return siNo_(A.mapa4p[k]); })) {
+        O.mapa4p = mapa4pLimpio_(A.mapa4p);
+        var nM = K4_.filter(function (k) { return O.mapa4p[k]; }).length;
+        O.p4 = {}; K4_.forEach(function (k) { O.p4[k] = O.mapa4p[k] ? Math.round(100 / nM) : 0; });
+      } else if (A.p4 && ['producto', 'proceso', 'posicion', 'paradigma'].reduce(function (s, k) { return s + (Number(A.p4[k]) || 0); }, 0) > 0) O.p4 = { producto: Number(A.p4.producto) || 0, proceso: Number(A.p4.proceso) || 0, posicion: Number(A.p4.posicion) || 0, paradigma: Number(A.p4.paradigma) || 0 };
       O.tiempoLibre = Number(O.tiempoLibre) || 0;
+      S.metasAnio = S.metasAnio || {};
+      S.metasAnio[anioDe_(t)] = { nucleo: O.nucleo, adyacente: O.adyacente, transf: O.transf, mapa4p: O.mapa4p || mapaDeP4_(O.p4) };
       if (A.capacitacion === true || A.capacitacion === 'si') { if (gastar(g.costoCapacitacion * factorMadurez_(O), g.semCapacitacion, 'Capacitación en Design Thinking')) O.capHasta = t + 3; }
     }
     var costoInc = { reconocimiento: 5000, bajo: 15000, alto: 40000 }[O.incentivo] || 0;
@@ -521,7 +527,8 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
     var maxP = g.maxProyectos;
     if (activos >= maxP) { fb.push('No se creó "' + np.nombre + '": máximo ' + maxP + ' proyectos activos' + '.'); return; }
     var seg = segById_(P, np.segmento) || P.segmentos[0];
-    if (seg.nuevo && O.nue < 20) { fb.push('No se creó "' + np.nombre + '": dedicas menos de 20 % a segmentos nuevos y ' + seg.id + ' es un segmento nuevo para la empresa.'); return; }
+    // La meta del portafolio no bloquea: la consecuencia llega en la Puerta (ajuste estratégico) y en los recursos.
+    if (seg.nuevo && (Number(O.adyacente) || 0) + (Number(O.transf) || 0) < 20) fb.push('"' + np.nombre + '" es para ' + seg.id + ', un segmento nuevo, pero su meta del año pone menos de 20 % en adyacente y transformacional. El proyecto se crea; en la Puerta, el ajuste estratégico lo reflejará.');
     if (np.brief) {
       var pn = crearProyecto2_(P, S, np, t); S.proyectos.push(pn);
       var malos = pn.revisionBrief.filter(function (x) { return !x.ok; }).length;
@@ -537,7 +544,9 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
   var umbral = P.umbrales[O.umbral] || 6;
   S.proyectos.forEach(function (pj) {
     var s0 = S.saldo; procesarProyecto_(pj);
-    pj.gastoAcum = Math.round((pj.gastoAcum || 0) + Math.max(0, s0 - S.saldo));
+    var dG = Math.max(0, s0 - S.saldo);
+    pj.gastoAcum = Math.round((pj.gastoAcum || 0) + dG);
+    if (dG > 0) { pj.gastoAnio = pj.gastoAnio || {}; var aG = anioDe_(t); pj.gastoAnio[aG] = Math.round((pj.gastoAnio[aG] || 0) + dG); }
   });
   // revisión después de la acción (proyectos del flujo nuevo ya terminados)
   S.proyectos.forEach(function (pj) {
@@ -1165,10 +1174,18 @@ if (typeof module !== 'undefined') module.exports = {
 
 /** Estimación de costos y semanas de una decisión (para mostrar antes de enviar). */
 /** Campos de la estrategia anual sin completar (todos son obligatorios al inicio de cada año). */
+var K4_ = ['producto', 'proceso', 'posicion', 'paradigma'];
+var K4_NOM_ = { producto: 'Producto', proceso: 'Proceso', posicion: 'Posición', paradigma: 'Paradigma' };
+/** Mapa de búsqueda de las 4P (Tidd y Bessant, 2021): en qué direcciones buscan innovar este año; no es un reparto. */
+function mapa4pLimpio_(M) { M = M || {}; var o = {}; K4_.forEach(function (k) { o[k] = siNo_(M[k]); }); o.porque = String(M.porque || '').slice(0, 300); return o; }
+function mapaDeP4_(p4) { var o = {}; K4_.forEach(function (k) { o[k] = (Number((p4 || {})[k]) || 0) > 0; }); o.porque = ''; return o; }
 function anualFaltantes_(A) {
   A = A || {}; var f = [], p4 = A.p4 || {}, vac = function (x) { return x === undefined || x === null || x === ''; };
   var k4 = ['producto', 'proceso', 'posicion', 'paradigma'];
-  if (k4.some(function (k) { return vac(p4[k]); })) f.push('las 4P'); else if (k4.reduce(function (s, k) { return s + Number(p4[k]); }, 0) !== 100) f.push('las 4P deben sumar 100 %');
+  var M = A.mapa4p;
+  if (M && typeof M === 'object' && k4.some(function (k) { return siNo_(M[k]); })) { if (String(M.porque || '').trim().length < 15) f.push('por qué buscan en esas P (al menos 15 caracteres)'); }
+  else if (k4.some(function (k) { return vac(p4[k]); })) f.push('las 4P (marquen al menos una en el mapa)');
+  else if (k4.reduce(function (s, k) { return s + Number(p4[k]); }, 0) !== 100) f.push('las 4P (marquen al menos una en el mapa)');
   if (['nucleo', 'adyacente', 'transf'].some(function (k) { return vac(A[k]); })) f.push('el portafolio'); else if (Number(A.nucleo) + Number(A.adyacente) + Number(A.transf) !== 100) f.push('el portafolio debe sumar 100 %');
   [['postura', 'la postura'], ['estructura', 'la estructura'], ['tiempoLibre', 'el tiempo libre'], ['incentivo', 'el incentivo'], ['politica', 'la política ante el fracaso'], ['composicion', 'la composición de equipos'], ['umbral', 'el umbral de la puerta'], ['capacitacion', 'la capacitación (sí o no)']].forEach(function (k) { if (vac(A[k[0]]) || A[k[0]] === false && k[0] !== 'capacitacion') f.push(k[1]); });
   if (String(A.hipotesis || '').trim().length < 20) f.push('la hipótesis anual (al menos 20 caracteres)');

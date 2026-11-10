@@ -69,7 +69,8 @@ try {
   R.heredado = (await pg.inputValue('select[data-p="anual.contrato.industria.veces"]')) === '4';
   await pg.selectOption('select[data-p="anual.contrato.competidores.veces"]', '2'); await pg.waitForTimeout(300);
   R.totalContrato = await pg.isVisible('th.n:has-text("Bs 85.000")'); // 15.300×4 + 11.900×2
-  for (const [k, v] of [['producto', '40'], ['proceso', '20'], ['posicion', '20'], ['paradigma', '20']]) await pg.fill('input[data-p="anual.p4.' + k + '"]', v);
+  for (const k of ['producto', 'posicion']) await pg.evaluate((k) => { const e = document.querySelector('input[data-p="anual.mapa4p.' + k + '"]'); if (e && !e.checked) e.click(); }, k); await pg.waitForTimeout(300);
+  await pg.fill('input[data-p="anual.mapa4p.porque"]', 'Buscaremos en producto y posición para los universitarios.'); await pg.dispatchEvent('input[data-p="anual.mapa4p.porque"]', 'change');
   for (const [k, v] of [['nucleo', '60'], ['adyacente', '30'], ['transf', '10']]) await pg.fill('input[data-p="anual.' + k + '"]', v);
   for (const [k, v] of [['postura', 'ofensiva'], ['estructura', 'integrada'], ['tiempoLibre', '10'], ['incentivo', 'reconocimiento'], ['politica', 'aprendizaje'], ['composicion', 'multifuncional'], ['umbral', 'moderado'], ['capacitacion', 'si']]) await pg.selectOption('select[data-p="anual.' + k + '"]', v);
   await pg.fill('textarea[data-p="anual.hipotesis"]', 'Con 30 % adyacente lanzaremos un producto para universitarios antes de T8.'); await pg.dispatchEvent('textarea[data-p="anual.hipotesis"]', 'change'); await pg.waitForTimeout(300);

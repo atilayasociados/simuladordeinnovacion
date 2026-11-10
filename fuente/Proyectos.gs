@@ -216,6 +216,24 @@ function crearProyecto2_(P, S, np, t) {
   };
 }
 
+var TIPOS4P_ = ['Producto', 'Proceso', 'Posición', 'Paradigma'];
+/** Otras P que el concepto también cambia (una innovación puede combinar varias; Tidd y Bessant, 2021). */
+function otras4pLimpias_(L, principal) { return (Array.isArray(L) ? L : []).filter(function (x, i, a) { return TIPOS4P_.indexOf(x) >= 0 && x !== principal && a.indexOf(x) === i; }); }
+/** Meta del año frente a lo real: gasto por lugar en el portafolio y proyectos por P (concepto elegido). */
+function portafolioAnio_(S, anio) {
+  var meta = (S.metasAnio || {})[anio] || null, g = { nucleo: 0, adyacente: 0, transformacional: 0 }, tot = 0, p4 = { Producto: 0, 'Proceso': 0, 'Posición': 0, 'Paradigma': 0 }, sinC = 0, n = 0;
+  (S.proyectos || []).forEach(function (pj) {
+    var m = (pj.gastoAnio || {})[anio] || 0, activo = m > 0 || (pj.estado === 'activo' && anioDe_(pj.inicio || 1) <= anio);
+    if (!activo || pj.flujo !== 2) return;
+    n++;
+    if (m && g[pj.portafolio] !== undefined) { g[pj.portafolio] += m; tot += m; }
+    if (pj.concepto) [pj.concepto.tipo || 'Producto'].concat(pj.concepto.otras4p || []).forEach(function (x) { if (p4[x] !== undefined) p4[x]++; });
+    else sinC++;
+  });
+  var pct = {}; Object.keys(g).forEach(function (k) { pct[k] = tot ? Math.round(100 * g[k] / tot) : 0; });
+  return { anio: anio, meta: meta, gasto: g, total: Math.round(tot), real: pct, p4: p4, sinConcepto: sinC, proyectos: n };
+}
+
 // ---------- calidad de un concepto ----------
 function ajusteConcepto_(P, pj, p, t) {
   var seg = segById_(P, pj.segmento), w = segWeights_(seg, t), mx = 0, s = 0;
@@ -247,7 +265,7 @@ function ajusteTecnica_(P, pj, tecnica, O) {
   return { delta: 0, texto: '' };
 }
 function tipoRealFicha_(f) {
-  var tec = !!f.tec || maxAttrPts_(f.pts) >= 6 || !!f.extTec, mod = !!f.mod || f.tipo4p === 'Paradigma' || !!f.extMod;
+  var tec = !!f.tec || maxAttrPts_(f.pts) >= 6 || !!f.extTec, mod = !!f.mod || f.tipo4p === 'Paradigma' || (f.otras4p || []).indexOf('Paradigma') >= 0 || !!f.extMod;
   return tipoPisano_(tec, mod);
 }
 function devolucionFicha_(P, S, pj, f, t) {
@@ -355,7 +373,7 @@ function elegirConcepto_(P, S, pj, f, a, t, fb) {
   var O = S.org, seg = segById_(P, pj.segmento), tipo = tipoRealFicha_(f), mx = maxAttrPts_(f.pts), ef = efConcepto_(f.pts);
   var nov = Math.min(5, 2 + (tipo === 'radical' || tipo === 'arquitectonica' ? 1 : 0) + (tipo === 'disruptiva' || tipo === 'arquitectonica' ? 1 : 0) + (mx >= 6 ? 1 : 0) + (f.extNov ? 0 : 0));
   if (f.extNov) nov = Math.max(nov, f.extNov);
-  pj.concepto = { id: f.id, nombre: f.nombre, desc: f.frase || '', tipo: f.tipo4p || 'Producto', nov: nov, riesgo: Math.min(9, 2 + nov + (mx >= 6 ? 2 : 0)), costo: 15000 + 5000 * mx + (tipo === 'radical' || tipo === 'arquitectonica' ? 30000 : 0) + (tipo === 'disruptiva' || tipo === 'arquitectonica' ? 20000 : 0), trim: 1, ef: ef, seg: [pj.segmento], pts: f.pts, precioObj: f.precioObj };
+  pj.concepto = { id: f.id, nombre: f.nombre, desc: f.frase || '', tipo: f.tipo4p || 'Producto', otras4p: (f.otras4p || []).slice(), nov: nov, riesgo: Math.min(9, 2 + nov + (mx >= 6 ? 2 : 0)), costo: 15000 + 5000 * mx + (tipo === 'radical' || tipo === 'arquitectonica' ? 30000 : 0) + (tipo === 'disruptiva' || tipo === 'arquitectonica' ? 20000 : 0), trim: 1, ef: ef, seg: [pj.segmento], pts: f.pts, precioObj: f.precioObj };
   pj.tipoReal = tipo; pj.iterMin = iterMinDe_(tipo, mx, f.combinado); pj.factPiloto = tipo === 'arquitectonica' ? 1.5 : 1; pj.disruptiva = tipo === 'disruptiva';
   pj.Q = f.Q; pj.validadoSel = !!f.test; pj.etapa = 'prototipar'; pj.concepto.vw = f.test ? { pmc: f.test.vw.pmc, pme: f.test.vw.pme } : null;
   var mejor = Math.max.apply(null, pj.fichas.map(function (x) { return x.Q; }).concat([f.Q]));
@@ -410,7 +428,7 @@ function procesarFases2_(P, S, pj, a, ctx) {
         if (!fd || !String(fd.nombre || '').trim()) return;
         var pts = ptsLimpios_(fd.pts); if (sumaPts_(pts) !== 10) { fb.push('“' + pj.nombre + '”: la ficha “' + fd.nombre + '” no reparte exactamente 10 puntos; no se guardó.'); return; }
         var ext = fd.externa ? pj.externas.filter(function (x) { return x.id === fd.externa; })[0] : null;
-        var f = { id: 'K' + (pj.nextK++), nombre: String(fd.nombre).slice(0, 80), frase: String(fd.frase || '').slice(0, 400), pts: pts, precioObj: Number(fd.precioObj) || 0, tec: siNo_(fd.tec), mod: siNo_(fd.mod), tipo4p: ['Producto', 'Proceso', 'Posición', 'Paradigma'].indexOf(fd.tipo4p) >= 0 ? fd.tipo4p : 'Producto', origen: ext ? 'externa' : 'propia', fuente: ext ? ext.fuente : (pj.tecnica ? TECNICAS_[pj.tecnica].nombre : 'Equipo'), tecnica: pj.tecnica || null, participantes: pj.participantes || 0, externaQ: ext ? ext.Q : 0, extTec: ext ? ext.tec : false, extMod: ext ? ext.mod : false, extNov: ext ? ext.nov : 0, ideaKey: fd.ideaKey || '', t: t, test: null };
+        var f = { id: 'K' + (pj.nextK++), nombre: String(fd.nombre).slice(0, 80), frase: String(fd.frase || '').slice(0, 400), pts: pts, precioObj: Number(fd.precioObj) || 0, tec: siNo_(fd.tec), mod: siNo_(fd.mod), tipo4p: ['Producto', 'Proceso', 'Posición', 'Paradigma'].indexOf(fd.tipo4p) >= 0 ? fd.tipo4p : 'Producto', otras4p: otras4pLimpias_(fd.otras4p, fd.tipo4p), origen: ext ? 'externa' : 'propia', fuente: ext ? ext.fuente : (pj.tecnica ? TECNICAS_[pj.tecnica].nombre : 'Equipo'), tecnica: pj.tecnica || null, participantes: pj.participantes || 0, externaQ: ext ? ext.Q : 0, extTec: ext ? ext.tec : false, extMod: ext ? ext.mod : false, extNov: ext ? ext.nov : 0, ideaKey: fd.ideaKey || '', t: t, test: null };
         var c = calidadConcepto_(P, S, pj, f, t, rng);
         f.aj = r2_(c.aj); f.Q = c.Q;
         f.margen = r1_(Math.max(0.8, ((S.conocimiento.latentes && S.conocimiento.latentes[pj.segmento]) ? 1 : 1.5) - 0.1 * ((S.org.madurez || 1) - 1)));
@@ -488,10 +506,10 @@ function vistaProyecto2_(pj) {
     reglaSel: pj.reglaSel || null, eleccionVsRegla: pj.eleccionVsRegla || null, decisiones: pj.decisiones || [], pivotes: pj.pivotes || 0, resumenDecisiones: resumenDecisiones_(pj),
     decision: (function () { var d = puntoDecision_(pj); if (!d) return null; d.decidido = (pj.decisiones || []).some(function (x) { return x.clave === d.clave; }); return d; })(),
     tecnica: pj.tecnica || null, gastoAcum: Math.round(pj.gastoAcum || 0), iterMin: pj.iterMin || 1, comparacionTipo: pj.comparacionTipo || '', justificacion: pj.justificacion || '', pugh: pj.pugh || null, historial: pj.historial || [],
-    concepto: pj.concepto ? { nombre: pj.concepto.nombre, desc: pj.concepto.desc, pts: pj.concepto.pts, precioObj: pj.concepto.precioObj } : null,
+    concepto: pj.concepto ? { nombre: pj.concepto.nombre, desc: pj.concepto.desc, pts: pj.concepto.pts, precioObj: pj.concepto.precioObj, tipo: pj.concepto.tipo, otras4p: pj.concepto.otras4p || [] } : null,
     nIdeas: (pj.ideas || []).reduce(function (s, x) { return s + x.textos.length; }, 0),
     externas: (pj.externas || []).map(function (x) { return { id: x.id, texto: x.texto, autor: x.autor, tipo4p: x.tipo4p, nov: x.nov, qObs: x.qObs, fuente: x.fuente, t: x.t }; }),
-    fichas: (pj.fichas || []).map(function (f) { return { id: f.id, nombre: f.nombre, frase: f.frase, pts: f.pts, precioObj: f.precioObj, tec: f.tec, mod: f.mod, tipo4p: f.tipo4p, origen: f.origen, fuente: f.fuente, qObs: f.qObs, margen: f.margen, devolucion: f.devolucion, test: f.test ? { intencion: f.test.intencion, vw: f.test.vw, kano: f.test.kano, frases: f.test.frases, qCorr: f.test.qCorr, margen: f.test.margen, precioObj: f.test.precioObj } : null, t: f.t, combinado: !!f.combinado }; })
+    fichas: (pj.fichas || []).map(function (f) { return { id: f.id, nombre: f.nombre, frase: f.frase, pts: f.pts, precioObj: f.precioObj, tec: f.tec, mod: f.mod, tipo4p: f.tipo4p, otras4p: f.otras4p || [], origen: f.origen, fuente: f.fuente, qObs: f.qObs, margen: f.margen, devolucion: f.devolucion, test: f.test ? { intencion: f.test.intencion, vw: f.test.vw, kano: f.test.kano, frases: f.test.frases, qCorr: f.test.qCorr, margen: f.test.margen, precioObj: f.test.precioObj } : null, t: f.t, combinado: !!f.combinado }; })
   };
 }
 

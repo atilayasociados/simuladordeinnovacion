@@ -146,6 +146,7 @@ function vistaEquipo_(P, S) {
       return { id: p.id, nombre: p.nombre, attrs: p.attrs, precio: p.precio, costUnit: p.costUnit, canales: p.canales, modelo: p.modelo, proteccion: p.proteccion, AW: p.AW, comunicacion: p.comunicacion, segPub: p.segPub || 'todos', pronHist: p.pronHist || [], desde: p.desde, legado: p.legado };
     }),
     hist: S.hist, hist0: S.hist0 || [],
+    portafolioAnios: (function () { var out = [], aMax = Math.max(1, Math.ceil(((S.t || 0) + 1) / 4)); for (var a = 1; a <= aMax; a++) { var r = portafolioAnio_(S, a); if (r.meta || r.proyectos) out.push(r); } return out; })(),
     contrato: S.contrato || {}, contratoAnual: costoContratoAnual_(P, S.contrato || {}), contratoTrim: costoContratoTrim_(P, S.contrato || {}, Math.max(1, S.t + 1))
   };
 }
