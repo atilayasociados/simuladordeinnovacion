@@ -167,8 +167,18 @@ function ideasReveladas_(a) {
 // ---------- Definir ----------
 var PAL_SOLUCION_ = ['botella', 'envase', 'sabor', 'yogur', 'caja', 'app', 'aplicación', 'máquina', 'maquina', 'descuento', 'tapa', 'lata', 'sobre', 'pack', 'kiosco', 'suscripción', 'suscripcion', 'batido', 'pajilla'];
 var PAL_CLIENTE_ = ['universitari', 'estudiant', 'jóven', 'joven', 'familia', 'madre', 'padre', 'niñ', 'oficin', 'trabajador', 'empleado', 'deportist', 'atleta', 'adulto', 'mayor', 'abuel', 'jubilad', 'persona', 'cliente', 'consumidor'];
-function revisarBrief_(P, S, b) {
+/** Estudios de contacto directo con el cliente (empatía): observación etnográfica y usuarios extremos. */
+var MET_CONTACTO_ = ['observacion', 'extremos'];
+function contactoDirecto_(S, seg) {
+  return (S.informes || []).filter(function (i) { return MET_CONTACTO_.indexOf(i.metodo) >= 0 && (!seg || !i.segs || !i.segs.length || i.segs.indexOf(seg) >= 0); });
+}
+function revisarBrief_(P, S, b, seg) {
   b = b || {}; var R = [], reto = String(b.reto || '').trim(), low = reto.toLowerCase();
+  // síntesis: de los hallazgos al insight (Kelley y Kelley, 2013; Brown, 2019)
+  var cont = contactoDirecto_(S, seg);
+  R.push({ ok: cont.length > 0, texto: cont.length ? 'Tienen un estudio de contacto directo con el cliente (' + cont[cont.length - 1].nombre + ', T' + cont[cont.length - 1].t + ').' : 'No tienen un estudio de contacto directo con ' + (seg || 'el segmento') + ': la encuesta informa, pero empatizar exige observar al cliente en su contexto (B.2 Observación o B.3 Usuarios extremos).' });
+  var ins = String(b.insight || '').trim(), insOk = ins.length >= 20 && ins !== String(b.frase || '').trim();
+  R.push({ ok: insOk, texto: insOk ? 'El insight está escrito con sus palabras.' : 'Escriban el insight con sus palabras: qué descubrieron del cliente y por qué importa (no copien la frase del informe).' });
   var formula = /^¿?\s*c[oó]mo podr[ií]amos/i.test(reto);
   R.push({ ok: formula, texto: formula ? 'El reto empieza con “¿Cómo podríamos…?”.' : 'El reto debe empezar con “¿Cómo podríamos…?” para formularlo como una pregunta abierta.' });
   var cli = PAL_CLIENTE_.some(function (w) { return low.indexOf(w) >= 0; });
@@ -182,21 +192,27 @@ function revisarBrief_(P, S, b) {
   R.push({ ok: ev, texto: ev ? 'El insight está respaldado por evidencia: ' + inf.nombre + ' (T' + inf.t + ').' : 'El insight no tiene evidencia: elijan un informe de investigación y copien una frase. Sin evidencia es una suposición.' });
   var crit = String(b.criterio || ''), cOk = /\d/.test(crit) && /(trimestre|T\d|año|anio|mes)/i.test(crit);
   R.push({ ok: cOk, texto: cOk ? 'El criterio de éxito tiene una cifra y un plazo.' : 'El criterio de éxito debe tener una cifra y un plazo (por ejemplo, “8 % de S2 dos trimestres después del lanzamiento”).' });
+  var enc = String(b.encaje || '').trim().length >= 15;
+  R.push({ ok: enc, texto: enc ? 'Explicaron cómo encaja el reto con su estrategia.' : 'Expliquen en una frase cómo encaja este reto con su Estrategia anual y con lo que la empresa sabe hacer (Tidd y Bessant, 2021).' });
   return { items: R, retoOk: formula && cli && !sol.length, evidencia: ev };
+}
+function briefLimpio_(b) {
+  b = b || {}; function s(x, n) { return String(x || '').slice(0, n); }
+  return { cuando: s(b.cuando, 200), quiero: s(b.quiero, 200), para: s(b.para, 200), evidencia: b.evidencia || '', frase: s(b.frase, 300), evidencia2: b.evidencia2 || '', frase2: s(b.frase2, 300), insight: s(b.insight, 400), encaje: s(b.encaje, 300), criterio: s(b.criterio, 200) };
 }
 function crearProyecto2_(P, S, np, t) {
   var seg = segById_(P, np.segmento) || P.segmentos[0], b = np.brief || {};
   var tec = siNo_(np.tec), mod = siNo_(np.mod), tipo = tipoPisano_(tec, mod);
   var port = PORTAFOLIO_NOM_[np.portafolio] ? np.portafolio : 'nucleo';
-  var rev = revisarBrief_(P, S, b);
+  var rev = revisarBrief_(P, S, b, seg.id);
   return {
     id: 'PR' + (S.nextId++), flujo: 2, nombre: String(np.nombre || 'Proyecto').slice(0, 60), segmento: seg.id,
     base: (port === 'nucleo' && tipo === 'rutinaria') ? 'P0' : 'nuevo', enfoque: tipo === 'rutinaria' ? 'incremental' : (tipo === 'disruptiva' ? 'disruptiva' : 'radical'),
     reto: String(b.reto || '').slice(0, 300), tec: tec, mod: mod, tipoDecl: tipo, portafolio: port,
-    brief: { cuando: String(b.cuando || '').slice(0, 200), quiero: String(b.quiero || '').slice(0, 200), para: String(b.para || '').slice(0, 200), evidencia: b.evidencia || '', frase: String(b.frase || '').slice(0, 300), criterio: String(b.criterio || '').slice(0, 200) },
+    brief: briefLimpio_(b),
     revisionBrief: rev.items, retoOk: rev.retoOk,
     etapa: 'idear', estado: 'activo', inicio: t, pool: [], ideaSel: null, concepto: null, Q: 0, iter: 0, calProto: 0, calObs: null, fact: 0, viab: 0, puerta: 0, capAcum: 0, gastoAcum: 0, piloto: null, validadoSel: false, revisado: false,
-    ideas: [], externas: [], fichas: [], nextK: 1, historial: [{ t: t, fase: 'Definir', texto: 'Brief y reto definidos.' }]
+    ideas: [], externas: [], fichas: [], nextK: 1, decisiones: [], pivotes: 0, historial: [{ t: t, fase: 'Definir', texto: 'Reto definido: ' + String(b.reto || '').slice(0, 160) }]
   };
 }
 
@@ -323,6 +339,13 @@ function informeTest_(P, S, pj, fichas, t) {
   };
 }
 
+/** Regla de selección fijada antes del test (converger con criterios previos; Sawyer y Henriksen, 2024). */
+function reglaSelLimpia_(r) {
+  r = r || {}; var m = Number(r.minInt);
+  if (!(isFinite(m) && m >= 1 && m <= 99)) return null;
+  return { minInt: Math.round(m), texto: String(r.texto || '').slice(0, 200) };
+}
+
 // ---------- Evaluar: elegir ----------
 function combinarFichas_(pj, A, B) {
   var pts = {}; PTS_KEYS_.forEach(function (k) { pts[k] = Math.max(A.pts[k] || 0, B.pts[k] || 0); });
@@ -345,7 +368,14 @@ function elegirConcepto_(P, S, pj, f, a, t, fb) {
   pj.comparacionTipo = 'Declararon ' + TIPOS_NOM_[pj.tipoDecl].toLowerCase() + '; el concepto elegido es ' + TIPOS_NOM_[tipo].toLowerCase() + (tipo === pj.tipoDecl ? '. Coherente.' : (tipo === 'disruptiva' ? ': cambia la forma de vender o cobrar. Esperen una participación baja al inicio y un crecimiento posterior más rápido.' : (tipo === 'radical' || tipo === 'arquitectonica' ? ': exige tecnología nueva, más iteraciones y más costo.' : ': es más simple de lo que declararon.')));
   fb.push('“' + pj.nombre + '”: eligieron el concepto “' + f.nombre + '”. ' + pj.comparacionTipo + ' Necesita al menos ' + pj.iterMin + (pj.iterMin === 1 ? ' versión' : ' versiones') + ' de prototipo antes de la Puerta.');
   if (!/\d/.test(pj.justificacion)) fb.push('“' + pj.nombre + '”: eligieron sin citar un dato del test de concepto en la justificación.');
-  pj.historial.push({ t: t, fase: 'Evaluar', texto: 'Eligieron “' + f.nombre + '”. ' + pj.comparacionTipo });
+  var reglaTxt = '';
+  if (pj.reglaSel && f.test) {
+    var cumpleR = f.test.intencion >= pj.reglaSel.minInt;
+    pj.eleccionVsRegla = { minInt: pj.reglaSel.minInt, intencion: f.test.intencion, cumple: cumpleR };
+    reglaTxt = ' Su regla: intención ≥ ' + pj.reglaSel.minInt + ' %; el concepto tuvo ' + f.test.intencion + ' % (' + (cumpleR ? 'cumple' : 'no cumple') + ').';
+    if (!cumpleR) fb.push('“' + pj.nombre + '”: eligieron “' + f.nombre + '” con ' + f.test.intencion + ' % de intención de compra, por debajo de su propia regla de selección (' + pj.reglaSel.minInt + ' %).');
+  }
+  pj.historial.push({ t: t, fase: 'Idear', texto: 'Eligieron “' + f.nombre + '”. ' + pj.comparacionTipo + reglaTxt });
 }
 
 // ---------- procesamiento de un trimestre (fases definir, idear, evaluar) ----------
@@ -395,7 +425,10 @@ function procesarFases2_(P, S, pj, a, ctx) {
     var aTest = pj.fichas.filter(function (f) { return f._test || (Array.isArray(a.test) && a.test.indexOf(f.id) >= 0); });
     pj.fichas.forEach(function (f) { delete f._test; });
     aTest = aTest.filter(function (f) { return f && !f.test; }).slice(0, 3);
+    var regla = reglaSelLimpia_(a.reglaSel);
+    if (aTest.length && !regla) { fb.push('“' + pj.nombre + '”: antes del test de concepto fijen su regla de selección (la intención de compra mínima para elegir un concepto). El test no se hizo.'); aTest = []; }
     if (aTest.length) {
+      pj.reglaSel = { t: t, minInt: regla.minInt, texto: regla.texto };
       if (ctx.gastar(aTest.length * g.costoTestConcepto * factorMadurez_(O) * acel, semMadurez_(O, 1) * acel, 'Test de concepto (' + pj.nombre + ')')) {
         aTest.forEach(function (f) { f.test = testConcepto_(P, S, pj, f, t, rng, a.acelerar ? 1 : 0.5); });
         var inf = nuevoInforme_(S, { id: 'testConcepto', nombre: 'Test de concepto', fam: 'A' }, t, informeTest_(P, S, pj, aTest, t));
@@ -442,6 +475,7 @@ function estimarProyecto2_(P, S, pj, a, O, t) {
     (a.fichas || []).forEach(function (fd) { if (fd && String(fd.nombre || '').trim() && sumaPts_(ptsLimpios_(fd.pts)) !== 10) av.push('“' + pj.nombre + '”: la ficha “' + fd.nombre + '” debe repartir exactamente 10 puntos.'); });
     var nT = (a.fichas || []).filter(function (fd) { return fd && fd.test && String(fd.nombre || '').trim(); }).length;
     if (nT) { costo += Math.min(3, nT) * g.costoTestConcepto * factorMadurez_(O) * acel; sem += semMadurez_(O, 1) * acel; }
+    if (nT && !reglaSelLimpia_(a.reglaSel)) av.push('“' + pj.nombre + '”: fijen su regla de selección (intención de compra mínima) antes del test de concepto; sin ella el test no se hace.');
   }
   if (pj.etapa === 'evaluar' && a.elegir && String(a.justificacion || '').trim().length < 20) av.push('“' + pj.nombre + '”: escriban la justificación de la elección (al menos 20 caracteres).');
   return { costo: costo, sem: sem, avisos: av };
@@ -451,6 +485,8 @@ function estimarProyecto2_(P, S, pj, a, O, t) {
 function vistaProyecto2_(pj) {
   return {
     flujo: 2, tec: pj.tec, mod: pj.mod, tipoDecl: pj.tipoDecl, tipoReal: pj.tipoReal || null, portafolio: pj.portafolio, brief: pj.brief, revisionBrief: pj.revisionBrief, retoOk: pj.retoOk,
+    reglaSel: pj.reglaSel || null, eleccionVsRegla: pj.eleccionVsRegla || null, decisiones: pj.decisiones || [], pivotes: pj.pivotes || 0, resumenDecisiones: resumenDecisiones_(pj),
+    decision: (function () { var d = puntoDecision_(pj); if (!d) return null; d.decidido = (pj.decisiones || []).some(function (x) { return x.clave === d.clave; }); return d; })(),
     tecnica: pj.tecnica || null, gastoAcum: Math.round(pj.gastoAcum || 0), iterMin: pj.iterMin || 1, comparacionTipo: pj.comparacionTipo || '', justificacion: pj.justificacion || '', pugh: pj.pugh || null, historial: pj.historial || [],
     concepto: pj.concepto ? { nombre: pj.concepto.nombre, desc: pj.concepto.desc, pts: pj.concepto.pts, precioObj: pj.concepto.precioObj } : null,
     nIdeas: (pj.ideas || []).reduce(function (s, x) { return s + x.textos.length; }, 0),
@@ -584,8 +620,20 @@ function prototipoPrueba_(P, S, pj, v, rng, t, acel) {
       : 'El supuesto no se confirma (' + Math.round(tasa * n) + ' de ' + n + '). ' + (car.comp < 0.7 && car.uso >= 0.8 ? 'La forma de abrir funciona, pero no se ve: el problema es encontrarla.' : (car.uso < 0.6 ? 'Abrirlo exige demasiada fuerza o destreza para este segmento.' : 'Revisen la característica que más falló en la malla.')) + ' Calidad del prototipo: ' + pj.calProto.toFixed(1) + '.';
     if (acel) conc += ' Por acelerar, esta versión rindió menos.';
   } else conc = 'Con ' + F.nom.toLowerCase() + ' los clientes no pueden comprobar “' + P3_SUP_[sup].toLowerCase() + '”. El informe solo trae opiniones: esta versión no mejora el producto. Para un supuesto de uso, construyan una maqueta física.';
-  return { v: (pj.proto && pj.proto.versiones ? pj.proto.versiones.length : 0) + 1, t: t, supuesto: sup, pregunta: String(v.pregunta || '').slice(0, 300), formato: fmt, car: car, desc: String(v.desc || '').slice(0, 300), foto: String(v.foto || '').slice(0, 300), n: n, lugar: String(v.lugar || '').slice(0, 80),
+  var critN = protoCriterio_(v, n), logr = Math.round(tasa * n);
+  return { v: (pj.proto && pj.proto.versiones ? pj.proto.versiones.length : 0) + 1, t: t, supuesto: sup, pregunta: String(v.pregunta || '').slice(0, 300), formato: fmt,
+    creemos: String(v.creemos || '').slice(0, 300), criterio: critN, logrados: logr, cumpleCriterio: critN ? logr >= critN : null, car: car, desc: String(v.desc || '').slice(0, 300), foto: String(v.foto || '').slice(0, 300), n: n, lugar: String(v.lugar || '').slice(0, 80),
     solos: solos, ayuda: ayuda, no: no, mediana: tiempos.length ? tiempos.sort(function (a, b) { return a - b; })[Math.floor(tiempos.length / 2)] : null, filas: filas, malla: malla, observable: observable, confirma: observable && confirma, conclusion: conc, mejora: mejora, fitAntes: antes };
+}
+
+/** Criterio del equipo para el prototipo: cuántas personas, de n, deben lograrlo (fijado antes de probar). */
+function protoCriterio_(v, n) {
+  var c = Math.round(Number((v || {}).criterio));
+  return isFinite(c) && c >= 1 && c <= n ? c : 0;
+}
+function protoHipotesisOk_(v) {
+  v = v || {}; var n = [5, 8, 12].indexOf(Number(v.n)) >= 0 ? Number(v.n) : 8;
+  return String(v.creemos || '').trim().length >= 15 && protoCriterio_(v, n) > 0;
 }
 
 // ---------- Especificar ----------
@@ -726,6 +774,8 @@ function procesarFases3_(P, S, pj, a, ctx) {
     if (v.siguiente === 'avanzar') {
       if ((pj.iter || 0) < (pj.iterMin || 1)) fb.push('“' + pj.nombre + '”: su tipo de innovación exige ' + pj.iterMin + ' versiones de prototipo que observen el uso; llevan ' + (pj.iter || 0) + '. Sigan prototipando.');
       else { pj.etapa = 'especificar'; fb.push('“' + pj.nombre + '”: pasa a Especificar y presentarse a la Puerta.'); hist('Prototipar', 'Avanzaron a Especificar con ' + pj.proto.versiones.length + ' versiones.'); fases++; }
+    } else if (v.formato && String(v.pregunta || '').trim().length >= 10 && !protoHipotesisOk_(v)) {
+      fb.push('“' + pj.nombre + '”: antes de probar, escriban su hipótesis (“Creemos que…”, al menos 15 caracteres) y su criterio (cuántas personas deben lograrlo). El prototipo no se probó.');
     } else if (v.formato && String(v.pregunta || '').trim().length >= 10) {
       var n = [5, 8, 12].indexOf(Number(v.n)) >= 0 ? Number(v.n) : 8, costo = (2000 + { 5: 4000, 8: 6000, 12: 9000 }[n]) * factorMadurez_(O) * fAc, sem = semMadurez_(O, n === 12 ? 2 : 1) * fAc;
       if (ctx.gastar(costo, sem, 'Prototipo y prueba de “' + pj.nombre + '”' + (acel ? ' (acelerado)' : ''), pj.fact >= 7)) {
@@ -847,6 +897,8 @@ function p3TablaAAR_(P, S, pj) {
   if (ac.costoEst) T.push(['Costo por unidad', 'Especificar · estimado', p3Bs_(ac.costoEst, 2), p3Bs_(ac.costoReal, 2), Math.round((ac.costoReal - ac.costoEst) / ac.costoEst * 100) + ' %']);
   T.push(['Tipo de innovación', 'Definir · declarado', TIPOS_NOM_[pj.tipoDecl] || '', TIPOS_NOM_[pj.tipoReal] || '', pj.tipoDecl === pj.tipoReal ? 'igual' : 'distinto']);
   T.push(['Canibalización', 'No se estimó', '—', r.canib !== undefined ? r.canib : '—', '']);
+  var rd = resumenDecisiones_(pj);
+  if (rd.n) T.push(['Decisiones en puntos de aprendizaje', 'Registro', rd.n + ' decisiones', rd.conCriterio + ' con criterio previo · ' + rd.coherentes + ' coherentes con él', rd.pivotes ? rd.pivotes + ' cambios de segmento o reto' : '']);
   return T;
 }
 function p3CausasMotor_(P, S, pj) {
@@ -889,6 +941,13 @@ function estimarProyecto3_(P, S, pj, a, O, t) {
     var n = [5, 8, 12].indexOf(Number(a.proto.n)) >= 0 ? Number(a.proto.n) : 8;
     costo += (2000 + { 5: 4000, 8: 6000, 12: 9000 }[n]) * factorMadurez_(O) * acel; sem += semMadurez_(O, n === 12 ? 2 : 1) * acel;
     if (String(a.proto.pregunta || '').trim().length < 10) av.push('“' + pj.nombre + '”: escriban la pregunta del prototipo.');
+    if (!protoHipotesisOk_(a.proto)) av.push('“' + pj.nombre + '”: escriban su hipótesis (“Creemos que…”) y su criterio (cuántas personas deben lograrlo) antes de probar; sin ellos el prototipo no se prueba.');
+  }
+  var pd = puntoDecision_(pj);
+  if (pd && pj.estado === 'activo' && !(pj.decisiones || []).some(function (x) { return x.clave === pd.clave; })) {
+    var dd = a.decision || {};
+    if (!dd.opcion) av.push('“' + pj.nombre + '”: tienen un resultado sin decisión registrada (' + pd.punto + '). Comparen su criterio con el resultado y decidan.');
+    else if (String(dd.porque || '').trim().length < 15) av.push('“' + pj.nombre + '”: expliquen su decisión (al menos 15 caracteres) para registrarla.');
   }
   if (pj.etapa === 'especificar' && a.esp && p3Num_(a.esp.precioU, 0) > 0) {
     costo += 8000 * factorMadurez_(O) * acel; sem += semMadurez_(O, 2) * acel;
@@ -914,6 +973,89 @@ function vistaProyecto3_(P, S, pj) {
     tablaAAR: (pj.etapa === 'lanzado' && pj.resLanz && !pj.aar) ? p3TablaAAR_(P, S, pj) : null
   };
 }
+// =====================================================================
+// Decisión en los puntos de aprendizaje (v3.1): criterio previo frente a resultado.
+// Opciones: seguir, cambiar la solución, cambiar el segmento o el reto, esperar, detener
+// (Cooper, 1990; Amabile, 1996; Brown, 2019; Kelley y Kelley, 2013).
+// =====================================================================
+var DEC_OPS_ = { seguir: 'Seguir', solucion: 'Cambiar la solución', segmento: 'Cambiar el segmento o el reto', esperar: 'Esperar', detener: 'Detener' };
+/** Resultado más reciente del proyecto que pide una decisión del equipo, o null. */
+function puntoDecision_(pj) {
+  if (!pj || pj.flujo !== 2 || pj.estado !== 'activo') return null;
+  if (pj.etapa === 'evaluar') {
+    var T = (pj.fichas || []).filter(function (f) { return f.test; });
+    if (!T.length) return null;
+    var tMax = Math.max.apply(null, T.map(function (f) { return f.test.t; })), best = T.slice().sort(function (a, b) { return b.test.intencion - a.test.intencion; })[0];
+    var R = pj.reglaSel;
+    return { clave: 'test@' + tMax, punto: 'test de concepto', fase: 'Idear', criterio: R ? 'Intención de compra de al menos ' + R.minInt + ' %' : 'Sin regla fijada antes del test', resultado: 'Mejor concepto: “' + best.nombre + '” con ' + best.test.intencion + ' %', cumple: R ? best.test.intencion >= R.minInt : null, seguir: 'Seguir: elegir un concepto', solucion: 'Cambiar la solución: volver a idear' };
+  }
+  if (pj.etapa === 'prototipar') {
+    var Vs = (pj.proto && pj.proto.versiones) || [], u = Vs[Vs.length - 1];
+    if (!u) return null;
+    var lg = u.logrados !== undefined ? u.logrados : u.solos;
+    return { clave: 'v' + u.v + '@' + u.t, punto: 'prueba del prototipo, versión ' + u.v, fase: 'Prototipar y probar', criterio: u.criterio ? 'Al menos ' + u.criterio + ' de ' + u.n + ' personas lo logran' : 'Sin criterio fijado antes de probar', resultado: lg + ' de ' + u.n + ' lo lograron' + (u.observable ? '' : ' (formato no observable: solo opiniones)'), cumple: u.criterio ? lg >= u.criterio : null, seguir: 'Seguir: iterar o avanzar a Especificar', solucion: 'Cambiar la solución: volver a idear' };
+  }
+  if (pj.etapa === 'especificar' && pj.acta) {
+    var A = pj.acta;
+    return { clave: 'acta@' + A.t, punto: 'comité de la Puerta', fase: 'Desarrollar y validar', criterio: 'Promedio del comité de al menos ' + String(A.umbral).replace('.', ',') + ' (umbral de su Estrategia anual)', resultado: 'Promedio ' + String(A.promedio).replace('.', ',') + ' · ' + ({ pasa: 'pasa', reiterar: 'reiterar', detener: 'el comité recomienda detener' }[A.veredicto] || A.veredicto), cumple: A.veredicto === 'pasa', seguir: 'Seguir: corregir y volver a presentarse', solucion: 'Cambiar la solución: volver a prototipar' };
+  }
+  if (pj.etapa === 'lanzar' && pj.pil) {
+    var L = pj.pil;
+    return { clave: 'pil@' + L.t, punto: 'piloto', fase: 'Desarrollar y validar', criterio: 'Recompra de al menos ' + L.limite + ' %', resultado: 'Recompra de ' + L.recompra + ' %', cumple: L.recompra >= L.limite, seguir: 'Seguir: lanzar o repetir el piloto', solucion: 'Cambiar la solución: volver a prototipar' };
+  }
+  return null;
+}
+function resumenDecisiones_(pj) {
+  var D = pj.decisiones || [], c = D.filter(function (d) { return d.cumple !== null && d.cumple !== undefined; });
+  return { n: D.length, conCriterio: c.length, coherentes: c.filter(function (d) { return d.coherente; }).length, pivotes: pj.pivotes || 0 };
+}
+/** Aplica la decisión del equipo. Devuelve la opción aplicada ('esperar' y 'detener' los resuelve el motor) o null. */
+function aplicarDecision_(P, S, pj, d, t, fb) {
+  d = d || {}; if (!d.opcion) return null;
+  var pd = puntoDecision_(pj);
+  if (!pd) return null;
+  if (d.clave !== pd.clave) { fb.push('“' + pj.nombre + '”: la decisión enviada corresponde a un resultado anterior; no se registró.'); return null; }
+  if ((pj.decisiones || []).some(function (x) { return x.clave === pd.clave; })) return null;
+  if (!DEC_OPS_[d.opcion]) return null;
+  var porque = String(d.porque || '').trim();
+  if (porque.length < 15) { fb.push('“' + pj.nombre + '”: expliquen su decisión (al menos 15 caracteres) para registrarla. No se aplicó.'); return null; }
+  var op = d.opcion, nuevoSeg = null;
+  if (op === 'segmento') {
+    nuevoSeg = segById_(P, d.segmento);
+    if (!nuevoSeg || String(d.reto || '').trim().length < 15) { fb.push('“' + pj.nombre + '”: para cambiar el segmento o el reto elijan el segmento y escriban el nuevo reto “¿Cómo podríamos…?”. No se aplicó.'); return null; }
+  }
+  var coh = pd.cumple === null ? null : (pd.cumple ? op === 'seguir' : op !== 'seguir');
+  pj.decisiones = pj.decisiones || [];
+  pj.decisiones.push({ t: t, clave: pd.clave, punto: pd.punto, fase: pd.fase, criterio: pd.criterio, resultado: pd.resultado, cumple: pd.cumple, opcion: op, porque: porque.slice(0, 500), coherente: coh });
+  var txt = DEC_OPS_[op] + ' tras ' + pd.punto + '. Criterio: ' + pd.criterio + '. Resultado: ' + pd.resultado + '.';
+  pj.historial = pj.historial || []; pj.historial.push({ t: t, fase: 'Decisión', texto: txt });
+  if (coh === false) fb.push('“' + pj.nombre + '”: su decisión (' + DEC_OPS_[op].toLowerCase() + ') va en sentido contrario a su propio criterio: ' + pd.criterio.toLowerCase() + '; resultado: ' + pd.resultado + '. Quedó registrada con su explicación.');
+  if (op === 'solucion') {
+    var dest = (pd.clave.indexOf('acta@') === 0 || pd.clave.indexOf('pil@') === 0) ? 'prototipar' : 'idear';
+    if (dest === 'idear') { reiniciarDesdeIdear_(pj, false); fb.push('“' + pj.nombre + '”: vuelven a Idear para cambiar la solución. Conservan sus fichas y propuestas.'); }
+    else { pj.etapa = 'prototipar'; fb.push('“' + pj.nombre + '”: vuelven a Prototipar y probar con el mismo concepto.'); }
+  } else if (op === 'segmento') {
+    var b = briefLimpio_({ cuando: d.cuando || pj.brief.cuando, quiero: d.quiero || pj.brief.quiero, para: d.para || pj.brief.para, evidencia: d.evidencia || '', frase: d.frase || '', insight: d.insight || '', encaje: d.encaje || pj.brief.encaje, criterio: d.criterio || pj.brief.criterio });
+    var segAntes = pj.segmento;
+    pj.segmento = nuevoSeg.id; pj.reto = String(d.reto).slice(0, 300); pj.brief = b;
+    var bRev = { reto: pj.reto }; Object.keys(b).forEach(function (k) { bRev[k] = b[k]; });
+    var rev = revisarBrief_(P, S, bRev, nuevoSeg.id);
+    pj.revisionBrief = rev.items; pj.retoOk = rev.retoOk;
+    reiniciarDesdeIdear_(pj, true);
+    pj.pivotes = (pj.pivotes || 0) + 1;
+    fb.push('“' + pj.nombre + '”: cambiaron ' + (segAntes !== nuevoSeg.id ? 'de ' + segAntes + ' a ' + nuevoSeg.id : 'el reto') + '. Vuelven a Idear: conservan sus fichas, pero los tests y el concepto elegido eran para el reto anterior y se descartan.' + (rev.evidencia ? '' : ' El nuevo reto no tiene evidencia del segmento.'));
+    pj.historial.push({ t: t, fase: 'Definir', texto: 'Nuevo reto (' + nuevoSeg.id + '): ' + pj.reto });
+  } else if (op === 'esperar') fb.push('“' + pj.nombre + '”: decidieron esperar. El proyecto no avanza este trimestre y no consume semanas.');
+  return op;
+}
+/** Vuelve a Idear: con segmento nuevo se descartan los tests, el concepto y los prototipos (quedan en el historial). */
+function reiniciarDesdeIdear_(pj, nuevoSegmento) {
+  if (pj.proto && pj.proto.versiones && pj.proto.versiones.length) { pj.protoPrev = (pj.protoPrev || []).concat([{ concepto: pj.concepto ? pj.concepto.nombre : '', segmento: pj.segmento, versiones: pj.proto.versiones.length }]); }
+  pj.etapa = 'idear'; pj.concepto = null; pj.Q = 0; pj.iter = 0; pj.calProto = 0; pj.protoFit = 0; pj.protoCar = null; pj.proto = { versiones: [] };
+  pj.iterMin = 1; pj.tipoReal = null; pj.validadoSel = false; pj.esp = null; pj.acta = null; pj.pil = null; pj.piloto = null; pj.eleccionVsRegla = null;
+  if (nuevoSegmento) { (pj.fichas || []).forEach(function (f) { f.test = null; }); pj.reglaSel = null; }
+}
+
 var P3_CAT_ = { tam: P3_TAM_, sup: P3_SUP_, fmt: P3_FMT_, car: P3_CAR_, ficha: P3_FICHA_, costoAp: P3_COSTO_AP_, costoSen: P3_COSTO_SEN_, cap: P3_CAP_, lienzo: P3_LIENZO_, hoy: P3_HOY_, riesgos: P3_RIESGOS_, costoPunto: P3_COSTO_PUNTO_, causas: P3_CAUSAS_, tipoFr: P3_TIPOFR_ };
 
 if (typeof module !== 'undefined') module.exports = { BANCO_EXT_: BANCO_EXT_ };

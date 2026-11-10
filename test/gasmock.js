@@ -73,6 +73,26 @@ function makeGas() {
       return orig0(tok, dec, enviar);
     };
   }
+  // Las pruebas antiguas no fijan la regla de selección antes del test ni la hipótesis y el criterio del
+  // prototipo (obligatorios desde v3.1): se completan solo si faltan. FASES_ESTRICTO=1 desactiva este relleno.
+  if (!process.env.FASES_ESTRICTO) {
+    const orig1 = ctx.apiGuardar;
+    ctx.apiGuardar = function (tok, dec, enviar) {
+      try {
+        Object.keys((dec && dec.proyectos) || {}).forEach((pid) => {
+          const a = dec.proyectos[pid] || {};
+          const hayTest = (Array.isArray(a.fichas) && a.fichas.some((f) => f && f.test)) || (Array.isArray(a.test) && a.test.length);
+          if (hayTest && !(a.reglaSel && Number(a.reglaSel.minInt) > 0)) a.reglaSel = { minInt: 30, texto: 'Regla de prueba' };
+          const v = a.proto;
+          if (v && v.formato && v.siguiente !== 'avanzar' && v.siguiente !== 'volver') {
+            if (String(v.creemos || '').trim().length < 15) v.creemos = 'Creemos que podrán usarlo sin ayuda.';
+            if (!(Number(v.criterio) > 0)) v.criterio = Math.max(1, Math.round((Number(v.n) || 8) * 0.75));
+          }
+        });
+      } catch (e) { }
+      return orig1(tok, dec, enviar);
+    };
+  }
   if (!process.env.ANUAL_ESTRICTO) {
     const orig = ctx.apiGuardar;
     ctx.apiGuardar = function (tok, dec, enviar) {

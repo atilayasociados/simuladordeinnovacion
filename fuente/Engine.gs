@@ -548,6 +548,12 @@ function simulateQuarter_(P, prev, dec, t, seed, sched) {
     if (pj.estado !== 'activo') return;
     var a = (dec.proyectos || {})[pj.id] || {};
     var seg = segById_(P, pj.segmento);
+    if (pj.flujo === 2 && !a.detener && a.decision && a.decision.opcion) {
+      var opD = aplicarDecision_(P, S, pj, a.decision, t, fb);
+      if (opD === 'esperar') return;
+      if (opD === 'detener') a.detener = true;
+      if (opD === 'solucion' || opD === 'segmento') return;
+    }
     if (pj.flujo === 2 && !a.detener && (pj.etapa === 'idear' || pj.etapa === 'evaluar' || pj.etapa === 'definir')) {
       var sigue = procesarFases2_(P, S, pj, a, { gastar: gastar, rng: rng, fb: fb, t: t, O: O });
       if (!sigue) return;
@@ -1212,6 +1218,11 @@ function estimarCostos_(P, S, dec, t) {
     if (pj.flujo === 2) { var e3 = estimarProyecto3_(P, S, pj, a, O, t); costo += e3.costo; sem += e3.sem; avisos = avisos.concat(e3.avisos); }
     if (a.piloto && pj.factPiloto > 1) costo += g.costoPiloto * factorMadurez_(O) * (pj.factPiloto - 1);
     if (a.lanzar && (pj.ideaSel || pj.concepto)) { var idea = ideaDe_(P, pj); costo += (g.costoLanzamiento + idea.costo) * factorMadurez_(O); sem += semMadurez_(O, g.semLanzamiento); if (a.lanzar.proteccion === 'patente') { costo += g.costoPatente; sem += g.semPatente; } }
+  });
+  S.proyectos.forEach(function (pj) {
+    if (pj.flujo !== 2 || (dec.proyectos || {})[pj.id]) return;
+    var pd = puntoDecision_(pj);
+    if (pd && !(pj.decisiones || []).some(function (x) { return x.clave === pd.clave; })) avisos.push('“' + pj.nombre + '”: tienen un resultado sin decisión registrada (' + pd.punto + '). Comparen su criterio con el resultado y decidan.');
   });
   if (dec.revision) { costo += g.costoRevision; sem += g.semRevision; }
   costo = Math.round(costo);

@@ -11,7 +11,7 @@ var MANUAL = [
   ['lista', ['Cómo leen el entorno: señales del macro y del microentorno que pueden ser reales o rumores, y cómo responden a ellas.',
     'La estrategia de innovación del año y el clima creativo de la organización.',
     'Qué investigan sobre los clientes y la competencia.',
-    'Sus proyectos de innovación, de la idea al lanzamiento: definir, idear, evaluar, prototipar, especificar, pasar la puerta, pilotear y lanzar.',
+    'Sus proyectos de innovación, de la necesidad del cliente al lanzamiento, en cinco fases: definir el reto, idear, prototipar y probar, desarrollar y validar, y lanzar.',
     'El precio, la publicidad y los canales de los productos que ya venden.']],
   ['h', 'Cómo se mide su desempeño'],
   ['p', 'Sus resultados se comparan siempre con una <b>empresa gemela que no innova</b>: parte igual que ustedes y sigue vendiendo lo mismo. La diferencia entre ustedes y la gemela es el valor que su innovación creó. Al final se comparan todas las empresas del curso con seis indicadores:'],
@@ -188,40 +188,50 @@ var MANUAL = [
   ['idea', 'Comparen métodos sobre el mismo segmento (triangulación). Si la encuesta y la observación no coinciden, pesa más lo que el cliente hace que lo que dice. Pueden comprar todos los estudios a la vez, pero cuesten lo que cuesten salen del mismo presupuesto que los proyectos: liguen cada estudio a una decisión.'],
   ['ir', [['Ir a 3. Investigación', 'investigacion'], ['Ver mis informes', 'informes']]]
 ]},
-{ id: 'proyectos', t: 'Paso 4. Proyectos: cómo funcionan', r: 'Las ocho fases, una tarea por trimestre, acelerar y detener, y el cronograma de semanas-persona.', b: [
+{ id: 'proyectos', t: 'Paso 4. Proyectos: cómo funcionan', r: 'Las cinco fases, las decisiones en cada resultado, acelerar y detener, y el cronograma de semanas-persona.', b: [
   ['h', 'Cronograma de semanas-persona (cada trimestre)'],
   ['pasos', ['Elijan las tareas de sus proyectos (y la capacitación, si es inicio de año). Arriba aparece la tabla <b>Cronograma de semanas-persona de este trimestre</b> con cada actividad y su <b>rango de referencia</b>.', 'Para cada actividad escriban <b>su estimación</b> de semanas-persona y elijan la <b>semana de inicio y de fin</b> (1 a 12). Es obligatorio para enviar.', 'Revisen la fila <b>Carga por semana</b>: si una semana se pinta de rojo, pusieron demasiado trabajo en paralelo. Revisen también el total frente a las 12 disponibles y el máximo de la referencia.', 'Después de procesar, en Resultados → Resumen del trimestre verán <b>lo planificado frente a lo real</b> y qué actividad no se ejecutó por falta de tiempo.']],
   ['idea', 'Las personas suelen subestimar el tiempo de sus tareas (falacia de la planificación; Kahneman y Tversky, 1979). Dejen un margen. La tabla completa de tiempos de referencia está en 2. Estrategia anual → "Planificar el tiempo del equipo".'],
-  ['p', 'Un proyecto lleva una idea desde la necesidad del cliente hasta el mercado. Recorre ocho fases y cada trimestre les pide <b>una sola tarea</b>, la de la fase en la que está:'],
-  ['tabla', ['Fase', 'Tarea del equipo', 'Lo que devuelve el simulador'], [
-    ['1. Definir', 'Escribir el brief al crear el proyecto.', 'Revisión del brief y tipo de innovación.'],
-    ['2. Idear', 'Generar ideas con una técnica, votar y armar hasta 3 fichas de concepto.', 'Devolución de cada ficha y propuestas externas.'],
-    ['3. Evaluar', 'Leer el test de concepto, llenar la matriz de Pugh y elegir un concepto.', 'Tipo real de innovación y versiones de prototipo exigidas.'],
-    ['4. Prototipar', 'Diseñar el prototipo y probarlo con clientes simulados.', 'Informe de prueba con lo que hizo y dijo cada persona.'],
-    ['5. Especificar', 'Ficha técnica, caso de negocio, lienzo y pre-mortem.', 'Costo real de la planta piloto.'],
-    ['6. Puerta', '(La decide el comité con lo que entregaron en Especificar.)', 'Acta con cinco criterios y un veredicto.'],
-    ['7. Piloto', 'Vender en pocos puntos de venta durante un trimestre.', 'Ventas, recompra y proyección al mercado.'],
-    ['8. Lanzar', 'Nombre, mensaje, precio, publicidad y canales.', 'Resultados en el mercado y revisión final.']]],
-  ['p', 'Sin acelerar, un proyecto tarda <b>unos 6 trimestres</b> desde que lo crean hasta que lo lanzan (menos si aceleran; más si necesitan varias versiones de prototipo o reiterar en la Puerta). Pueden tener hasta <b>3 proyectos activos</b> a la vez.'],
+  ['p', 'Un proyecto lleva una necesidad del cliente hasta el mercado. Antes de los proyectos están el <b>Entorno</b> y la <b>Investigación</b>: ahí buscan señales y conocen al cliente. Después, cada proyecto recorre <b>cinco fases</b>, en el orden lógico que comparten Tidd y Bessant (2021), Brown (2019), Kelley y Kelley (2013), Sawyer y Henriksen (2024) y Amabile (1996). Todos aclaran que el orden no es obligatorio: se vuelve atrás cuando una prueba falla.'],
+  ['tabla', ['Fase', 'Tareas del equipo', 'Lo que devuelve el simulador'], [
+    ['1. Definir el reto', 'Elegir hallazgos de sus informes, escribir el insight, el trabajo por hacer, el reto “¿Cómo podríamos…?”, el encaje con la estrategia y el criterio de éxito.', 'Revisión del reto, aviso si no tienen estudios de contacto directo con el cliente y tipo de innovación.'],
+    ['2. Idear', 'Abrir opciones (técnica, votación, ideas de afuera, fichas); fijar la regla de selección antes del test; comparar con la matriz de Pugh y elegir un concepto.', 'Devolución de cada ficha, propuestas externas, test de concepto y tipo real del concepto elegido.'],
+    ['3. Prototipar y probar', 'Escribir la hipótesis y el criterio; diseñar el prototipo y probarlo con clientes simulados; iterar.', 'Informe de prueba con lo que hizo y dijo cada persona, frente a su criterio.'],
+    ['4. Desarrollar y validar', 'Ficha técnica, caso de negocio, lienzo y pre-mortem para la Puerta; piloto en pocos puntos de venta con un límite de recompra fijado antes.', 'Costo real, acta del comité y resultados del piloto.'],
+    ['5. Lanzar', 'Nombre, mensaje, precio, publicidad, canales; después, revisión del proyecto.', 'Resultados en el mercado, reacción de los rivales y revisión final.']]],
+  ['h', 'Decidir en cada resultado'],
+  ['p', 'Cuando llega un resultado (test de concepto, prueba de prototipo, acta de la Puerta o piloto), la tarjeta muestra una <b>caja de decisión</b> con su criterio fijado antes y el resultado. Eligen y explican por qué:'],
+  ['tabla', ['Opción', 'Qué pasa'], [
+    ['Seguir', 'Continúan en la fase: elegir el concepto, iterar o avanzar, volver a presentarse o lanzar.'],
+    ['Cambiar la solución', 'Desde el test o el prototipo vuelven a Idear (conservan sus fichas); desde la Puerta o el piloto vuelven a Prototipar.'],
+    ['Cambiar el segmento o el reto', 'Escriben el nuevo segmento, la evidencia, el insight y el reto. Vuelven a Idear: conservan las fichas, pero los tests, el concepto y los prototipos eran para el reto anterior y se descartan.'],
+    ['Esperar', 'El proyecto no avanza ese trimestre y no consume semanas.'],
+    ['Detener', 'Se cierra el proyecto. Lo invertido no se recupera.']]],
+  ['p', 'Seguir cuando no se cumple su criterio, o cambiar cuando sí se cumple, es posible: queda registrado como “contra su criterio” con su explicación. El <b>registro de decisiones</b> aparece en la ficha del proyecto y en la revisión final. Cuando cambian de solución o de segmento, ese trimestre el proyecto solo cambia de rumbo; las tareas de la fase nueva empiezan el trimestre siguiente.'],
+  ['p', 'Hoy el simulador procesa una fase por proyecto en cada trimestre. Sin acelerar, un proyecto tarda <b>unos 6 trimestres</b> desde que lo crean hasta que lo lanzan (menos si aceleran; más si necesitan varias versiones de prototipo, reiterar en la Puerta o cambiar de rumbo). Pueden tener hasta <b>3 proyectos activos</b> a la vez.'],
   ['h', 'Acelerar una fase'],
   ['p', 'Cuesta 50 % más en dinero y semanas y permite avanzar más rápido, pero se aprende menos (menos propuestas externas, test menos preciso, prototipo que rinde menos). Úsenlo cuando el tiempo importe más que la precisión.'],
   ['h', 'Detener un proyecto'],
   ['p', 'Detenerlo libera semanas. Lo ya invertido <b>no se recupera</b> y el comité no lo toma en cuenta: decidan mirando lo que falta invertir y lo que se espera ganar, no lo que ya gastaron.'],
   ['h', 'La ficha del proyecto'],
-  ['p', 'En cada tarjeta, <b>Ver ficha completa</b> muestra todo el recorrido: brief, ideas, fichas, elección, informes de prueba, acta y piloto. Es la memoria del proyecto y les servirá para la bitácora.'],
+  ['p', 'En cada tarjeta, <b>Ver ficha completa</b> muestra todo el recorrido: reto, ideas, fichas, regla de selección, elección, informes de prueba, acta, piloto y el registro de decisiones. Es la memoria del proyecto y les servirá para la bitácora.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'definir', t: 'Fase 1. Definir (el brief)', r: 'Crear un proyecto con un reto bien escrito.', b: [
+{ id: 'definir', t: 'Fase 1. Definir el reto', r: 'De los hallazgos al insight y a un reto bien escrito.', b: [
   ['p', 'Se crea en <b>Decidir → 4. Proyectos → Nuevo proyecto</b>. El proyecto existe desde que el docente procesa el trimestre; sus tareas empiezan el trimestre siguiente.'],
   ['tabla', ['Campo', 'Qué escribir'], [
     ['Nombre y segmento', 'Un nombre de trabajo y el segmento al que sirve.'],
+    ['Hallazgos', 'Uno o dos informes y una frase copiada de cada uno. Lo ideal es que al menos uno sea de <b>contacto directo</b> con el cliente: observación etnográfica o usuarios extremos.'],
+    ['Insight', 'Qué descubrieron del cliente y por qué importa, con sus palabras (no la frase copiada).'],
     ['Trabajo por hacer', '<i>Cuando…</i> (la situación del cliente), <i>quiero…</i> (lo que busca), <i>para…</i> (el resultado que espera). Desde su vida, no desde el producto.'],
     ['Evidencia', 'El informe que respalda el insight y una frase copiada de él.'],
     ['Reto', 'Una pregunta que empiece con <b>¿Cómo podríamos…?</b>, que nombre al cliente y que no traiga la solución.'],
+    ['Encaje con la estrategia', 'En una frase, cómo encaja el reto con su Estrategia anual y con lo que la empresa sabe hacer.'],
     ['Criterio de éxito', 'Una cifra y un plazo.'],
     ['Tecnología y modelo', '¿Necesita tecnología que hoy no tienen? ¿Cambia cómo venden o cobran?'],
     ['Portafolio', 'Núcleo, adyacente o transformacional.']]],
-  ['ej', 'Cuando salgo a las 6:30 y no alcanzo a desayunar, quiero algo que me quite el hambre, para rendir en las clases de la mañana. Reto: ¿Cómo podríamos ofrecer a los universitarios un desayuno que se tome con una mano en el micro? Criterio: 8 % de S2 dos trimestres después del lanzamiento.'],
+  ['p', 'Sintetizar es encontrar patrones en lo observado y darles sentido antes de buscar soluciones (Kelley y Kelley, 2013; Brown, 2019). Una encuesta informa qué dicen los clientes; empatizar exige ver qué hacen en su contexto.'],
+  ['ej', 'Hallazgo (observación de S2): “Desayuno en el micro, con una sola mano libre.” Insight: comen en movimiento y con una mano; lo que no se pueda tomar así no les sirve. Cuando salgo a las 6:30 y no alcanzo a desayunar, quiero algo que me quite el hambre, para rendir en las clases de la mañana. Reto: ¿Cómo podríamos ayudar a los universitarios a alimentarse bien mientras se trasladan? Encaje: es adyacente; cabe en nuestra línea. Criterio: 8 % de S2 dos trimestres después del lanzamiento.'],
   ['p', 'Presionen <b>Revisar el brief</b>: el simulador marca qué está bien y qué mejorar, y les dice el <b>tipo de innovación</b> según sus respuestas: <b>rutinaria</b> (no cambia tecnología ni modelo), <b>disruptiva</b> (cambia el modelo), <b>radical</b> (cambia la tecnología) o <b>arquitectónica</b> (cambian ambos).'],
   ['ojo', 'Un reto que ya trae la solución ("¿Cómo podríamos vender una botella…?") cierra la búsqueda antes de empezar. Describan la necesidad.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
@@ -242,17 +252,20 @@ var MANUAL = [
     '<b>Concepto en una frase</b>: <i>Para [quién] que [necesidad], [producto] es [qué] que [beneficio], a diferencia de [alternativa].</i>',
     '<b>Qué mejora</b>: repartan exactamente <b>10 puntos</b> entre sabor, nutrición, conveniencia, salud, sostenibilidad y precio. Más puntos en un atributo lo hacen mejor, pero más difícil y caro de lograr.',
     '¿Tecnología nueva?, ¿cambia cómo venden o cobran?, y su tipo en las 4P.',
-    '<b>Enviar al test de concepto</b> (Bs 5.000 por ficha): recomendable; sin test, la fase Evaluar decide casi a ciegas.']],
+    '<b>Enviar al test de concepto</b> (Bs 5.000 por ficha): recomendable; sin test, la elección se hace casi a ciegas.']],
+  ['h', 'Regla de selección (antes del test)'],
+  ['p', 'Antes de ver el test fijen la <b>intención de compra mínima</b> que debe tener un concepto para elegirlo y, si quieren, otros criterios (deseable, factible, viable). Sin esta regla el test no se hace. Al elegir, el simulador compara el concepto elegido con su regla. Elegir entre ideas es difícil: sin criterios previos se tiende a lo conocido (Sawyer y Henriksen, 2024).'],
   ['h', 'Ideas de afuera (innovación abierta)'],
   ['tabla', ['Fuente', 'Costo', 'Semanas', 'Qué traen'], [
     ['Concurso abierto de ideas', 'Bs 8.000 + premio (bajo, medio o alto)', '2', 'Muchas propuestas variadas; varias poco viables. El premio medio suele rendir más.'],
     ['Intraemprendimiento', 'Bs 10.000', '3', 'Pocas propuestas de su personal, viables y a menudo de proceso.'],
     ['Reto con startups', 'Bs 20.000', '2', 'Pocas propuestas, a menudo con tecnología o modelo nuevos.']]],
   ['p', 'Las propuestas llegan al procesar el trimestre. Si una les sirve, usen <b>Pasar a ficha</b>.'],
-  ['p', 'El proyecto pasa a Evaluar con las fichas enviadas al test. Si no quieren testear, marquen <b>Pasar a Evaluar aunque no hagan el test</b>.'],
+  ['p', 'Con las fichas enviadas al test, el proyecto pasa a la segunda parte de Idear: comparar y elegir. Si no quieren testear, marquen <b>Pasar a Evaluar aunque no hagan el test</b>.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'evaluar', t: 'Fase 3. Evaluar', r: 'Leer el test de concepto, llenar la matriz de Pugh y elegir.', b: [
+{ id: 'evaluar', t: 'Fase 2 (cont.). Comparar y elegir un concepto', r: 'Leer el test de concepto, decidir frente a su regla, llenar la matriz de Pugh y elegir.', b: [
+  ['p', 'Primero aparece la <b>caja de decisión</b> con su regla de selección y el mejor resultado del test. Decidan seguir (elegir un concepto), cambiar la solución (volver a idear), cambiar el segmento o el reto, esperar o detener.'],
   ['h', 'Lo que trae el test de concepto (por ficha)'],
   ['tabla', ['Dato', 'Cómo leerlo'], [
     ['Intención de compra declarada', 'Porcentaje que dice que seguro o probablemente la compraría. Está inflada: la compra real suele ser menor. Sirve para comparar conceptos entre sí.'],
@@ -270,11 +283,13 @@ var MANUAL = [
   ['p', 'Al elegir, el simulador compara el tipo que declararon con el <b>tipo real</b> del concepto y les dice cuántas <b>versiones de prototipo</b> necesitarán antes de la Puerta: 1 para rutinarios y disruptivos, 2 o 3 para radicales y 3 para arquitectónicos (más si combinan o si concentran muchos puntos en un atributo).'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'prototipar', t: 'Fase 4. Prototipar', r: 'Diseñar el prototipo y aprender de la prueba con clientes simulados.', b: [
+{ id: 'prototipar', t: 'Fase 3. Prototipar y probar', r: 'Escribir la hipótesis, diseñar el prototipo y aprender de la prueba con clientes simulados.', b: [
   ['p', 'Prototipar es dar forma a la idea para <b>aprender cómo la usa el cliente</b>. Ustedes diseñan el prototipo (pueden construirlo en clase); el simulador lo pone en manos de clientes simulados del segmento y les devuelve lo que hicieron y dijeron.'],
   ['h', '1. Qué queremos aprender'],
   ['p', 'Elijan el <b>supuesto más riesgoso</b>: que puedan abrirlo y tomarlo solos (uso), que entiendan cómo se usa sin explicación (comprensión) o que encaje en su rutina diaria (rutina). Escriban la <b>pregunta</b> que el prototipo debe responder.'],
   ['ej', '¿Pueden abrirlo con una mano y sin explicación, en menos de 30 segundos?'],
+  ['p', 'Antes de probar escriban su <b>hipótesis</b> (“Creemos que…”) y su <b>criterio</b>: cuántas personas, de las que prueban, deben lograrlo para seguir. Sin ellos el prototipo no se prueba. Así la prueba sirve para decidir y no solo para confirmar lo que ya pensaban (Christensen, 1997).'],
+  ['ej', 'Creemos que los universitarios lo abrirán con una mano, sin ayuda, en el micro. Criterio: al menos 6 de 8.'],
   ['h', '2. Diseñar el prototipo'],
   ['tabla', ['Formato', 'Qué puede comprobar'], [
     ['Maqueta física', 'Uso, comprensión y rutina (los clientes la tocan y la usan).'],
@@ -290,11 +305,12 @@ var MANUAL = [
   ['h', 'Siguiente paso'],
   ['lista', ['<b>Iterar</b>: escriban qué aprendieron con la versión anterior y qué cambian, y prueben una nueva versión.',
     '<b>Avanzar a Especificar y Puerta</b>: cuando el supuesto quedó confirmado y tienen las versiones exigidas.',
-    '<b>Volver a Evaluar</b>: si la idea no funciona.']],
+    '<b>Volver a Evaluar</b>: si la idea no funciona y quieren elegir otro concepto ya probado.']],
+  ['p', 'Después de cada prueba, la caja de decisión compara su criterio con el resultado y registra su decisión.'],
   ['idea', 'Cambien una o dos características por versión, guiándose por la malla. Si cambian todo a la vez, no sabrán qué funcionó.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'especificar', t: 'Fases 5 y 6. Especificar y la Puerta', r: 'Ficha técnica, caso de negocio, lienzo, pre-mortem y acta del comité.', b: [
+{ id: 'especificar', t: 'Fase 4. Desarrollar y validar: especificar y la Puerta', r: 'Ficha técnica, caso de negocio, lienzo, pre-mortem y acta del comité.', b: [
   ['p', 'Especificar es definir cómo se fabricará el producto y cuánto costará. La Puerta es el comité que, con esa información, decide si se autoriza el piloto. Lo que viene del prototipo (tamaño y forma de abrir) queda fijo.'],
   ['h', '1. Ficha técnica'],
   ['p', 'Elijan envase, base líquida, azúcar, conservación (pasteurizada, 12 días; UHT, 90 días), etiqueta y producción (línea actual, máquina nueva con inversión de Bs 60.000 o maquila). La pantalla calcula el <b>costo por unidad</b> y por litro, la vida útil y cuántas unidades pueden producir por trimestre.'],
@@ -321,7 +337,7 @@ var MANUAL = [
   ['p', 'El umbral es el que eligieron en la Estrategia anual. Si la estructura es integrada, el proyecto es un producto nuevo y la empresa es muy radical, el comité exige un punto más.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'piloto', t: 'Fase 7. Piloto', r: 'Vender en pocos puntos para medir ventas y recompra.', b: [
+{ id: 'piloto', t: 'Fase 4 (cont.). Desarrollar y validar: el piloto', r: 'Vender en pocos puntos para medir ventas y recompra.', b: [
   ['p', 'El piloto es una prueba de mercado: venden en pocos puntos durante un trimestre para medir con clientes cuánto se vende y, sobre todo, <b>si vuelven a comprar</b>.'],
   ['pasos', ['<b>Dónde</b>: número de puntos de venta en cada canal de su lienzo. Cada punto tiene costo (tienda Bs 300, supermercado Bs 800, kiosco Bs 400, máquina Bs 1.200, app propia Bs 2.000, delivery Bs 1.000).',
     '<b>Precio de prueba</b> por unidad y <b>apoyo</b> en el punto de venta (ninguno, afiche y exhibidor Bs 3.000, degustación los sábados Bs 8.000).',
@@ -333,7 +349,7 @@ var MANUAL = [
   ['idea', 'Produzcan cerca de su pronóstico: si sobra, el producto vence; si falta, pierden ventas y no miden bien la demanda.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'lanzar', t: 'Fase 8. Lanzar y revisar', r: 'Salir al mercado y cerrar el proyecto con una revisión.', b: [
+{ id: 'lanzar', t: 'Fase 5. Lanzar y revisar', r: 'Salir al mercado y cerrar el proyecto con una revisión.', b: [
   ['h', 'Lanzar'],
   ['lista', ['<b>Nombre comercial</b> y <b>mensaje publicitario</b> en una frase. El mensaje debería decir, con palabras del cliente, el beneficio principal del concepto; si no, el simulador lo marca.',
     '<b>Precio por unidad</b>: la pantalla muestra a cuánto equivale por litro.',

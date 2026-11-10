@@ -26,6 +26,8 @@ nav .sub{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;padding-top:6px;bord
 .leyenda{font-size:12px;columns:2;margin:4px 0 0;padding-left:20px}
 .cita{font-style:italic;border-left:3px solid #B4531E;padding-left:8px;margin:4px 0}
 .box{border:1px solid var(--borde);border-radius:6px;padding:8px 10px}
+.box.dec{border:1.5px solid var(--azul2);background:#F8FAFE;margin:8px 0}
+.box.dec table{margin:4px 0}
 .okbox{background:#E5F3EC;border-radius:6px;padding:8px 10px}
 .limbox{background:#FBEFE6;border-radius:6px;padding:8px 10px;font-size:13px}
 .decbox{border:1.5px dashed var(--azul2);border-radius:6px;padding:8px 10px;margin-top:8px}
@@ -90,8 +92,8 @@ svg text{font-family:Arial;font-size:11px;fill:#5b6577}
 p.err,span.err{color:#B42318}
 .nowrap{white-space:nowrap}
 details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
-.hist{display:grid;gap:8px;font-size:13.5px}
-.hist>div{border-left:3px solid #D0D7E2;padding-left:10px}
+.hist{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;font-size:13.5px}
+.hist>div{border-left:3px solid #D0D7E2;padding-left:10px;min-width:0;overflow-wrap:anywhere}
 .hist b{font-size:11px;letter-spacing:.05em;color:#5b6577}
 @media (max-width:760px){.g3,.g6{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .bmc{display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:6px 0}
@@ -144,7 +146,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = '85ac8006f0fe';
+  var V0 = '25790da22e30';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -1639,8 +1641,9 @@ function tarjetaCoherencia() {
 </script>
 
   <script>
-// ---------- Proyectos: Definir, Idear y Evaluar (v1.9) ----------
-var FASES2 = ['Definir', 'Idear', 'Evaluar', 'Prototipar', 'Especificar', 'Puerta', 'Piloto', 'Lanzar'];
+// ---------- Proyectos: la ruta de cinco fases (v3.1) ----------
+var FASES2 = ['Definir el reto', 'Idear', 'Prototipar y probar', 'Desarrollar y validar', 'Lanzar'];
+var DEC_OPS = { seguir: 'Seguir', solucion: 'Cambiar la solución', segmento: 'Cambiar el segmento o el reto', esperar: 'Esperar (no avanza este trimestre)', detener: 'Detener el proyecto' };
 var CRIT_PUGH = [['ajuste', 'Ajuste con el cliente'], ['viab', 'Viabilidad técnica'], ['costo', 'Costo por unidad'], ['nov', 'Novedad'], ['estr', 'Ajuste estratégico']];
 var PTSK = ['sab', 'nut', 'conv', 'salud', 'sost', 'precio'];
 var TABP = {};
@@ -1666,6 +1669,8 @@ function prepararBorrador2() {
     a.votos = a.votos || {}; a.votos[reg] = a.votos[reg] || {};
     if (!Array.isArray(a.combinar)) a.combinar = ['', ''];
     a.pugh = a.pugh || {};
+    a.reglaSel = a.reglaSel || {};
+    if (p.decision && !p.decision.decidido) { a.decision = a.decision || {}; a.decision.clave = p.decision.clave; } else delete a.decision;
     P3_borrador(p, a);
   });
   V.estado.proyectos.forEach(function (p) { if (p.flujo === 2 && p.etapa === 'lanzado' && p.resLanz && !p.aar) { var a = D.proyectos[p.id] = D.proyectos[p.id] || {}; a.aar = a.aar || { causas: [], tipo: '' }; } });
@@ -1685,6 +1690,9 @@ function limpiar2(d) {
     if (p.etapa !== 'piloto') delete a.pil;
     if (p.etapa !== 'lanzar') delete a.lan;
     if (a.aar && !(a.aar.causas || []).length) delete a.aar;
+    if (a.decision && !a.decision.opcion) delete a.decision;
+    if (a.decision && a.decision.opcion !== 'segmento') ['segmento', 'evidencia', 'frase', 'insight', 'reto'].forEach(function (k) { delete a.decision[k]; });
+    if (p.etapa !== 'idear' || !(a.reglaSel && Number(a.reglaSel.minInt) > 0)) delete a.reglaSel;
     delete a._ideas; delete a._votosTot; delete a._nVot; delete a._nAutores;
   });
 }
@@ -1699,14 +1707,19 @@ function revisarBriefCli(b) {
   var j = ['cuando', 'quiero', 'para'].every(function (k) { return String(b[k] || '').trim().length >= 5; }); R.push([j, j ? 'Trabajo por hacer completo.' : 'Completen cuando / quiero / para.']);
   var e = !!b.evidencia && String(b.frase || '').trim().length >= 10; R.push([e, e ? 'Tiene evidencia.' : 'Sin evidencia: elijan un informe y copien una frase.']);
   var k = /\d/.test(b.criterio || '') && /(trimestre|T\d|año|mes)/i.test(b.criterio || ''); R.push([k, k ? 'Criterio con cifra y plazo.' : 'El criterio necesita una cifra y un plazo.']);
+  var ins = String(b.insight || '').trim(), io = ins.length >= 20 && ins !== String(b.frase || '').trim(); R.push([io, io ? 'Insight escrito con sus palabras.' : 'Escriban el insight con sus palabras (no copien la frase).']);
+  var en = String(b.encaje || '').trim().length >= 15; R.push([en, en ? 'Explican el encaje con la estrategia.' : 'Expliquen cómo encaja con su Estrategia anual.']);
+  var seg = b._seg, ct = (V.estado.informes || []).some(function (i) { return ['observacion', 'extremos'].indexOf(i.metodo) >= 0 && (!i.segs || !i.segs.length || i.segs.indexOf(seg) >= 0); });
+  R.push([ct, ct ? 'Tienen un estudio de contacto directo con ' + seg + '.' : 'Sin estudio de contacto directo con ' + seg + ' (observación o usuarios extremos): la encuesta informa, pero no reemplaza observar al cliente.']);
   return R;
 }
 function leerBrief() {
-  return { nombre: $('npNom').value.trim(), segmento: $('npSeg').value, tec: $('npTec').value, mod: $('npMod').value, portafolio: $('npPort').value,
-    brief: { cuando: $('npCuando').value.trim(), quiero: $('npQuiero').value.trim(), para: $('npPara').value.trim(), reto: $('npReto').value.trim(), evidencia: $('npEv').value, frase: $('npFrase').value.trim(), criterio: $('npCrit').value.trim() } };
+  var v = function (id) { var e = $(id); return e ? e.value.trim() : ''; };
+  return { nombre: v('npNom'), segmento: v('npSeg'), tec: v('npTec'), mod: v('npMod'), portafolio: v('npPort'),
+    brief: { cuando: v('npCuando'), quiero: v('npQuiero'), para: v('npPara'), reto: v('npReto'), evidencia: v('npEv'), frase: v('npFrase'), evidencia2: v('npEv2'), frase2: v('npFrase2'), insight: v('npInsight'), encaje: v('npEncaje'), criterio: v('npCrit') } };
 }
 function revisarBriefUI() {
-  var np = leerBrief(), R = revisarBriefCli(np.brief);
+  var np = leerBrief(); np.brief._seg = np.segmento; var R = revisarBriefCli(np.brief); delete np.brief._seg;
   $('npRev').innerHTML = '<ul class="fb">' + R.map(function (r) { return '<li>' + (r[0] ? '<span class="tag ok">bien</span> ' : '<span class="tag aviso">mejorar</span> ') + esc(r[1]) + '</li>'; }).join('') + '</ul>';
   $('npTipo').innerHTML = 'Tipo de innovación según sus respuestas: <b>' + esc(tipoNom(tipoP(np.tec === 'si', np.mod === 'si'))) + '</b>';
 }
@@ -1770,23 +1783,33 @@ function vProyectos2() {
   var act = E.proyectos.filter(function (p) { return p.estado === 'activo'; });
   var maxP = g.maxProyectos;
   html += '<div class="card"><h2>Cómo avanza un proyecto de innovación</h2><div class="etapas">' + FASES2.map(function (f, i) { return '<span class="hecho">' + (i + 1) + '. ' + f + '</span>'; }).join('') + '</div>' +
-    '<p>Cada proyecto les pide <b>una sola tarea por trimestre</b>, la de su fase. Definir: escriben el brief al crear el proyecto. Idear: cada integrante aporta ideas con una técnica, votan y arman hasta 3 fichas de concepto. Evaluar: con el test de concepto comparan los conceptos en la matriz de Pugh y eligen uno. Las fases siguientes continúan con el prototipo, el piloto y el lanzamiento.</p>' +
-    ayuda('Acelerar una fase cuesta 50 % más en dinero y semanas y permite avanzar hasta dos fases en un trimestre, pero se aprende menos: en Idear llegan 30 % menos propuestas externas y el test de concepto es menos preciso (±1,0 en lugar de ±0,5).', 5, 'Stage') + '</div>';
+    '<p>Antes de los proyectos están el <b>Entorno</b> y la <b>Investigación</b>: ahí buscan señales y conocen al cliente. La observación y los usuarios extremos son los estudios de contacto directo (empatía).</p><ol>' +
+    '<li><b>Definir el reto.</b> Eligen hallazgos de sus informes, escriben el insight con sus palabras y lo convierten en un reto “¿Cómo podríamos…?” sin traer la solución.</li>' +
+    '<li><b>Idear.</b> Primero abren opciones (técnicas e ideas de afuera); después las cierran: fijan su regla de selección <i>antes</i> del test de concepto y eligen un concepto.</li>' +
+    '<li><b>Prototipar y probar.</b> Antes de cada prueba escriben su hipótesis (“Creemos que…”) y su criterio; prueban prototipos baratos e iteran.</li>' +
+    '<li><b>Desarrollar y validar.</b> Especifican, presentan el caso de negocio a la Puerta y hacen un piloto pequeño con un límite de recompra fijado antes.</li>' +
+    '<li><b>Lanzar.</b> Deciden cómo lanzar y luego gestionan el producto y revisan lo aprendido.</li></ol>' +
+    '<p>Cada vez que llega un resultado (test, prueba de prototipo, comité o piloto), comparan su criterio con el resultado y deciden: <b>seguir, cambiar la solución, cambiar el segmento o el reto, esperar o detener</b>. Pueden volver atrás desde cualquier fase. El orden es lógico, no obligatorio (Amabile, 1996; Brown, 2019).</p>' +
+    ayuda('Hoy el simulador procesa una fase por proyecto en cada trimestre. Acelerar una fase cuesta 50 % más en dinero y semanas y permite avanzar hasta dos fases en un trimestre, pero se aprende menos: en Idear llegan 30 % menos propuestas externas y el test de concepto es menos preciso (±1,0 en lugar de ±0,5).', 5, 'Stage') + '</div>';
   html += '<div id="cronoBox">' + cronoHTML() + '</div>';
   html += '<div class="card"><h2>Su gestión de la creatividad hoy</h2><div class="grid g4">' + [['Motivación intrínseca', Number(O.MI).toFixed(2)], ['Autoeficacia creativa', Number(O.AE).toFixed(2)], ['Diversidad del equipo', Number(O.DIV).toFixed(2)], ['Madurez en innovación', O.madurez + ' de 5']].map(function (k) { return '<div class="kpi"><div class="v" style="font-size:18px">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('') + '</div>' +
     ayuda('Con más motivación y autoeficacia las fichas de concepto salen mejores; con más diversidad, el análisis morfológico rinde más.', 2) + '</div>';
   // nuevo proyecto
   var cupo = maxP - act.length - D.nuevosProyectos.length;
-  html += '<div class="card"><h2>Nuevo proyecto · fase Definir</h2><p class="muted">Máximo ' + maxP + ' proyectos activos. Tienen ' + act.length + (D.nuevosProyectos.length ? ' y ' + D.nuevosProyectos.length + ' por crear' : '') + '.</p>';
+  html += '<div class="card"><h2>Nuevo proyecto · fase 1: Definir el reto</h2><p class="muted">Máximo ' + maxP + ' proyectos activos. Tienen ' + act.length + (D.nuevosProyectos.length ? ' y ' + D.nuevosProyectos.length + ' por crear' : '') + '.</p>';
   if (cupo > 0) {
     var infs = (E.informes || []).slice().sort(function (a, b) { return b.t - a.t; });
-    html += '<div class="grid g2"><div><label>Nombre del proyecto</label><input type="text" id="npNom" placeholder="Ejemplo: Desayuno camino a clases"></div><div><label>Segmento</label><select id="npSeg">' + V.cat.segmentos.map(function (s) { return '<option value="' + s.id + '">' + esc(s.id + ' ' + s.nombre) + '</option>'; }).join('') + '</select></div></div>' +
-      '<h3>Trabajo por hacer del cliente</h3>' + ayuda('Qué “trabajo” contrata el cliente cuando compra (Christensen et al., 2016). Escríbanlo desde su vida, no desde el producto.', 3, 'Trabajos por hacer') +
+    var optInf = '<option value="">Elijan un informe…</option>' + infs.map(function (i) { return '<option value="' + i.id + '">' + esc(i.nombre + (i.segs && i.segs.length ? ' · ' + i.segs.join(', ') : '') + ' · T' + i.t) + '</option>'; }).join('');
+    html += '<div class="grid g2"><div><label>Nombre del proyecto</label><input type="text" id="npNom" placeholder="Ejemplo: Desayuno camino a clases"></div><div><label>Segmento</label><select id="npSeg" onchange="revisarBriefUI()">' + V.cat.segmentos.map(function (s) { return '<option value="' + s.id + '">' + esc(s.id + ' ' + s.nombre) + '</option>'; }).join('') + '</select></div></div>' +
+      '<h3>1. Hallazgos: lo que vieron en sus informes</h3>' + ayuda('Sintetizar es encontrar patrones en lo que observaron y darles sentido antes de buscar soluciones (Kelley y Kelley, 2013; Brown, 2019). Una encuesta informa; empatizar exige observar al cliente en su contexto: los estudios de contacto directo son la observación etnográfica y los usuarios extremos.', 3, 'Síntesis') +
+      '<div class="grid g2"><div><label>Hallazgo 1: informe</label><select id="npEv" onchange="revisarBriefUI()">' + optInf + '</select><label>Frase copiada del informe</label><input type="text" id="npFrase" placeholder="Ejemplo: “Si no lo puedo tomar con una mano en el micro, no me sirve.”"></div>' +
+      '<div><label>Hallazgo 2 (opcional): informe</label><select id="npEv2">' + optInf + '</select><label>Frase copiada del informe</label><input type="text" id="npFrase2" placeholder="Ejemplo: 7 de 12 desayunan de pie o en movimiento."></div></div>' +
+      '<h3>2. Insight: qué descubrieron, con sus palabras</h3><textarea id="npInsight" rows="2" placeholder="Comen en movimiento y con una sola mano libre: lo que no se pueda tomar así, no les sirve, aunque sea nutritivo."></textarea>' +
+      '<h3>3. Trabajo por hacer del cliente</h3>' + ayuda('Qué “trabajo” contrata el cliente cuando compra (Christensen et al., 2016). Escríbanlo desde su vida, no desde el producto.', 3, 'Trabajos por hacer') +
       '<div class="grid g3"><div><label>Cuando…</label><input type="text" id="npCuando" placeholder="salgo a las 6:30 y no alcanzo a desayunar"></div><div><label>quiero…</label><input type="text" id="npQuiero" placeholder="algo que me quite el hambre"></div><div><label>para…</label><input type="text" id="npPara" placeholder="rendir en las clases de la mañana"></div></div>' +
-      '<label>Evidencia: informe que respalda el insight</label><select id="npEv"><option value="">Sin evidencia todavía</option>' + infs.map(function (i) { return '<option value="' + i.id + '">' + esc(i.nombre + (i.segs && i.segs.length ? ' · ' + i.segs.join(', ') : '') + ' · T' + i.t) + '</option>'; }).join('') + '</select>' +
-      '<label>Frase copiada del informe</label><input type="text" id="npFrase" placeholder="Ejemplo: “Si no lo puedo tomar con una mano en el micro, no me sirve.”">' +
-      '<label>Reto: ¿Cómo podríamos…?</label><input type="text" id="npReto" placeholder="¿Cómo podríamos ofrecer a los universitarios un desayuno que se tome con una mano en el micro?">' +
-      '<label>Criterio de éxito (cifra y plazo)</label><input type="text" id="npCrit" placeholder="8 % de S2 dos trimestres después del lanzamiento">' +
+      '<h3>4. Reto</h3><label>¿Cómo podríamos…? (la necesidad, sin la solución)</label><input type="text" id="npReto" placeholder="¿Cómo podríamos ayudar a los universitarios a alimentarse bien mientras se trasladan?">' +
+      '<label>Cómo encaja este reto con su Estrategia anual y con lo que la empresa sabe hacer</label><input type="text" id="npEncaje" placeholder="Es adyacente: mismo tipo de producto, segmento nuevo; lo podemos producir en nuestra línea.">' +
+      '<label>Criterio de éxito en el mercado (cifra y plazo)</label><input type="text" id="npCrit" placeholder="8 % de S2 dos trimestres después del lanzamiento">' +
       '<div class="grid g3"><div><label>¿Necesita tecnología que hoy no tenemos?</label><select id="npTec" onchange="revisarBriefUI()"><option value="no">No</option><option value="si">Sí</option></select></div><div><label>¿Cambia cómo vendemos o cobramos?</label><select id="npMod" onchange="revisarBriefUI()"><option value="no">No</option><option value="si">Sí</option></select></div><div><label>Lugar en el portafolio</label><select id="npPort">' + Object.keys(V.cat.portafolioNom).map(function (k) { return '<option value="' + k + '">' + esc(V.cat.portafolioNom[k]) + '</option>'; }).join('') + '</select></div></div>' +
       '<p class="calc" id="npTipo">Tipo de innovación según sus respuestas: <b>Rutinaria</b></p>' + ayuda('Pisano (2015): si no cambia la tecnología ni el modelo de negocio, es rutinaria; si cambia solo el modelo, disruptiva; si cambia solo la tecnología, radical; si cambian ambos, arquitectónica. Al elegir el concepto se compara con el tipo real.', 1, 'Pisano') +
       '<div class="inline"><button class="btn sec" onclick="revisarBriefUI()">Revisar el brief</button><button class="btn" onclick="agregarProyecto2()">Agregar proyecto</button></div><div id="npRev"></div>';
@@ -1801,9 +1824,9 @@ function vProyectos2() {
 }
 
 function faseIdx(p) {
-  if (p.etapa === 'idear') return 1; if (p.etapa === 'evaluar') return 2; if (p.etapa === 'lanzado') return 8;
-  var k3 = { prototipar: 3, especificar: 4, piloto: 6, lanzar: 7 }[p.etapa]; if (k3) return k3;
-  if (p.etapa === 'prototipo') return p.piloto ? 6 : (p.iter > 0 ? 3 : 3); return 0;
+  var k = { idear: 1, evaluar: 1, prototipar: 2, especificar: 3, piloto: 3, lanzar: 4, lanzado: 5 }[p.etapa];
+  if (k !== undefined) return k;
+  if (p.etapa === 'prototipo') return p.piloto ? 3 : 2; return 0;
 }
 function cabecera2(p) {
   var k = faseIdx(p);
@@ -1817,7 +1840,8 @@ function tarjeta2(p) {
   var malos = (p.revisionBrief || []).filter(function (r) { return !r.ok; });
   if (p.etapa === 'idear') html += conocimientoSegmento(p.segmento);
   if (malos.length && p.etapa === 'idear') html += '<p class="ayuda"><b>Revisión del brief:</b> ' + malos.map(function (r) { return esc(r.texto); }).join(' ') + '</p>';
-  html += '<div class="tarea"><p class="lbl">Tarea de este trimestre · ' + (p.etapa === 'idear' ? 'Idear' : 'Evaluar') + '</p>' + (p.etapa === 'idear' ? tareaIdear(p) : tareaEvaluar(p)) +
+  html += cajaDecision(p);
+  html += '<div class="tarea"><p class="lbl">Tarea de este trimestre · ' + (p.etapa === 'idear' ? 'Idear: abrir opciones y armar conceptos' : 'Idear: comparar y elegir un concepto') + '</p>' + (p.etapa === 'idear' ? tareaIdear(p) : tareaEvaluar(p)) +
     chkB('proyectos.' + p.id + '.acelerar', '<b>Acelerar esta fase</b> (+50 % de costo y semanas; ' + (p.etapa === 'idear' ? 'el comité elegirá directamente el concepto con mejor resultado del test, sin matriz de Pugh' : 'pueden iniciar el prototipo en este mismo trimestre') + ')', 'data-rerender="1"') + '</div>';
   return html + fichaCompleta2(p) + '</div>';
 }
@@ -1889,7 +1913,9 @@ function tabFichas(p, a) {
       '<p class="' + (s === 10 || !f.nombre ? 'muted' : 'err') + '">' + s + ' de 10 puntos' + (s !== 10 && f.nombre ? ': deben ser exactamente 10.' : '') + '</p>' +
       '<div class="grid g4"><div><label>¿Tecnología nueva?</label>' + sel(b + 'tec', [['no', 'No'], ['si', 'Sí']]) + '</div><div><label>¿Cambia cómo vendemos o cobramos?</label>' + sel(b + 'mod', [['no', 'No'], ['si', 'Sí']]) + '</div><div><label>Tipo en las 4P</label>' + sel(b + 'tipo4p', ['Producto', 'Proceso', 'Posición', 'Paradigma'].map(function (x) { return [x, x]; })) + '</div><div>' + chkB(b + 'test', 'Enviar al test de concepto (' + bs(V.cat.general.costoTestConcepto) + ')') + '</div></div></div>';
   });
-  html += chkB('proyectos.' + pid + '.cerrarIdear', 'Pasar a Evaluar al procesar el trimestre aunque no hagan el test de concepto') +
+  html += '<div class="box"><h3>Regla de selección · fíjenla antes del test</h3>' + ayuda('Elegir entre ideas es difícil: sin criterios previos se tiende a lo conocido y se elige casi al azar (Sawyer y Henriksen, 2024). Decidan ahora, antes de ver resultados, qué intención de compra mínima debe tener un concepto para elegirlo. Sin esta regla el test no se hace.', 5, 'Selección') +
+    '<div class="grid g2"><div><label>Intención de compra mínima para elegir un concepto (%)</label>' + inp('proyectos.' + pid + '.reglaSel.minInt', 'number', 'min=1 max=99 step=1') + '</div><div><label>Otros criterios que usarán (deseable, factible, viable)</label>' + inp('proyectos.' + pid + '.reglaSel.texto', 'text', 'placeholder="Además, precio dentro del rango aceptable y producible en nuestra línea."') + '</div></div></div>' +
+    chkB('proyectos.' + pid + '.cerrarIdear', 'Pasar a Evaluar al procesar el trimestre aunque no hagan el test de concepto') +
     '<p class="muted">Al procesar reciben una devolución escrita de cada ficha. Las fichas enviadas al test pasan a Evaluar con su informe.</p>';
   return html;
 }
@@ -1932,6 +1958,33 @@ function bloqueTest(f) {
     '<div><h3>Clasificación de Kano para el segmento</h3><table>' + PTSK.map(function (k) { return '<tr><td>' + esc(V.cat.ptsNom[k]) + '</td><td>' + esc(V.cat.kanoNom[T.kano[k]] || '') + '</td><td class="n">' + (f.pts[k] || 0) + ' pts</td></tr>'; }).join('') + '</table>' +
     '<h3>Lo que dijeron los clientes</h3>' + T.frases.map(function (x) { return '<p class="cita">' + esc(x) + '</p>'; }).join('') + '</div></div>';
 }
+/** Caja de decisión en un punto de aprendizaje: criterio previo frente a resultado y cinco opciones. */
+function cajaDecision(p) {
+  var d = p.decision; if (!d || p.estado !== 'activo') return '';
+  if (d.decidido) { var u = (p.decisiones || []).filter(function (x) { return x.clave === d.clave; })[0]; return u ? '<p class="msg ok">Decisión registrada tras ' + esc(d.punto) + ': <b>' + esc(DEC_OPS[u.opcion] || u.opcion) + '</b>.</p>' : ''; }
+  var pid = p.id, a = D.proyectos[pid] || {}, x = a.decision || {}, b = 'proyectos.' + pid + '.decision.';
+  var est = d.cumple === null ? '<span class="tag aviso">sin criterio previo</span>' : (d.cumple ? '<span class="tag ok">cumple</span>' : '<span class="tag mal">no cumple</span>');
+  var html = '<div class="box dec"><h3>Decisión del equipo · ' + esc(d.punto) + '</h3>' +
+    '<table><tr><th>Su criterio (fijado antes)</th><th>Resultado</th><th></th></tr><tr><td>' + esc(d.criterio) + '</td><td>' + esc(d.resultado) + '</td><td>' + est + '</td></tr></table>' +
+    ayuda('Comparen lo que dijeron que harían con lo que pasó, y decidan. Seguir cuando no se cumple su criterio, o cambiar cuando sí se cumple, es posible, pero queda registrado con su explicación (Cooper, 1990; Amabile, 1996).', 5, 'Puerta') +
+    '<label>Qué deciden</label>' + sel(b + 'opcion', [['', 'Elijan una opción…'], ['seguir', d.seguir], ['solucion', d.solucion], ['segmento', 'Cambiar el segmento o el reto: volver a Definir'], ['esperar', DEC_OPS.esperar], ['detener', DEC_OPS.detener]], 'data-rerender="1"') +
+    '<label>Por qué (citen el dato)</label>' + txtA(b + 'porque', 'Ejemplo: el mejor concepto llegó a 34 %, sobre nuestro mínimo de 30 %; seguimos con él.');
+  if (x.opcion === 'segmento') {
+    var infs = (V.estado.informes || []).slice().sort(function (m, n) { return n.t - m.t; });
+    html += '<div class="grid g2"><div><label>Nuevo segmento</label>' + sel(b + 'segmento', [['', 'Elijan…']].concat(V.cat.segmentos.map(function (s) { return [s.id, s.id + ' ' + s.nombre]; }))) + '</div><div><label>Informe que respalda el cambio</label>' + sel(b + 'evidencia', [['', 'Sin evidencia todavía']].concat(infs.map(function (i) { return [i.id, i.nombre + (i.segs && i.segs.length ? ' · ' + i.segs.join(', ') : '') + ' · T' + i.t]; }))) + '</div></div>' +
+      '<label>Frase copiada del informe</label>' + inp(b + 'frase', 'text') + '<label>Nuevo insight</label>' + inp(b + 'insight', 'text') +
+      '<label>Nuevo reto: ¿Cómo podríamos…?</label>' + inp(b + 'reto', 'text', 'placeholder="¿Cómo podríamos ayudar a los oficinistas a desayunar en su escritorio?"') +
+      '<p class="muted">Vuelven a Idear: conservan sus fichas, pero los tests, el concepto y los prototipos eran para el reto anterior y se descartan (quedan en el historial).</p>';
+  }
+  if (x.opcion === 'solucion' || x.opcion === 'segmento') html += '<p class="muted">Este trimestre el proyecto solo cambia de rumbo; las tareas de la fase nueva empiezan el próximo trimestre.</p>';
+  return html + '</div>';
+}
+function registroDecisiones(p) {
+  var L = p.decisiones || []; if (!L.length) return '';
+  var r = p.resumenDecisiones || {};
+  return '<div><b>REGISTRO DE DECISIONES</b><p class="muted">' + L.length + ' decisiones · ' + (r.conCriterio || 0) + ' con criterio previo · ' + (r.coherentes || 0) + ' coherentes con ese criterio' + (p.pivotes ? ' · ' + p.pivotes + ' cambios de segmento o reto' : '') + '</p><div class="scroll"><table><tr><th>T</th><th>Punto</th><th>Criterio</th><th>Resultado</th><th>Decisión</th><th>Por qué</th></tr>' +
+    L.map(function (d) { return '<tr><td>T' + d.t + '</td><td>' + esc(d.punto) + '</td><td>' + esc(d.criterio) + '</td><td>' + esc(d.resultado) + '</td><td>' + esc(DEC_OPS[d.opcion] || d.opcion) + (d.coherente === false ? ' <span class="tag aviso">contra su criterio</span>' : '') + '</td><td>' + esc(d.porque) + '</td></tr>'; }).join('') + '</table></div></div>';
+}
 function tareaEvaluar(p) {
   var pid = p.id, a = D.proyectos[pid], F = p.fichas || [];
   var html = ayuda('Comparen cada concepto con su producto actual criterio por criterio: +1 si es mejor, 0 si es igual, −1 si es peor (Pugh, 1991). Lean antes el test de concepto: la matriz se llena con datos, no con gustos.', 5, 'Pugh');
@@ -1967,11 +2020,14 @@ function avisosPugh(p, a) {
 // ----- ficha completa (solo lectura) -----
 function fichaCompleta2(p) {
   var b = p.brief || {}, html = '<details><summary>Ver ficha completa</summary><div class="hist">';
-  html += '<div><b>DEFINIR · BRIEF</b><p>Cuando ' + esc(b.cuando || '…') + ', quiero ' + esc(b.quiero || '…') + ', para ' + esc(b.para || '…') + '.</p><p>Criterio de éxito: ' + esc(b.criterio || '—') + '</p>' + (b.frase ? '<p class="cita">' + esc(b.frase) + '</p>' : '') +
+  html += '<div><b>DEFINIR EL RETO</b>' + (b.frase ? '<p class="cita">' + esc(b.frase) + '</p>' : '') + (b.frase2 ? '<p class="cita">' + esc(b.frase2) + '</p>' : '') + (b.insight ? '<p><b>Insight:</b> ' + esc(b.insight) + '</p>' : '') +
+    '<p>Cuando ' + esc(b.cuando || '…') + ', quiero ' + esc(b.quiero || '…') + ', para ' + esc(b.para || '…') + '.</p><p><b>Reto:</b> ' + esc(p.reto || '') + '</p>' + (b.encaje ? '<p><b>Encaje con la estrategia:</b> ' + esc(b.encaje) + '</p>' : '') + '<p>Criterio de éxito: ' + esc(b.criterio || '—') + '</p>' +
     '<p>Tipo declarado: ' + esc(tipoNom(p.tipoDecl)) + ' · portafolio: ' + esc(V.cat.portafolioNom[p.portafolio] || '') + '</p><ul class="fb">' + (p.revisionBrief || []).map(function (r) { return '<li>' + (r.ok ? '<span class="tag ok">bien</span> ' : '<span class="tag aviso">mejorar</span> ') + esc(r.texto) + '</li>'; }).join('') + '</ul></div>';
   if (p.nIdeas || (p.externas || []).length) html += '<div><b>IDEAR</b><p>' + (p.tecnica ? esc(V.cat.tecnicas[p.tecnica].nombre) + ': ' + p.nIdeas + ' ideas del equipo. ' : '') + (p.externas || []).length + ' propuestas externas.</p></div>';
   (p.fichas || []).forEach(function (f) { html += '<div><b>FICHA · ' + esc(f.nombre) + '</b> <span class="muted">T' + f.t + ' · ' + esc(f.origen) + '</span><p class="muted">' + esc(f.frase || '') + '</p><p>' + PTSK.map(function (k) { return esc(V.cat.ptsNom[k]) + ' ' + (f.pts[k] || 0); }).join(' · ') + '</p><ul class="fb">' + (f.devolucion || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' + (f.test ? '<p>Test: intención declarada ' + f.test.intencion + ' %, rango Bs ' + f.test.vw.pmc.toFixed(2) + '–' + f.test.vw.pme.toFixed(2) + ', calidad corregida ' + Number(f.test.qCorr).toFixed(1) + '.</p>' : '') + '</div>'; });
-  if (p.comparacionTipo) html += '<div><b>EVALUAR · ELECCIÓN</b><p>' + esc(p.comparacionTipo) + '</p>' + (p.justificacion ? '<p class="cita">' + esc(p.justificacion) + '</p>' : '') + '</div>';
+  if (p.reglaSel) html += '<div><b>IDEAR · REGLA DE SELECCIÓN (T' + p.reglaSel.t + ')</b><p>Intención de compra mínima: ' + p.reglaSel.minInt + ' %' + (p.reglaSel.texto ? ' · ' + esc(p.reglaSel.texto) : '') + '</p></div>';
+  if (p.comparacionTipo) html += '<div><b>IDEAR · ELECCIÓN</b><p>' + esc(p.comparacionTipo) + '</p>' + (p.eleccionVsRegla ? '<p>Intención del concepto elegido: ' + p.eleccionVsRegla.intencion + ' % frente a su regla de ' + p.eleccionVsRegla.minInt + ' % (' + (p.eleccionVsRegla.cumple ? 'cumple' : 'no cumple') + ').</p>' : '') + (p.justificacion ? '<p class="cita">' + esc(p.justificacion) + '</p>' : '') + '</div>';
+  html += registroDecisiones(p);
   (p.historial || []).forEach(function (h) { html += '<div><b>T' + h.t + ' · ' + esc(h.fase.toUpperCase()) + '</b><p>' + esc(h.texto) + '</p></div>'; });
   return html + '</div></details>';
 }
@@ -2011,7 +2067,8 @@ function P3_tarjeta(p) {
   var pid = p.id, a = D.proyectos[pid] || {}, html = '<div class="card proj"><h2>' + esc(p.lan ? p.lan.nombre : p.nombre) + ' <span class="tag">' + esc(segNom(p.segmento)) + '</span> <span class="tag">' + esc(V.cat.portafolioNom[p.portafolio] || '') + '</span> <span class="tag">' + esc(tipoNom(p.tipoReal || p.tipoDecl)) + (p.tipoReal ? ' (tipo real)' : '') + '</span></h2>' + cabecera2(p);
   if (p.concepto) html += '<p><b>Concepto:</b> ' + esc(p.concepto.nombre) + (p.concepto.desc ? ' · <span class="muted">' + esc(p.concepto.desc) + '</span>' : '') + '</p>';
   if (p.estado === 'activo') {
-    var et = { prototipar: 'Prototipar', especificar: 'Especificar y presentarse a la Puerta', piloto: 'Piloto (prueba de mercado)', lanzar: 'Lanzar' }[p.etapa];
+    html += cajaDecision(p);
+    var et = { prototipar: 'Prototipar y probar', especificar: 'Desarrollar y validar: especificar y presentarse a la Puerta', piloto: 'Desarrollar y validar: piloto (prueba de mercado)', lanzar: 'Lanzar' }[p.etapa];
     html += '<div class="tarea"><p class="lbl">Tarea de este trimestre · ' + et + '</p>' + ({ prototipar: P3_tProto, especificar: P3_tEsp, piloto: P3_tPil, lanzar: P3_tLan }[p.etapa])(p, a);
     if (p.etapa !== 'lanzar') html += chkB('proyectos.' + pid + '.acelerar', '<b>Acelerar esta fase</b> (+50 % de costo y semanas; ' + (p.etapa === 'prototipar' ? 'la versión rinde menos, pero si confirma el supuesto pasan a Especificar en el mismo trimestre' : 'se gana tiempo, pero se aprende menos') + ')', 'data-rerender="1"');
     html += chkB('proyectos.' + pid + '.detener', 'Detener el proyecto (las semanas se liberan; lo invertido no se recupera)') + '</div>';
@@ -2027,7 +2084,10 @@ function P3_tProto(p, a) {
   html += '<label>Siguiente paso</label>' + sel(base + 'siguiente', [['probar', u ? 'Iterar: probar una nueva versión' : 'Probar la primera versión'], ['avanzar', 'Avanzar a Especificar y Puerta'], ['volver', 'Volver a Evaluar (la idea no funciona)']], 'data-rerender="1"');
   if (v.siguiente === 'avanzar' || v.siguiente === 'volver') return html;
   html += '<h3>1. Qué queremos aprender</h3><label>El supuesto más riesgoso</label>' + sel(base + 'supuesto', Object.keys(c.sup).map(function (k) { return [k, c.sup[k]]; }), 'data-rerender="1"') +
-    '<label>La pregunta que el prototipo debe responder</label>' + inp(base + 'pregunta', 'text', 'placeholder="¿Pueden abrirlo con una mano y sin explicación, en menos de 30 segundos?"');
+    '<label>La pregunta que el prototipo debe responder</label>' + inp(base + 'pregunta', 'text', 'placeholder="¿Pueden abrirlo con una mano y sin explicación, en menos de 30 segundos?"') +
+    ayuda('Antes de construir, escriban qué creen y qué resultado los haría seguir. Así la prueba sirve para decidir y no solo para confirmar lo que ya pensaban (Christensen, 1997: identificar los supuestos y probarlos antes de comprometer dinero).', 5, 'Prototipo') +
+    '<label>Hipótesis: Creemos que…</label>' + inp(base + 'creemos', 'text', 'placeholder="Creemos que los universitarios lo abrirán con una mano, sin ayuda, en el micro."') +
+    '<label>Criterio: seguimos si al menos ___ de las personas probadas lo logran</label>' + inp(base + 'criterio', 'number', 'min=1 max=12 step=1 placeholder="6"');
   html += '<h3>2. Diseñar el prototipo</h3><label>Formato (decide qué puede observar el simulador)</label>' + sel(base + 'formato', Object.keys(c.fmt).map(function (k) { return [k, c.fmt[k].nom + ' · ' + c.fmt[k].desc]; }), 'data-rerender="1"');
   var fm = c.fmt[v.formato || 'maqueta'];
   if (fm && fm.obs.indexOf(v.supuesto || 'uso') < 0) html += '<p class="msg err">Con ' + esc(fm.nom.toLowerCase()) + ' los clientes no pueden comprobar ese supuesto: la versión solo traerá opiniones y no mejorará el producto.</p>';
@@ -2042,6 +2102,7 @@ function P3_infProto(u, abierto) {
   var c = P3_c(), L = { solo: '<span class="tag ok">Solo</span>', ayuda: '<span class="tag aviso">Con ayuda</span>', no: '<span class="tag mal">No pudo</span>', '—': '—' };
   var h = '<details' + (abierto ? ' open' : '') + '><summary><b>Informe de prueba · versión ' + u.v + ' · T' + u.t + '</b> · ' + esc(c.fmt[u.formato].nom) + ' · ' + u.n + ' personas</summary><div class="informe">';
   h += '<p class="muted">Pregunta: ' + esc(u.pregunta) + ' · Supuesto: ' + esc(c.sup[u.supuesto]) + '</p>';
+  if (u.creemos || u.criterio) h += '<p><b>Hipótesis:</b> ' + esc(u.creemos || '—') + (u.criterio ? ' · <b>Criterio:</b> al menos ' + u.criterio + ' de ' + u.n + ' · <b>Resultado:</b> ' + u.logrados + ' de ' + u.n + ' ' + (u.cumpleCriterio ? '<span class="tag ok">cumple</span>' : '<span class="tag mal">no cumple</span>') : '') + '</p>';
   if (u.formato === 'maqueta') h += '<div class="grid g3"><div class="kpi"><div class="v">' + u.solos + ' de ' + u.n + '</div><div class="l">Lo lograron solos</div></div><div class="kpi"><div class="v">' + (u.ayuda + u.no) + ' de ' + u.n + '</div><div class="l">Con ayuda o no pudieron</div></div><div class="kpi"><div class="v">' + (u.mediana || '—') + ' s</div><div class="l">Tiempo mediano</div></div></div>';
   h += '<div class="scroll"><table><tr><th>#</th><th>Quién</th><th>Resultado</th><th class="n">Seg.</th><th>Lo que hizo o dijo</th></tr>' + u.filas.map(function (f, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(f.quien) + '</td><td>' + L[f.res] + '</td><td class="n">' + (f.seg || '—') + '</td><td>' + esc(f.frase) + '</td></tr>'; }).join('') + '</table></div>';
   h += '<p><b>Malla receptora de información</b></p><div class="grid g2">' + [['gusto', 'Lo que gustó'], ['criticas', 'Críticas'], ['preguntas', 'Preguntas'], ['ideas', 'Ideas nuevas']].map(function (q) { return '<div class="malla"><b>' + q[1] + '</b><ul>' + (u.malla[q[0]] || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>'; }).join('') + '</div>';
@@ -2372,6 +2433,7 @@ var UNIDADES = [
     { t: 'Las 4P de la innovación', x: 'La innovación puede ocurrir en el producto (qué ofrecemos), el proceso (cómo lo hacemos), la posición (a quién y en qué contexto lo ofrecemos) y el paradigma (el modelo mental o de negocio). Las empresas suelen concentrarse en el producto y descuidan las otras tres.', s: 'Estrategia anual: la distribución del esfuerzo en las 4P decide qué tipo de ideas aparecen en sus iniciativas.', r: ['tidd'] },
     { t: 'Incremental, radical y arquitectónica', x: 'La innovación incremental mejora lo existente con bajo riesgo; la radical cambia de forma profunda la oferta o la tecnología, con más riesgo y más potencial. La innovación arquitectónica recombina componentes conocidos de una forma nueva, y suele tomar por sorpresa a las empresas establecidas.', s: 'Estrategia anual: la mezcla incremental/radical; las ideas tienen distinto nivel de novedad y riesgo.', r: ['tidd', 'hend'] },
     { t: 'El proceso de innovación como embudo', x: 'Innovar es un proceso que se gestiona: buscar señales, seleccionar las mejores opciones, implementarlas y capturar su valor. Muchas ideas entran al embudo y pocas salen; la tarea del gestor es reducir la incertidumbre en cada etapa con el menor costo posible.', s: 'Proyectos: ideación y selección → prototipo y validación → lanzamiento, con un máximo de 3 proyectos activos.', r: ['tidd'] },
+    { t: 'El orden del proceso de innovación', x: 'Los modelos de innovación y de creatividad coinciden en un orden lógico: buscar y empatizar con el cliente; sintetizar lo observado en un insight y definir el reto como necesidad, sin la solución; idear abriendo muchas opciones y cerrándolas con criterios fijados antes; prototipar y probar con clientes; desarrollar, validar y lanzar; y capturar el valor y aprender. Tidd y Bessant lo resumen en buscar, seleccionar, implementar y capturar; Brown, en tres espacios que se superponen (inspiración, ideación e implementación); Kelley y Kelley, en inspiración, síntesis, ideación y experimentación, e implementación; Sawyer y Henriksen integran la psicología de la creatividad en ocho etapas, de encontrar el problema a externalizar la idea. Todos advierten que no es una secuencia rígida: cuando una prueba falla, se vuelve a idear o a redefinir el reto. En innovaciones disruptivas, donde el mercado aún no existe, el plan debe servir para aprender y probar supuestos antes de comprometer dinero (Christensen).', s: '4. Proyectos: Definir el reto → Idear → Prototipar y probar → Desarrollar y validar → Lanzar. En cada resultado deciden seguir, cambiar la solución, cambiar el segmento o el reto, esperar o detener, frente al criterio que fijaron antes.', r: ['tidd', 'brown', 'kelley', 'sawyer', 'amab', 'chris'] },
     { t: 'El costo de no innovar', x: 'Todo producto recorre un ciclo de vida: introducción, crecimiento, madurez y declive. Una empresa que solo explota su producto maduro puede ser rentable a corto plazo, pero pierde relevancia cuando cambian los clientes o la tecnología.', s: 'La “empresa gemela” que no innova aparece en Resultados: compare sus ventas y utilidades con las suyas.', r: ['tidd', 'chris'] }
   ] },
   { n: 2, titulo: 'Personas, creatividad y clima', pregunta: '¿Qué condiciones de trabajo hicieron que sus ideas fueran mejores o peores?', temas: [
@@ -2569,7 +2631,7 @@ var MANUAL = [
   ['lista', ['Cómo leen el entorno: señales del macro y del microentorno que pueden ser reales o rumores, y cómo responden a ellas.',
     'La estrategia de innovación del año y el clima creativo de la organización.',
     'Qué investigan sobre los clientes y la competencia.',
-    'Sus proyectos de innovación, de la idea al lanzamiento: definir, idear, evaluar, prototipar, especificar, pasar la puerta, pilotear y lanzar.',
+    'Sus proyectos de innovación, de la necesidad del cliente al lanzamiento, en cinco fases: definir el reto, idear, prototipar y probar, desarrollar y validar, y lanzar.',
     'El precio, la publicidad y los canales de los productos que ya venden.']],
   ['h', 'Cómo se mide su desempeño'],
   ['p', 'Sus resultados se comparan siempre con una <b>empresa gemela que no innova</b>: parte igual que ustedes y sigue vendiendo lo mismo. La diferencia entre ustedes y la gemela es el valor que su innovación creó. Al final se comparan todas las empresas del curso con seis indicadores:'],
@@ -2746,40 +2808,50 @@ var MANUAL = [
   ['idea', 'Comparen métodos sobre el mismo segmento (triangulación). Si la encuesta y la observación no coinciden, pesa más lo que el cliente hace que lo que dice. Pueden comprar todos los estudios a la vez, pero cuesten lo que cuesten salen del mismo presupuesto que los proyectos: liguen cada estudio a una decisión.'],
   ['ir', [['Ir a 3. Investigación', 'investigacion'], ['Ver mis informes', 'informes']]]
 ]},
-{ id: 'proyectos', t: 'Paso 4. Proyectos: cómo funcionan', r: 'Las ocho fases, una tarea por trimestre, acelerar y detener, y el cronograma de semanas-persona.', b: [
+{ id: 'proyectos', t: 'Paso 4. Proyectos: cómo funcionan', r: 'Las cinco fases, las decisiones en cada resultado, acelerar y detener, y el cronograma de semanas-persona.', b: [
   ['h', 'Cronograma de semanas-persona (cada trimestre)'],
   ['pasos', ['Elijan las tareas de sus proyectos (y la capacitación, si es inicio de año). Arriba aparece la tabla <b>Cronograma de semanas-persona de este trimestre</b> con cada actividad y su <b>rango de referencia</b>.', 'Para cada actividad escriban <b>su estimación</b> de semanas-persona y elijan la <b>semana de inicio y de fin</b> (1 a 12). Es obligatorio para enviar.', 'Revisen la fila <b>Carga por semana</b>: si una semana se pinta de rojo, pusieron demasiado trabajo en paralelo. Revisen también el total frente a las 12 disponibles y el máximo de la referencia.', 'Después de procesar, en Resultados → Resumen del trimestre verán <b>lo planificado frente a lo real</b> y qué actividad no se ejecutó por falta de tiempo.']],
   ['idea', 'Las personas suelen subestimar el tiempo de sus tareas (falacia de la planificación; Kahneman y Tversky, 1979). Dejen un margen. La tabla completa de tiempos de referencia está en 2. Estrategia anual → "Planificar el tiempo del equipo".'],
-  ['p', 'Un proyecto lleva una idea desde la necesidad del cliente hasta el mercado. Recorre ocho fases y cada trimestre les pide <b>una sola tarea</b>, la de la fase en la que está:'],
-  ['tabla', ['Fase', 'Tarea del equipo', 'Lo que devuelve el simulador'], [
-    ['1. Definir', 'Escribir el brief al crear el proyecto.', 'Revisión del brief y tipo de innovación.'],
-    ['2. Idear', 'Generar ideas con una técnica, votar y armar hasta 3 fichas de concepto.', 'Devolución de cada ficha y propuestas externas.'],
-    ['3. Evaluar', 'Leer el test de concepto, llenar la matriz de Pugh y elegir un concepto.', 'Tipo real de innovación y versiones de prototipo exigidas.'],
-    ['4. Prototipar', 'Diseñar el prototipo y probarlo con clientes simulados.', 'Informe de prueba con lo que hizo y dijo cada persona.'],
-    ['5. Especificar', 'Ficha técnica, caso de negocio, lienzo y pre-mortem.', 'Costo real de la planta piloto.'],
-    ['6. Puerta', '(La decide el comité con lo que entregaron en Especificar.)', 'Acta con cinco criterios y un veredicto.'],
-    ['7. Piloto', 'Vender en pocos puntos de venta durante un trimestre.', 'Ventas, recompra y proyección al mercado.'],
-    ['8. Lanzar', 'Nombre, mensaje, precio, publicidad y canales.', 'Resultados en el mercado y revisión final.']]],
-  ['p', 'Sin acelerar, un proyecto tarda <b>unos 6 trimestres</b> desde que lo crean hasta que lo lanzan (menos si aceleran; más si necesitan varias versiones de prototipo o reiterar en la Puerta). Pueden tener hasta <b>3 proyectos activos</b> a la vez.'],
+  ['p', 'Un proyecto lleva una necesidad del cliente hasta el mercado. Antes de los proyectos están el <b>Entorno</b> y la <b>Investigación</b>: ahí buscan señales y conocen al cliente. Después, cada proyecto recorre <b>cinco fases</b>, en el orden lógico que comparten Tidd y Bessant (2021), Brown (2019), Kelley y Kelley (2013), Sawyer y Henriksen (2024) y Amabile (1996). Todos aclaran que el orden no es obligatorio: se vuelve atrás cuando una prueba falla.'],
+  ['tabla', ['Fase', 'Tareas del equipo', 'Lo que devuelve el simulador'], [
+    ['1. Definir el reto', 'Elegir hallazgos de sus informes, escribir el insight, el trabajo por hacer, el reto “¿Cómo podríamos…?”, el encaje con la estrategia y el criterio de éxito.', 'Revisión del reto, aviso si no tienen estudios de contacto directo con el cliente y tipo de innovación.'],
+    ['2. Idear', 'Abrir opciones (técnica, votación, ideas de afuera, fichas); fijar la regla de selección antes del test; comparar con la matriz de Pugh y elegir un concepto.', 'Devolución de cada ficha, propuestas externas, test de concepto y tipo real del concepto elegido.'],
+    ['3. Prototipar y probar', 'Escribir la hipótesis y el criterio; diseñar el prototipo y probarlo con clientes simulados; iterar.', 'Informe de prueba con lo que hizo y dijo cada persona, frente a su criterio.'],
+    ['4. Desarrollar y validar', 'Ficha técnica, caso de negocio, lienzo y pre-mortem para la Puerta; piloto en pocos puntos de venta con un límite de recompra fijado antes.', 'Costo real, acta del comité y resultados del piloto.'],
+    ['5. Lanzar', 'Nombre, mensaje, precio, publicidad, canales; después, revisión del proyecto.', 'Resultados en el mercado, reacción de los rivales y revisión final.']]],
+  ['h', 'Decidir en cada resultado'],
+  ['p', 'Cuando llega un resultado (test de concepto, prueba de prototipo, acta de la Puerta o piloto), la tarjeta muestra una <b>caja de decisión</b> con su criterio fijado antes y el resultado. Eligen y explican por qué:'],
+  ['tabla', ['Opción', 'Qué pasa'], [
+    ['Seguir', 'Continúan en la fase: elegir el concepto, iterar o avanzar, volver a presentarse o lanzar.'],
+    ['Cambiar la solución', 'Desde el test o el prototipo vuelven a Idear (conservan sus fichas); desde la Puerta o el piloto vuelven a Prototipar.'],
+    ['Cambiar el segmento o el reto', 'Escriben el nuevo segmento, la evidencia, el insight y el reto. Vuelven a Idear: conservan las fichas, pero los tests, el concepto y los prototipos eran para el reto anterior y se descartan.'],
+    ['Esperar', 'El proyecto no avanza ese trimestre y no consume semanas.'],
+    ['Detener', 'Se cierra el proyecto. Lo invertido no se recupera.']]],
+  ['p', 'Seguir cuando no se cumple su criterio, o cambiar cuando sí se cumple, es posible: queda registrado como “contra su criterio” con su explicación. El <b>registro de decisiones</b> aparece en la ficha del proyecto y en la revisión final. Cuando cambian de solución o de segmento, ese trimestre el proyecto solo cambia de rumbo; las tareas de la fase nueva empiezan el trimestre siguiente.'],
+  ['p', 'Hoy el simulador procesa una fase por proyecto en cada trimestre. Sin acelerar, un proyecto tarda <b>unos 6 trimestres</b> desde que lo crean hasta que lo lanzan (menos si aceleran; más si necesitan varias versiones de prototipo, reiterar en la Puerta o cambiar de rumbo). Pueden tener hasta <b>3 proyectos activos</b> a la vez.'],
   ['h', 'Acelerar una fase'],
   ['p', 'Cuesta 50 % más en dinero y semanas y permite avanzar más rápido, pero se aprende menos (menos propuestas externas, test menos preciso, prototipo que rinde menos). Úsenlo cuando el tiempo importe más que la precisión.'],
   ['h', 'Detener un proyecto'],
   ['p', 'Detenerlo libera semanas. Lo ya invertido <b>no se recupera</b> y el comité no lo toma en cuenta: decidan mirando lo que falta invertir y lo que se espera ganar, no lo que ya gastaron.'],
   ['h', 'La ficha del proyecto'],
-  ['p', 'En cada tarjeta, <b>Ver ficha completa</b> muestra todo el recorrido: brief, ideas, fichas, elección, informes de prueba, acta y piloto. Es la memoria del proyecto y les servirá para la bitácora.'],
+  ['p', 'En cada tarjeta, <b>Ver ficha completa</b> muestra todo el recorrido: reto, ideas, fichas, regla de selección, elección, informes de prueba, acta, piloto y el registro de decisiones. Es la memoria del proyecto y les servirá para la bitácora.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'definir', t: 'Fase 1. Definir (el brief)', r: 'Crear un proyecto con un reto bien escrito.', b: [
+{ id: 'definir', t: 'Fase 1. Definir el reto', r: 'De los hallazgos al insight y a un reto bien escrito.', b: [
   ['p', 'Se crea en <b>Decidir → 4. Proyectos → Nuevo proyecto</b>. El proyecto existe desde que el docente procesa el trimestre; sus tareas empiezan el trimestre siguiente.'],
   ['tabla', ['Campo', 'Qué escribir'], [
     ['Nombre y segmento', 'Un nombre de trabajo y el segmento al que sirve.'],
+    ['Hallazgos', 'Uno o dos informes y una frase copiada de cada uno. Lo ideal es que al menos uno sea de <b>contacto directo</b> con el cliente: observación etnográfica o usuarios extremos.'],
+    ['Insight', 'Qué descubrieron del cliente y por qué importa, con sus palabras (no la frase copiada).'],
     ['Trabajo por hacer', '<i>Cuando…</i> (la situación del cliente), <i>quiero…</i> (lo que busca), <i>para…</i> (el resultado que espera). Desde su vida, no desde el producto.'],
     ['Evidencia', 'El informe que respalda el insight y una frase copiada de él.'],
     ['Reto', 'Una pregunta que empiece con <b>¿Cómo podríamos…?</b>, que nombre al cliente y que no traiga la solución.'],
+    ['Encaje con la estrategia', 'En una frase, cómo encaja el reto con su Estrategia anual y con lo que la empresa sabe hacer.'],
     ['Criterio de éxito', 'Una cifra y un plazo.'],
     ['Tecnología y modelo', '¿Necesita tecnología que hoy no tienen? ¿Cambia cómo venden o cobran?'],
     ['Portafolio', 'Núcleo, adyacente o transformacional.']]],
-  ['ej', 'Cuando salgo a las 6:30 y no alcanzo a desayunar, quiero algo que me quite el hambre, para rendir en las clases de la mañana. Reto: ¿Cómo podríamos ofrecer a los universitarios un desayuno que se tome con una mano en el micro? Criterio: 8 % de S2 dos trimestres después del lanzamiento.'],
+  ['p', 'Sintetizar es encontrar patrones en lo observado y darles sentido antes de buscar soluciones (Kelley y Kelley, 2013; Brown, 2019). Una encuesta informa qué dicen los clientes; empatizar exige ver qué hacen en su contexto.'],
+  ['ej', 'Hallazgo (observación de S2): “Desayuno en el micro, con una sola mano libre.” Insight: comen en movimiento y con una mano; lo que no se pueda tomar así no les sirve. Cuando salgo a las 6:30 y no alcanzo a desayunar, quiero algo que me quite el hambre, para rendir en las clases de la mañana. Reto: ¿Cómo podríamos ayudar a los universitarios a alimentarse bien mientras se trasladan? Encaje: es adyacente; cabe en nuestra línea. Criterio: 8 % de S2 dos trimestres después del lanzamiento.'],
   ['p', 'Presionen <b>Revisar el brief</b>: el simulador marca qué está bien y qué mejorar, y les dice el <b>tipo de innovación</b> según sus respuestas: <b>rutinaria</b> (no cambia tecnología ni modelo), <b>disruptiva</b> (cambia el modelo), <b>radical</b> (cambia la tecnología) o <b>arquitectónica</b> (cambian ambos).'],
   ['ojo', 'Un reto que ya trae la solución ("¿Cómo podríamos vender una botella…?") cierra la búsqueda antes de empezar. Describan la necesidad.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
@@ -2800,17 +2872,20 @@ var MANUAL = [
     '<b>Concepto en una frase</b>: <i>Para [quién] que [necesidad], [producto] es [qué] que [beneficio], a diferencia de [alternativa].</i>',
     '<b>Qué mejora</b>: repartan exactamente <b>10 puntos</b> entre sabor, nutrición, conveniencia, salud, sostenibilidad y precio. Más puntos en un atributo lo hacen mejor, pero más difícil y caro de lograr.',
     '¿Tecnología nueva?, ¿cambia cómo venden o cobran?, y su tipo en las 4P.',
-    '<b>Enviar al test de concepto</b> (Bs 5.000 por ficha): recomendable; sin test, la fase Evaluar decide casi a ciegas.']],
+    '<b>Enviar al test de concepto</b> (Bs 5.000 por ficha): recomendable; sin test, la elección se hace casi a ciegas.']],
+  ['h', 'Regla de selección (antes del test)'],
+  ['p', 'Antes de ver el test fijen la <b>intención de compra mínima</b> que debe tener un concepto para elegirlo y, si quieren, otros criterios (deseable, factible, viable). Sin esta regla el test no se hace. Al elegir, el simulador compara el concepto elegido con su regla. Elegir entre ideas es difícil: sin criterios previos se tiende a lo conocido (Sawyer y Henriksen, 2024).'],
   ['h', 'Ideas de afuera (innovación abierta)'],
   ['tabla', ['Fuente', 'Costo', 'Semanas', 'Qué traen'], [
     ['Concurso abierto de ideas', 'Bs 8.000 + premio (bajo, medio o alto)', '2', 'Muchas propuestas variadas; varias poco viables. El premio medio suele rendir más.'],
     ['Intraemprendimiento', 'Bs 10.000', '3', 'Pocas propuestas de su personal, viables y a menudo de proceso.'],
     ['Reto con startups', 'Bs 20.000', '2', 'Pocas propuestas, a menudo con tecnología o modelo nuevos.']]],
   ['p', 'Las propuestas llegan al procesar el trimestre. Si una les sirve, usen <b>Pasar a ficha</b>.'],
-  ['p', 'El proyecto pasa a Evaluar con las fichas enviadas al test. Si no quieren testear, marquen <b>Pasar a Evaluar aunque no hagan el test</b>.'],
+  ['p', 'Con las fichas enviadas al test, el proyecto pasa a la segunda parte de Idear: comparar y elegir. Si no quieren testear, marquen <b>Pasar a Evaluar aunque no hagan el test</b>.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'evaluar', t: 'Fase 3. Evaluar', r: 'Leer el test de concepto, llenar la matriz de Pugh y elegir.', b: [
+{ id: 'evaluar', t: 'Fase 2 (cont.). Comparar y elegir un concepto', r: 'Leer el test de concepto, decidir frente a su regla, llenar la matriz de Pugh y elegir.', b: [
+  ['p', 'Primero aparece la <b>caja de decisión</b> con su regla de selección y el mejor resultado del test. Decidan seguir (elegir un concepto), cambiar la solución (volver a idear), cambiar el segmento o el reto, esperar o detener.'],
   ['h', 'Lo que trae el test de concepto (por ficha)'],
   ['tabla', ['Dato', 'Cómo leerlo'], [
     ['Intención de compra declarada', 'Porcentaje que dice que seguro o probablemente la compraría. Está inflada: la compra real suele ser menor. Sirve para comparar conceptos entre sí.'],
@@ -2828,11 +2903,13 @@ var MANUAL = [
   ['p', 'Al elegir, el simulador compara el tipo que declararon con el <b>tipo real</b> del concepto y les dice cuántas <b>versiones de prototipo</b> necesitarán antes de la Puerta: 1 para rutinarios y disruptivos, 2 o 3 para radicales y 3 para arquitectónicos (más si combinan o si concentran muchos puntos en un atributo).'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'prototipar', t: 'Fase 4. Prototipar', r: 'Diseñar el prototipo y aprender de la prueba con clientes simulados.', b: [
+{ id: 'prototipar', t: 'Fase 3. Prototipar y probar', r: 'Escribir la hipótesis, diseñar el prototipo y aprender de la prueba con clientes simulados.', b: [
   ['p', 'Prototipar es dar forma a la idea para <b>aprender cómo la usa el cliente</b>. Ustedes diseñan el prototipo (pueden construirlo en clase); el simulador lo pone en manos de clientes simulados del segmento y les devuelve lo que hicieron y dijeron.'],
   ['h', '1. Qué queremos aprender'],
   ['p', 'Elijan el <b>supuesto más riesgoso</b>: que puedan abrirlo y tomarlo solos (uso), que entiendan cómo se usa sin explicación (comprensión) o que encaje en su rutina diaria (rutina). Escriban la <b>pregunta</b> que el prototipo debe responder.'],
   ['ej', '¿Pueden abrirlo con una mano y sin explicación, en menos de 30 segundos?'],
+  ['p', 'Antes de probar escriban su <b>hipótesis</b> (“Creemos que…”) y su <b>criterio</b>: cuántas personas, de las que prueban, deben lograrlo para seguir. Sin ellos el prototipo no se prueba. Así la prueba sirve para decidir y no solo para confirmar lo que ya pensaban (Christensen, 1997).'],
+  ['ej', 'Creemos que los universitarios lo abrirán con una mano, sin ayuda, en el micro. Criterio: al menos 6 de 8.'],
   ['h', '2. Diseñar el prototipo'],
   ['tabla', ['Formato', 'Qué puede comprobar'], [
     ['Maqueta física', 'Uso, comprensión y rutina (los clientes la tocan y la usan).'],
@@ -2848,11 +2925,12 @@ var MANUAL = [
   ['h', 'Siguiente paso'],
   ['lista', ['<b>Iterar</b>: escriban qué aprendieron con la versión anterior y qué cambian, y prueben una nueva versión.',
     '<b>Avanzar a Especificar y Puerta</b>: cuando el supuesto quedó confirmado y tienen las versiones exigidas.',
-    '<b>Volver a Evaluar</b>: si la idea no funciona.']],
+    '<b>Volver a Evaluar</b>: si la idea no funciona y quieren elegir otro concepto ya probado.']],
+  ['p', 'Después de cada prueba, la caja de decisión compara su criterio con el resultado y registra su decisión.'],
   ['idea', 'Cambien una o dos características por versión, guiándose por la malla. Si cambian todo a la vez, no sabrán qué funcionó.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'especificar', t: 'Fases 5 y 6. Especificar y la Puerta', r: 'Ficha técnica, caso de negocio, lienzo, pre-mortem y acta del comité.', b: [
+{ id: 'especificar', t: 'Fase 4. Desarrollar y validar: especificar y la Puerta', r: 'Ficha técnica, caso de negocio, lienzo, pre-mortem y acta del comité.', b: [
   ['p', 'Especificar es definir cómo se fabricará el producto y cuánto costará. La Puerta es el comité que, con esa información, decide si se autoriza el piloto. Lo que viene del prototipo (tamaño y forma de abrir) queda fijo.'],
   ['h', '1. Ficha técnica'],
   ['p', 'Elijan envase, base líquida, azúcar, conservación (pasteurizada, 12 días; UHT, 90 días), etiqueta y producción (línea actual, máquina nueva con inversión de Bs 60.000 o maquila). La pantalla calcula el <b>costo por unidad</b> y por litro, la vida útil y cuántas unidades pueden producir por trimestre.'],
@@ -2879,7 +2957,7 @@ var MANUAL = [
   ['p', 'El umbral es el que eligieron en la Estrategia anual. Si la estructura es integrada, el proyecto es un producto nuevo y la empresa es muy radical, el comité exige un punto más.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'piloto', t: 'Fase 7. Piloto', r: 'Vender en pocos puntos para medir ventas y recompra.', b: [
+{ id: 'piloto', t: 'Fase 4 (cont.). Desarrollar y validar: el piloto', r: 'Vender en pocos puntos para medir ventas y recompra.', b: [
   ['p', 'El piloto es una prueba de mercado: venden en pocos puntos durante un trimestre para medir con clientes cuánto se vende y, sobre todo, <b>si vuelven a comprar</b>.'],
   ['pasos', ['<b>Dónde</b>: número de puntos de venta en cada canal de su lienzo. Cada punto tiene costo (tienda Bs 300, supermercado Bs 800, kiosco Bs 400, máquina Bs 1.200, app propia Bs 2.000, delivery Bs 1.000).',
     '<b>Precio de prueba</b> por unidad y <b>apoyo</b> en el punto de venta (ninguno, afiche y exhibidor Bs 3.000, degustación los sábados Bs 8.000).',
@@ -2891,7 +2969,7 @@ var MANUAL = [
   ['idea', 'Produzcan cerca de su pronóstico: si sobra, el producto vence; si falta, pierden ventas y no miden bien la demanda.'],
   ['ir', [['Ir a 4. Proyectos', 'proyectos']]]
 ]},
-{ id: 'lanzar', t: 'Fase 8. Lanzar y revisar', r: 'Salir al mercado y cerrar el proyecto con una revisión.', b: [
+{ id: 'lanzar', t: 'Fase 5. Lanzar y revisar', r: 'Salir al mercado y cerrar el proyecto con una revisión.', b: [
   ['h', 'Lanzar'],
   ['lista', ['<b>Nombre comercial</b> y <b>mensaje publicitario</b> en una frase. El mensaje debería decir, con palabras del cliente, el beneficio principal del concepto; si no, el simulador lo marca.',
     '<b>Precio por unidad</b>: la pantalla muestra a cuánto equivale por litro.',
