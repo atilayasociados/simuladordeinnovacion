@@ -327,9 +327,11 @@ function vrSimularTrimestre(D, estado0, decisiones) {
     var distribucion = D.costoDistribucionPctVentas * r.ventas;
     var innov = d.gastoInnovacion || 0, estudios = d.gastoEstudios || 0;
     var adm = eq.admEfectivoTrim + eq.depAdmTrim;
+    var fijosNuevos = eq.fijoOperativoNuevoTrim || 0;          // filas "fijo por trimestre" de productos lanzados (decisión 16)
+    var depNueva = eq.depInversionNuevaTrim || 0;              // depreciación de inversiones de innovación (decisión 16)
     var intereses = eq.deuda * D.tasaInteresAnual / D.trimestresPorAnio;
     var utilidadBruta = r.ventas - r.costoVentas - fijoNoAbsorbido - r.vencido;
-    var utilidadOperativa = utilidadBruta - distribucion - publicidad - adm - innov - estudios;
+    var utilidadOperativa = utilidadBruta - distribucion - publicidad - adm - fijosNuevos - depNueva - innov - estudios;
     var ebt = utilidadOperativa - intereses;
     if (esInicioAnio) { eq.ebtAnio = 0; eq.impuestoAnio = 0; }
     eq.ebtAnio += ebt;
@@ -345,7 +347,7 @@ function vrSimularTrimestre(D, estado0, decisiones) {
     var cxpFin = D.balance.diasCxP / 91 * costoVentasPeriodo; // días de costo de ventas (Gloria 2024)
     var compras = r.costoProduccionVariable + (eq.fijoFabTrim - eq.depFabTrim); // materiales + fijos de fabricación en efectivo
     var pagosProveedores = compras + eq.cxp - cxpFin;
-    var pagosGastos = distribucion + publicidad + eq.admEfectivoTrim + innov + estudios;
+    var pagosGastos = distribucion + publicidad + eq.admEfectivoTrim + fijosNuevos + innov + estudios;
     var inversion = eq.reposicionActivoTrim + (d.inversion || 0);
     var flujoOperativo = cobros - pagosProveedores - pagosGastos - intereses - impuesto;
     var cajaPrev = eq.caja + flujoOperativo - inversion;
@@ -354,7 +356,8 @@ function vrSimularTrimestre(D, estado0, decisiones) {
     // ----- actualizar balance -----
     eq.caja = cajaPrev + prestamo;
     eq.cxc = cxcFin; eq.cxp = cxpFin; eq.deuda += prestamo;
-    eq.activoFijo += inversion - eq.depFabTrim - eq.depAdmTrim;
+    eq.activoFijo += inversion - eq.depFabTrim - eq.depAdmTrim - depNueva;
+    if (d.inversion) eq.depInversionNuevaTrim = depNueva + d.inversion * D.balance.depreciacionAnualPct / D.trimestresPorAnio;
     eq.resultadosAcumulados += utilidadNeta;
     var inventarioFin = vrValorInventario_(eq), fijoEnInvFin = vrFijoEnInventario_(eq);
     var activo = eq.caja + eq.cxc + inventarioFin + eq.activoFijo;
@@ -363,7 +366,7 @@ function vrSimularTrimestre(D, estado0, decisiones) {
     // ----- costeo variable y conciliación -----
     var margenContribucion = r.ventas - r.costoVariableVendido - distribucion;
     var vencidoVariable = r.vencido - r.vencidoFijo; // parte variable de lo vencido
-    var utilidadOperativaVariable = margenContribucion - vencidoVariable - eq.fijoFabTrim - publicidad - adm - innov - estudios;
+    var utilidadOperativaVariable = margenContribucion - vencidoVariable - eq.fijoFabTrim - publicidad - adm - fijosNuevos - depNueva - innov - estudios;
     var conciliacion = utilidadOperativa - utilidadOperativaVariable; // = fijo en inventario final − inicial (± vencido)
 
     var saldoMinimo = D.saldoMinimoCajaPctVentas * eq.ventasAnioAnterior;
@@ -373,6 +376,7 @@ function vrSimularTrimestre(D, estado0, decisiones) {
         litrosVencidos: r.litrosVencidos, porProducto: r.porProducto },
       resultados: { ventas: r.ventas, costoVentas: r.costoVentas, capacidadNoAbsorbida: fijoNoAbsorbido, bajasVencimiento: r.vencido,
         utilidadBruta: utilidadBruta, distribucion: distribucion, publicidad: publicidad, administracion: adm,
+        fijosProductosNuevos: fijosNuevos, depreciacionInversionesNuevas: depNueva,
         innovacion: innov, investigacionMercados: estudios, utilidadOperativa: utilidadOperativa,
         intereses: intereses, utilidadAntesImpuestos: ebt, impuesto: impuesto, utilidadNeta: utilidadNeta },
       costeoVariable: { margenContribucion: margenContribucion, costosFijosFabricacion: eq.fijoFabTrim,
@@ -404,5 +408,5 @@ function vrFijoEnInventario_(eq) {
 function vrCuotasResumen_(dem) { var o = {}; for (var k in dem) o[k] = dem[k].cuota; return o; }
 
 // Exportación para pruebas en Node (no afecta a Apps Script).
-if (typeof module !== 'undefined') module.exports = { vrDemanda_: vrDemanda_, vrUtilidad_: vrUtilidad_, vrCrearPartida: vrCrearPartida,
+if (typeof module !== 'undefined') module.exports = { vrDemanda_: vrDemanda_, vrPrecioConsumidor_: vrPrecioConsumidor_, vrUtilidad_: vrUtilidad_, vrCrearPartida: vrCrearPartida,
   vrSimularTrimestre: vrSimularTrimestre, vrDecisionesNeutras: vrDecisionesNeutras, vrProductosMercadoAnio0_: vrProductosMercadoAnio0_ };
