@@ -53,11 +53,28 @@ function vrPrecioConsumidor_(D, prod) {
   return tot > 0 ? p / tot : prod.precioEmpresa;
 }
 
-/** Factor de publicidad: (publicidad / referencia)^0,12 (decisión 33). */
+/** Caída de ventas por trimestres seguidos sin publicidad (Ehrenberg-Bass, 2018), interpolada por trimestre. */
+function vrCaidaSinPublicidad_(D, q) {
+  var c = D.caidaSinPublicidad;
+  if (q <= 0) return 0;
+  for (var i = 1; i < c.length; i++) {
+    if (q <= c[i].trimestres) {
+      var a = c[i - 1], b = c[i];
+      return a.caida + (b.caida - a.caida) * (q - a.trimestres) / (b.trimestres - a.trimestres);
+    }
+  }
+  return c[c.length - 1].caida;
+}
+
+/**
+ * Factor de publicidad: (publicidad / referencia)^0,12 (decisión 33), nunca peor que dejar de anunciar
+ * durante los mismos trimestres seguidos con publicidad por debajo de la referencia (Ehrenberg-Bass, 2018).
+ */
 function vrFactorPublicidad_(D, prod) {
   if (!prod.publicidadRef) return 1; // competidores fijos
-  var a = Math.max(prod.publicidad, D.publicidadMinimaRelativa * prod.publicidadRef);
-  return Math.pow(a / prod.publicidadRef, D.elasticidadPublicidad);
+  var piso = 1 - vrCaidaSinPublicidad_(D, prod.trimestresPublicidadBaja || 0);
+  if (prod.publicidad <= 0) return piso;
+  return Math.max(piso, Math.pow(prod.publicidad / prod.publicidadRef, D.elasticidadPublicidad));
 }
 
 /**
@@ -225,6 +242,11 @@ function vrSimularTrimestre(D, estado0, decisiones) {
       if (dp.precioEmpresa != null) p.precioEmpresa = dp.precioEmpresa;
       if (dp.mezcla) p.mezcla = vrCopia_(dp.mezcla);
       if (dp.publicidad != null) p.publicidad = dp.publicidad;
+    });
+    // trimestres seguidos con publicidad por debajo de la referencia
+    eq.productos.forEach(function (p) {
+      if (!p.activo || !p.publicidadRef) return;
+      p.trimestresPublicidadBaja = p.publicidad < p.publicidadRef * (1 - 1e-9) ? (p.trimestresPublicidadBaja || 0) + 1 : 0;
     });
   });
 

@@ -17,3 +17,10 @@ console.log('E1 sin publicidad:', correr((d) => { d.E1.productos['E1-actual'].pu
 console.log('E1 vende 100 % en tiendas:', correr((d) => { d.E1.productos['E1-actual'].mezcla = { supermercado: 0, tienda: 1, mercado: 0 }; }));
 console.log('E1 produce 50 % más:', correr((d, E) => { const v = E.anio0.litrosPorEquipo / 52; d.E1.productos['E1-actual'].produccionSemanal = v * 1.5; }));
 console.log('E1 produce 30 % menos:', correr((d, E) => { const v = E.anio0.litrosPorEquipo / 52; d.E1.productos['E1-actual'].produccionSemanal = v * 0.7; }));
+// Publicidad en cero durante 12 trimestres (equipo 1)
+{
+  let E = ctx.vrCrearPartida(D, 5); const fila = [];
+  for (let t = 1; t <= 12; t++) { const d = ctx.vrDecisionesNeutras(E); d.E1.productos['E1-actual'].publicidad = 0; E = ctx.vrSimularTrimestre(D, E, d);
+    const h = E.equipos[0].historial[t - 1]; fila.push(`T${t}: ${fmt(h.operacion.litrosVendidos)} L, utilidad ${fmt(h.resultados.utilidadNeta)}`); }
+  console.log('E1 sin publicidad 12 trimestres:\n  ' + fila.join('\n  '));
+}

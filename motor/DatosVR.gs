@@ -124,5 +124,9 @@ var VR_DATOS = {
   },
 
   // ---------- reglas de implementación pendientes de visto bueno ----------
-  publicidadMinimaRelativa: 0.10 // con publicidad 0 el efecto se calcula como si fuera el 10 % de la referencia (IMPLEMENTACIÓN)
+  // Caída de ventas cuando una marca deja de anunciar (Ehrenberg-Bass Institute, 2018: 70 marcas de consumo masivo de Australia,
+  // 57 casos sin publicidad en medios masivos por un año o más): −16 % al año, −25 % a los 2 años, −36 % a los 3 años.
+  // Regla: el efecto de la publicidad nunca es peor que dejar de anunciar durante los mismos trimestres seguidos con publicidad
+  // por debajo de la referencia; entre los puntos se interpola por trimestre y después del año 3 se mantiene (aprobado, 12-nov-2026).
+  caidaSinPublicidad: [{ trimestres: 0, caida: 0 }, { trimestres: 4, caida: 0.16 }, { trimestres: 8, caida: 0.25 }, { trimestres: 12, caida: 0.36 }]
 };
