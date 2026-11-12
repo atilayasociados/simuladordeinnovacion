@@ -33,7 +33,11 @@ const proyecto = {
   ],
   compuerta1: { semana: 11, continuar: true }, compuerta2: { semana: 25, continuar: true }
 };
-let I = { E1: { comite: [{ nombre: 'Jefa', cargo: 'jefe', dedicacion: 0.1 }, { nombre: 'Analista', cargo: 'profesional', dedicacion: 0.45 }], proyectos: [proyecto], rubrosAprobados: {} } };
+const proyecto2 = JSON.parse(JSON.stringify(proyecto));
+proyecto2.gantt = proyecto2.gantt.map((a) => a.tipo === 'prueba_producto' ? { ...a, inicio: 30 } : a.tipo === 'lanzamiento' ? { ...a, inicio: 40 } : a);
+proyecto2.compuerta2 = { semana: 36, continuar: true };
+let I = { E2: { comite: [{ nombre: 'Jefe', cargo: 'jefe', dedicacion: 0.1 }, { nombre: 'Analista', cargo: 'profesional', dedicacion: 0.45 }], proyectos: [proyecto2], rubrosAprobados: {} },
+  E1: { comite: [{ nombre: 'Jefa', cargo: 'jefe', dedicacion: 0.1 }, { nombre: 'Analista', cargo: 'profesional', dedicacion: 0.45 }], proyectos: [proyecto], rubrosAprobados: {} } };
 const errores = ctx.vrValidarInnovacion(D, E, E.equipos[0], I.E1, banco);
 ok(errores.length === 0, 'el plan del equipo 1 es válido' + (errores.length ? ': ' + errores.join(' | ') : ''));
 
@@ -48,8 +52,7 @@ for (let t = 1; t <= 12; t++) {
   I = r.innov;
   r.eventos.forEach((ev) => console.log('   evento T' + t + ':', JSON.stringify(ev)));
   const dec = ctx.vrUnirDecisiones(ctx.vrDecisionesNeutras(r.estado), r.extras);
-  const nuevo = r.estado.equipos[0].productos.find((p) => p.id === 'E1-P1');
-  if (nuevo && dec.E1.productos['E1-P1']) dec.E1.productos['E1-P1'].produccionSemanal = null;
+  for (const q of ['E1-P1', 'E2-P1']) { const eqid = q.slice(0, 2); if (dec[eqid].productos[q]) dec[eqid].productos[q].produccionSemanal = null; }
   E = ctx.vrSimularTrimestre(D, r.estado, dec);
   const h = E.equipos[0].historial[t - 1];
   console.log(`T${t}: litros ${fmt(h.operacion.litrosVendidos)} | innovación ${fmt(h.resultados.innovacion)} | estudios ${fmt(h.resultados.investigacionMercados)} | utilidad ${fmt(h.resultados.utilidadNeta)} | cuadre ${h.balance.cuadre.toFixed(6)}` +
@@ -59,6 +62,11 @@ const p = I.E1.proyectos[0];
 ok(p.resultados.compuerta1 && p.resultados.compuerta1.aprobada, 'compuerta 1 aprobada');
 console.log('   prueba de concepto:', JSON.stringify(p.resultados.pruebaConcepto.concepto.volumenTrim), 'supera al actual:', p.resultados.pruebaConcepto.superaAlActual);
 console.log('   compuerta 2:', JSON.stringify(p.resultados.compuerta2 && p.resultados.compuerta2.requisitos.map((r) => [r.id, r.cumple])));
+const p2 = I.E2.proyectos[0];
+ok(p2.estado === 'lanzado' && p2.trimestreLanzamiento === 4, 'equipo 2: compuerta 2 aprobada y producto lanzado en el trimestre 4');
+const h2 = E.equipos[1].historial;
+console.log('   equipo 2, litros por trimestre (actual + nuevo):', h2.map((h) => fmt(h.operacion.litrosVendidos)).join(' | '));
+console.log('   equipo 2, utilidad neta por trimestre:', h2.map((h) => fmt(h.resultados.utilidadNeta)).join(' | '));
 ok(E.equipos.every((eq) => eq.historial.every((h) => Math.abs(h.balance.cuadre) < 1e-4)), 'todos los balances cuadran');
 console.log(fallas ? `\n${fallas} FALLAS` : '\nTodas las pruebas pasaron');
 process.exit(fallas ? 1 : 0);

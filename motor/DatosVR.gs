@@ -21,7 +21,10 @@ var VR_DATOS = {
   ],
   elasticidadPrecio: -2.05,             // Hu et al. (2016), decisión 30
   elasticidadPublicidad: 0.12,          // Sethuraman et al. (2011), decisión 33
-  escalaLogit: 0.11517838795090132,     // calibrada: no Pil 10 % / Pil 90 % (AEMP 2010), banco §9
+  // Escala del logit 0,02 (decisión del docente, 12-nov-2026, a sugerencia de Claude; sin fuente publicada) y constantes de marca
+  // de los competidores, calibradas para reproducir las participaciones aprobadas del Año 0: 33,6 % / 56,4 % / 10,0 % (banco §9).
+  escalaLogit: 0.02,
+  constanteMarca: { chiquitano: 1, cupesi: 1.4289039213003782, motacu: 0.16923600967638028 },
   porcionMl: 240,                       // porción estándar de leche (FDA), banco §9
 
   // Utilidades por segmento, Brodock et al. (2021), tabla 3 (clúster 1 = natural, 2 = calorías, 3 = promedio).
@@ -110,6 +113,9 @@ var VR_DATOS = {
     deudaSobreFinanciamiento: 1267500 / (1267500 + 1623368)
   },
   saldoMinimoCajaPctVentas: 119009 / 4097504, // banco §11
+  // Capacidad de planta: el Año 0 usa el 68,5 % de la capacidad (Pil 2015: acopio promedio 685.000 L/día frente a una capacidad
+  // de más de 1.000.000 L/día; Ministerio de Desarrollo Productivo, SIIP, Boletín especial 05-2015). Regla aprobada 12-nov-2026.
+  utilizacionCapacidadAnio0: 0.685,
   tasaInteresAnual: 0.08,                     // banco §11 (DS 5403)
   tasaImpuesto: 0.25,                         // IUE, Ley 843 (regla del motor; impuesto a las utilidades de las empresas, 25 %)
 

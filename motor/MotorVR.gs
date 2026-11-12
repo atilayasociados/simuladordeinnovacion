@@ -91,7 +91,8 @@ function vrDemanda_(D, productos, nEquipos) {
     for (i = 0; i < productos.length; i++) {
       var p = productos[i];
       var w = p.esEquipo ? 1 / nEquipos : 1;
-      var a = w * Math.exp(D.escalaLogit * vrUtilidad_(D, p, seg.id)) *
+      var cm = (D.constanteMarca && D.constanteMarca[p.clave]) || 1; // constante de marca de los competidores (banco §9)
+      var a = w * cm * Math.exp(D.escalaLogit * vrUtilidad_(D, p, seg.id)) *
         Math.pow(vrPrecioConsumidor_(D, p) / D.precioReferencia, D.elasticidadPrecio) * vrFactorPublicidad_(D, p);
       atr.push(a); tot += a;
     }
@@ -187,6 +188,7 @@ function vrCrearPartida(D, nEquipos) {
       depAdmTrim: depAdm / D.trimestresPorAnio,
       admEfectivoTrim: (admAnual - depAdm) / D.trimestresPorAnio,
       produccionNormalTrim: V / D.trimestresPorAnio,
+      capacidadSemanal: V / 52 / D.utilizacionCapacidadAnio0, // litros por semana de toda la planta
       reposicionActivoTrim: depAnual / D.trimestresPorAnio, // la empresa repone lo que se deprecia (regla del motor)
       ventasAnioAnterior: S,
       ebtAnio: 0, impuestoAnio: 0,
@@ -272,6 +274,13 @@ function vrSimularTrimestre(D, estado0, decisiones) {
       var q = dp.produccionSemanal == null ? dem[p.id].litros / sem : Math.max(0, dp.produccionSemanal);
       plan[p.id] = q; prodTotal += q * sem;
     });
+    // capacidad de planta: si el plan semanal la supera, se recorta en proporción (banco §15, regla 10)
+    var planSemanal = prodTotal / sem, recorte = 1;
+    if (eq.capacidadSemanal && planSemanal > eq.capacidadSemanal) {
+      recorte = eq.capacidadSemanal / planSemanal;
+      for (var kp in plan) plan[kp] *= recorte;
+      prodTotal *= recorte;
+    }
     var tasaFijo = eq.fijoFabTrim / Math.max(eq.produccionNormalTrim, prodTotal);
     var fijoNoAbsorbido = eq.fijoFabTrim - tasaFijo * prodTotal;
 
@@ -373,6 +382,7 @@ function vrSimularTrimestre(D, estado0, decisiones) {
     var informe = {
       t: E.t,
       operacion: { litrosVendidos: r.litros, litrosProducidos: r.produccionLitros, ventasPerdidasLitros: r.perdidas,
+        capacidadSemanal: eq.capacidadSemanal, recorteCapacidad: 1 - recorte,
         litrosVencidos: r.litrosVencidos, porProducto: r.porProducto },
       resultados: { ventas: r.ventas, costoVentas: r.costoVentas, capacidadNoAbsorbida: fijoNoAbsorbido, bajasVencimiento: r.vencido,
         utilidadBruta: utilidadBruta, distribucion: distribucion, publicidad: publicidad, administracion: adm,
