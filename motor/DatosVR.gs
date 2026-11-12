@@ -2,7 +2,7 @@
  * Simulador de Innovación "vida real" — Datos del Año 0 (todos con fuente).
  * Origen: documento del proyecto "claude/banco-datos-simulador.md" (aprobado por el docente, 11 y 12-nov-2026)
  * y "claude/decisiones-simulador-vida-real.md". Cada valor indica su sección del banco de datos.
- * Los valores marcados "IMPLEMENTACIÓN" son reglas de programación pendientes de visto bueno del docente.
+ * Las reglas marcadas "regla del motor" fueron aprobadas por el docente el 12-nov-2026 (siguiendo la sugerencia de Claude).
  */
 var VR_DATOS = {
   version: 'vr-0.1',
@@ -41,7 +41,7 @@ var VR_DATOS = {
         { valor: 0, id: 'descremada', u: { natural: -26.8, calorias: 15.6, promedio: -38.4 } },
         { valor: 1, id: '1%', u: { natural: 9.2, calorias: 22.3, promedio: 5.3 } },
         { valor: 2, id: '2%', u: { natural: 21.8, calorias: 9.9, promedio: 28.7 } },
-        { valor: 3.25, id: 'entera', u: { natural: 17.6, calorias: -66.3, promedio: 33.7 } } // entera EE. UU. 3,25 % (IMPLEMENTACIÓN)
+        { valor: 3.25, id: 'entera', u: { natural: 17.6, calorias: -66.3, promedio: 33.7 } } // entera EE. UU. 3,25 % (regla del motor)
       ]
     },
     azucar: { // g de azúcar añadida por porción de 240 ml → nivel
@@ -94,7 +94,7 @@ var VR_DATOS = {
   gastosVentaAdmPct: 0.1317,   // Moody's 2025
   publicidadPctVentas: 110191 / 4252767, // Gloria 2024 (≈ 2,59 %)
   // Parte variable del costo de ventas: materias primas e insumos sobre los componentes de la nota 21 de Gloria 2024,
-  // sin la desvalorización de existencias (el simulador calcula el vencimiento aparte). IMPLEMENTACIÓN.
+  // sin la desvalorización de existencias (el simulador calcula el vencimiento aparte). Regla del motor.
   costoVentasVariablePct: 2323365 / (2323365 + 44388 + 85458 + 568238 + 285 + 57416),
   vidaUtilSemanas: { uht: 16, pasteurizado: 1 }, // banco §3
 
@@ -111,7 +111,7 @@ var VR_DATOS = {
   },
   saldoMinimoCajaPctVentas: 119009 / 4097504, // banco §11
   tasaInteresAnual: 0.08,                     // banco §11 (DS 5403)
-  tasaImpuesto: 0.25,                         // IUE, Ley 843 (IMPLEMENTACIÓN: fuente a registrar en el banco)
+  tasaImpuesto: 0.25,                         // IUE, Ley 843 (regla del motor; impuesto a las utilidades de las empresas, 25 %)
 
   // ---------- innovación (banco §8, §12, §13, §14) ----------
   presupuestoExploracionPctVentas: 0.008,

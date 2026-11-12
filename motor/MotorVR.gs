@@ -187,7 +187,7 @@ function vrCrearPartida(D, nEquipos) {
       depAdmTrim: depAdm / D.trimestresPorAnio,
       admEfectivoTrim: (admAnual - depAdm) / D.trimestresPorAnio,
       produccionNormalTrim: V / D.trimestresPorAnio,
-      reposicionActivoTrim: depAnual / D.trimestresPorAnio, // la empresa repone lo que se deprecia (IMPLEMENTACIÓN)
+      reposicionActivoTrim: depAnual / D.trimestresPorAnio, // la empresa repone lo que se deprecia (regla del motor)
       ventasAnioAnterior: S,
       ebtAnio: 0, impuestoAnio: 0,
       historial: []
@@ -349,7 +349,7 @@ function vrSimularTrimestre(D, estado0, decisiones) {
     var inversion = eq.reposicionActivoTrim + (d.inversion || 0);
     var flujoOperativo = cobros - pagosProveedores - pagosGastos - intereses - impuesto;
     var cajaPrev = eq.caja + flujoOperativo - inversion;
-    var prestamo = cajaPrev < 0 ? -cajaPrev : 0; // si la caja queda negativa, préstamo automático a la misma tasa (IMPLEMENTACIÓN)
+    var prestamo = cajaPrev < 0 ? -cajaPrev : 0; // si la caja queda negativa, préstamo automático a la misma tasa (regla del motor)
 
     // ----- actualizar balance -----
     eq.caja = cajaPrev + prestamo;
