@@ -1,0 +1,413 @@
+<script>
+// ===================== Simulador de Innovación "vida real" — pantallas (vr-0.1) =====================
+// El servidor repite todas las validaciones (VR.gs). Esta pantalla solo ayuda a decidir.
+var VV = null, DD = null, VTAB = 'inicio', VPROY = null, VREV = null, VTIMER = null;
+var VR_SEG = { natural: 'Consumidores de lo natural', calorias: 'Conscientes de las calorías', promedio: 'Consumidores promedio' };
+var VR_END = { estevia: 'Estevia', jarabe_maiz: 'Jarabe de maíz', azucar_cana: 'Azúcar de caña', fruta_monje: 'Fruta del monje', agave: 'Agave', azucar_remolacha: 'Azúcar de remolacha', sucralosa: 'Sucralosa' };
+var VR_ACT = { interna: 'Interna', estudio_consumidor: 'Estudio del consumidor (externa, 5 sem.)', prueba_concepto: 'Prueba de concepto (externa, 5 sem.)', desarrollo: 'Desarrollo del prototipo', prueba_producto: 'Prueba de producto (externa, 5 sem.)', registro_sanitario: 'Registro sanitario SENASAG (externa, 9 sem.)', lanzamiento: 'Lanzamiento' };
+var VR_CAT = { contenido: 'Contenido', envase: 'Envase', mano_de_obra: 'Mano de obra', equipo: 'Equipo', otro: 'Otro' };
+var VR_TIPO = { variable: 'Variable por litro', inversion: 'Inversión', fijo: 'Fijo por trimestre', desarrollo: 'Desarrollo' };
+var VR_CAN = { supermercado: 'Supermercado', tienda: 'Tienda de barrio', mercado: 'Mercado' };
+var VR_EST = { exploracion: 'Exploración', desarrollo: 'Desarrollo', lanzamiento: 'Listo para lanzar', lanzado: 'Lanzado', detenido: 'Detenido', pausa: 'En pausa (revisar)' };
+function vrN(n, d) { return (Number(n) || 0).toLocaleString('es-BO', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); }
+function vrBs(n, d) { return 'Bs ' + vrN(n, d); }
+function vrP(x) { return vrN((Number(x) || 0) * 100, 1) + ' %'; }
+
+function VR_iniciar(v) {
+  VV = v; V = null;
+  if (v.sinEmpresa) { $('nav').style.display = 'none'; $('pie').style.display = 'none'; $('app').innerHTML = '<div class="msg err">' + esc(v.mensaje) + '</div>'; return; }
+  var b = v.borrador ? JSON.parse(JSON.stringify(v.borrador)) : null;
+  DD = {
+    comite: b && b.comite ? b.comite : JSON.parse(JSON.stringify(v.innov.comite || [])),
+    proyectos: b && b.proyectos ? b.proyectos : JSON.parse(JSON.stringify(v.innov.proyectos || [])),
+    solicitudes: b && b.solicitudes ? b.solicitudes : (v.innov.solicitudes || []).filter(function (s) { return s.estado === 'pendiente'; }),
+    comercial: b && b.comercial ? b.comercial : {},
+    estudioMercado: b ? !!b.estudioMercado : false,
+    nota: b && b.nota || ''
+  };
+  // los proyectos guardados en el servidor mandan sobre el borrador en lo ya ocurrido
+  var srv = {}; (v.innov.proyectos || []).forEach(function (p) { srv[p.id] = p; });
+  DD.proyectos.forEach(function (p) { var q = srv[p.id]; if (q) { p.resultados = q.resultados; p.estado = q.estado; p.c1Aprobada = q.c1Aprobada; p.c2Aprobada = q.c2Aprobada; } });
+  (v.innov.proyectos || []).forEach(function (q) { if (!DD.proyectos.some(function (p) { return p.id === q.id; })) DD.proyectos.push(JSON.parse(JSON.stringify(q))); });
+  v.empresa.productos.forEach(function (p) {
+    if (!p.activo) return;
+    if (!DD.comercial[p.id]) DD.comercial[p.id] = { precioEmpresa: vrR(p.precioEmpresa), mezcla: JSON.parse(JSON.stringify(p.mezcla)), publicidad: Math.round(p.publicidad), produccionSemanal: null };
+  });
+  if (!VPROY && DD.proyectos.length) VPROY = DD.proyectos[0].id;
+  if (DD.comite.length === 0) DD.comite.push({ nombre: 'Integrante 1', cargo: 'profesional', dedicacion: 0.2 });
+  $('titulo').textContent = 'Simulador de Innovación · ' + v.equipo.nombre;
+  $('meta').innerHTML = '<span>' + esc(v.partida.nombre) + '</span><span>' + (v.partida.finalizada ? 'Partida terminada' : 'Trimestre ' + v.partida.t + ' de ' + v.partida.total + ' · ' + (v.partida.estado === 'abierto' ? 'abierto' : 'cerrado')) + '</span><a href="#" class="ax-salir" onclick="pantallaLogin();return false">Salir</a>';
+  VR_render(); VR_revisar();
+  if (v.partida.estado !== 'abierto' && !v.partida.finalizada && typeof vigilarApertura === 'function') vigilarApertura(true);
+}
+function vrR(x) { return Math.round(Number(x) * 100) / 100; }
+function VR_tabs() { return [['inicio', 'Resumen'], ['informes', 'Informes'], ['comite', 'Comité'], ['proyectos', 'Proyectos'], ['productos', 'Productos'], ['estados', 'Estados financieros']]; }
+function VR_ir(t) { VTAB = t; VR_render(); }
+function VR_render() {
+  $('nav').style.display = 'flex';
+  $('nav').innerHTML = VR_tabs().map(function (t) { return '<button class="' + (VTAB === t[0] ? 'on' : '') + '" onclick="VR_ir(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
+  var f = { inicio: VR_inicio, informes: VR_informes, comite: VR_comite, proyectos: VR_proyectos, productos: VR_productos, estados: VR_estados }[VTAB];
+  $('app').innerHTML = f();
+  VR_pie();
+}
+function VR_puedeEditar() { return VV.partida.estado === 'abierto' && !VV.partida.finalizada; }
+function VR_pie() {
+  var p = $('pie');
+  if (VV.partida.finalizada) { p.style.display = 'none'; return; }
+  p.style.display = 'flex';
+  var errs = VREV ? VREV.errores : [];
+  var est = VV.borrador && VV.borrador._estado === 'enviado' ? 'Decisiones enviadas (pueden corregir y volver a enviar hasta que el docente cierre).' : (VV.borrador ? 'Borrador guardado.' : 'Sin guardar.');
+  p.innerHTML = '<div style="flex:1;min-width:240px"><b>' + esc(est) + '</b>' +
+    (errs.length ? '<div class="muted" style="color:#b42318">Para enviar falta corregir ' + errs.length + ' punto(s): ' + esc(errs.slice(0, 3).join(' · ')) + (errs.length > 3 ? '…' : '') + '</div>' : '<div class="muted">Sin errores: pueden enviar.</div>') + '</div>' +
+    (VR_puedeEditar() ? '<button class="btn sec" onclick="VR_guardar(false)">Guardar borrador</button><button class="btn" onclick="VR_guardar(true)">Enviar decisiones</button>' : '<span class="muted">El trimestre está cerrado.</span>');
+}
+function VR_decision() {
+  var d = JSON.parse(JSON.stringify(DD));
+  d.proyectos.forEach(function (p) { delete p.resultados; delete p.c1Aprobada; delete p.c2Aprobada; delete p.lanzamientoPendiente; });
+  return d;
+}
+function VR_revisar() {
+  clearTimeout(VTIMER);
+  VTIMER = setTimeout(function () {
+    call('apiEstimar', TOK, VR_decision()).then(function (r) { VREV = r; VR_pie(); var h = $('vr-hoja'); if (h && VTAB === 'proyectos') h.innerHTML = VR_hojaResumen(VR_proy()); var c = $('vr-costos'); if (c) c.innerHTML = VR_costosHtml(); }).catch(function () { });
+  }, 500);
+}
+function VR_guardar(enviar) {
+  call('apiGuardar', TOK, VR_decision(), enviar).then(function (r) {
+    VREV = r; VV.borrador = VV.borrador || {}; VV.borrador._estado = r.estado;
+    aviso(enviar ? 'Decisiones enviadas. Pueden corregirlas y volver a enviar hasta que el docente cierre el trimestre.' : 'Borrador guardado.');
+    VR_pie();
+  }).catch(function (e) { aviso(e, 'err'); });
+}
+function VR_set(path, v, numero, rerender) {
+  if (numero) v = v === '' ? '' : Number(v);
+  setP(DD, path, v);
+  if (rerender) VR_render(); else VR_pie();
+  VR_revisar();
+}
+
+// ---------- Resumen ----------
+function VR_ultimo() { var h = VV.empresa.historial; return h.length ? h[h.length - 1] : null; }
+function VR_inicio() {
+  var u = VR_ultimo(), b = u ? u.balance : VV.empresa.balanceInicial, h = '';
+  h += '<div class="card"><h2>Tu comité de innovación</h2><p>Son el comité de innovación de <b>' + esc(VV.empresa.nombre) + '</b>, una láctea de Santa Cruz que hoy vende una leche chocolatada UHT de 1 litro a Bs 17,00 en supermercados. Compiten con los demás equipos y con dos marcas fijas: <b>Cupesí</b> (diferenciador, chocolatada sin lactosa con edulcorantes) y <b>Motacú</b> (líder en costos). Cada trimestre deciden su comité, sus proyectos (con Gantt y dos compuertas) y la gestión comercial de sus productos.</p>' +
+    '<p class="muted">Todos los datos del simulador tienen fuente: precios de góndola de Santa Cruz, costos de Leche Gloria, preferencias de Brodock et al. (2021), elasticidades publicadas. Consulten el informe del macroentorno.</p></div>';
+  h += '<div class="grid g4">' +
+    '<div class="kpi"><div class="v">' + (u ? vrBs(u.resultados.ventas) : '—') + '</div><div class="l">Ventas del último trimestre</div></div>' +
+    '<div class="kpi"><div class="v">' + (u ? vrBs(u.resultados.utilidadNeta) : '—') + '</div><div class="l">Utilidad neta del último trimestre</div></div>' +
+    '<div class="kpi"><div class="v">' + vrBs(b.caja) + '</div><div class="l">Caja</div></div>' +
+    '<div class="kpi"><div class="v">' + (u ? vrBs(u.cajaDisponibleLanzamiento) : '—') + '</div><div class="l">Caja disponible para lanzar (sobre el saldo mínimo)</div></div></div>';
+  h += '<div class="card"><h2>Presupuesto de innovación del año</h2><p>' + vrBs(VV.empresa.presupuestoAnual) + ' (0,8 % de las ventas del año anterior). Paga los sueldos del comité según su dedicación, el desarrollo y el registro sanitario. Los estudios de mercado se pagan aparte, como gasto de ventas.</p><div id="vr-costos">' + VR_costosHtml() + '</div></div>';
+  if (u) {
+    var porP = u.operacion.porProducto;
+    h += '<div class="card"><h2>Trimestre ' + u.t + ': operación por producto</h2><div class="scroll"><table><tr><th>Producto</th><th class="n">Demanda (L)</th><th class="n">Producción (L)</th><th class="n">Ventas (L)</th><th class="n">Ventas perdidas (L)</th><th class="n">Vencido (L)</th><th class="n">Ventas (Bs)</th></tr>' +
+      Object.keys(porP).map(function (id) { var r = porP[id], n = VR_nomProd(id); var venc = r.semanas.reduce(function (s, w) { return s + w.vencido; }, 0); return '<tr><td>' + esc(n) + '</td><td class="n">' + vrN(r.demanda) + '</td><td class="n">' + vrN(r.produccion) + '</td><td class="n">' + vrN(r.litros) + '</td><td class="n">' + vrN(r.perdidas) + '</td><td class="n">' + vrN(venc) + '</td><td class="n">' + vrN(r.ventas) + '</td></tr>'; }).join('') + '</table></div>' +
+      (u.operacion.recorteCapacidad > 0 ? '<p class="msg err">La planta no alcanzó: la producción planificada se recortó ' + vrP(u.operacion.recorteCapacidad) + ' por la capacidad (' + vrN(u.operacion.capacidadSemanal) + ' L por semana).</p>' : '') + '</div>';
+  }
+  var ev = [];
+  (VV.innov.proyectos || []).forEach(function (p) {
+    var r = p.resultados || {};
+    if (r.compuerta1) ev.push(p.nombre + ': compuerta 1 ' + (r.compuerta1.aprobada ? 'aprobada' : 'no aprobada (proyecto detenido)') + ' en la semana ' + r.compuerta1.semana + '.');
+    if (r.compuerta2) ev.push(p.nombre + ': compuerta 2 ' + (r.compuerta2.aprobada ? 'aprobada' : 'no aprobada (proyecto detenido)') + ' en la semana ' + r.compuerta2.semana + '.');
+    if (p.estado === 'lanzado') ev.push(p.nombre + ': lanzado en el trimestre ' + p.trimestreLanzamiento + '.');
+  });
+  if (ev.length) h += '<div class="card"><h2>Hitos de sus proyectos</h2><ul>' + ev.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+  return h;
+}
+function VR_costosHtml() {
+  if (!VREV) return '<p class="muted">Calculando…</p>';
+  var c = VREV.costosTrimestre;
+  return '<div class="scroll"><table><tr><th>Este trimestre</th><th class="n">Bs</th></tr><tr><td>Sueldos del comité (según dedicación)</td><td class="n">' + vrN(c.comite) + '</td></tr><tr><td>Desarrollo</td><td class="n">' + vrN(c.desarrollo) + '</td></tr><tr><td>Registro sanitario</td><td class="n">' + vrN(c.registroSanitario) + '</td></tr><tr><td><b>Total con cargo al presupuesto de innovación</b></td><td class="n"><b>' + vrN(c.totalInnovacion) + '</b></td></tr><tr><td>Estudios de mercado (gasto de ventas)</td><td class="n">' + vrN(c.estudios) + '</td></tr></table></div>';
+}
+function VR_nomProd(id) { var n = id; VV.empresa.productos.forEach(function (p) { if (p.id === id) n = p.nombre; }); return n; }
+
+// ---------- Informes ----------
+function VR_informes() {
+  var I = VV.informes, h = '';
+  h += '<div class="card"><h2>Informe del macroentorno (gratis)</h2><div class="scroll"><table>' + I.macro.map(function (m) { return '<tr><th>' + esc(m.ambito) + '</th><td>' + esc(m.texto) + '</td></tr>'; }).join('') + '</table></div></div>';
+  h += '<div class="card"><h2>Informe de la industria (gratis)</h2><p>Mercado de leche saborizada de Santa Cruz: entre ' + vrN(I.industria.mercadoAproxLitrosTrim[0]) + ' y ' + vrN(I.industria.mercadoAproxLitrosTrim[1]) + ' litros por trimestre (aproximado). La cifra exacta por segmento y la participación por marca están en el estudio de mercado.</p>' +
+    '<h3>Góndola: productos visibles y precio al consumidor</h3><div class="scroll"><table><tr><th>Empresa</th><th>Producto</th><th class="n">Precio (Bs/L)</th><th>Endulzante</th><th class="n">Azúcar añadida (g/100 ml)</th><th class="n">Grasa (%)</th><th class="n">Proteína (g/100 ml)</th><th class="n">Tamaño (ml)</th></tr>' +
+    I.industria.gondola.map(function (g) { return '<tr><td>' + esc(g.empresa) + '</td><td>' + esc(g.producto) + '</td><td class="n">' + vrN(g.precioConsumidor * 1000 / (g.tamanoMl || 1000), 2) + '</td><td>' + esc((g.endulzante || []).map(function (e) { return VR_END[e] || e; }).join(' + ')) + '</td><td class="n">' + vrN(g.azucarAnadida100ml, 1) + '</td><td class="n">' + vrN(g.grasa100ml, 1) + '</td><td class="n">' + vrN(g.proteina100ml, 1) + '</td><td class="n">' + vrN(g.tamanoMl) + '</td></tr>'; }).join('') + '</table></div>' +
+    '<h3>Canales</h3><div class="scroll"><table><tr><th>Canal</th><th class="n">Margen del comerciante</th><th class="n">Cobro a la empresa</th></tr>' + Object.keys(I.industria.canales).map(function (k) { var c = I.industria.canales[k]; return '<tr><td>' + VR_CAN[k] + '</td><td class="n">' + vrP(c.margen) + '</td><td class="n">' + (c.diasCobro ? c.diasCobro + ' días' : 'al contado') + '</td></tr>'; }).join('') + '</table></div><p class="muted">Costo de distribución: ' + vrP(I.industria.costoDistribucionPct) + ' de las ventas de la empresa en los tres canales.</p></div>';
+  h += '<div class="card"><h2>Estudio de mercado y competencia (de pago)</h2><p>Litros por segmento y participación exacta de cada marca, total y por segmento, del trimestre que se procesa. Cuesta ' + vrBs(VV.cat.estudios.mercado) + ' (gasto de ventas) y se entrega con los resultados.</p>' +
+    (VR_puedeEditar() ? '<label class="chk"><input type="checkbox"' + (DD.estudioMercado ? ' checked' : '') + ' onchange="VR_set(\'estudioMercado\', this.checked)"> Comprar el estudio de mercado este trimestre</label>' : '') + VR_estudiosMercado() + '</div>';
+  return h;
+}
+function VR_estudiosMercado() {
+  var E = VV.informes.estudiosMercado || {}, ks = Object.keys(E).sort(function (a, b) { return Number(b.slice(1)) - Number(a.slice(1)); });
+  if (!ks.length) return '<p class="muted">Todavía no compraron estudios de mercado.</p>';
+  var e = E[ks[0]];
+  return '<h3>Estudio del trimestre ' + e.trimestre + '</h3><div class="scroll"><table><tr><th>Producto</th><th class="n">Litros</th><th class="n">Participación</th>' + Object.keys(VR_SEG).map(function (s) { return '<th class="n">' + VR_SEG[s] + ' (L)</th>'; }).join('') + '</tr>' +
+    e.productos.map(function (p) { return '<tr><td>' + esc(VR_nomMercado(p.producto)) + '</td><td class="n">' + vrN(p.litros) + '</td><td class="n">' + vrP(p.cuota) + '</td>' + Object.keys(VR_SEG).map(function (s) { return '<td class="n">' + vrN(p.porSegmento[s]) + '</td>'; }).join('') + '</tr>'; }).join('') +
+    '<tr><td><b>Mercado</b></td><td class="n"><b>' + vrN(e.mercadoLitrosTrim) + '</b></td><td class="n">100 %</td>' + Object.keys(VR_SEG).map(function (s) { return '<td class="n">' + vrN(e.segmentos[s]) + '</td>'; }).join('') + '</tr></table></div>' +
+    (ks.length > 1 ? '<p class="muted">Estudios anteriores: ' + ks.slice(1).join(', ') + '.</p>' : '');
+}
+function VR_nomMercado(id) {
+  if (id === 'cupesi') return 'Cupesí'; if (id === 'motacu') return 'Motacú';
+  var m = /^E(\d+)-(.*)$/.exec(id); if (!m) return id;
+  var mio = VV.equipo.motorId === 'E' + m[1];
+  return (mio ? 'Tu empresa' : 'Lácteos Chiquitano ' + m[1]) + ' · ' + (m[2] === 'actual' ? 'producto actual' : 'producto nuevo ' + m[2]);
+}
+
+// ---------- Comité ----------
+function VR_comite() {
+  var ed = VR_puedeEditar(), S = VV.cat.sueldos;
+  var h = '<div class="card"><h2>Integrantes del comité (sección 0)</h2><p>Entre 1 y 5 personas. No trabajan solo en innovación: fijen qué porcentaje de su tiempo dedican al comité. Ese porcentaje de su sueldo se carga cada semana al presupuesto de innovación, y limita cuánta carga pueden tomar en el Gantt.</p>' +
+    '<p class="muted">Sueldos de referencia (INE, 2020): jefe o gerente ' + vrBs(S.jefe) + ' al mes; profesional ' + vrBs(S.profesional) + ' al mes.</p><div class="scroll"><table><tr><th>#</th><th>Nombre o rol</th><th>Cargo</th><th class="n">Dedicación (%)</th><th class="n">Costo trimestral</th><th></th></tr>';
+  DD.comite.forEach(function (m, i) {
+    var costo = S[m.cargo] * m.dedicacion * 12 / 52 * 13;
+    h += '<tr><td>' + (i + 1) + '</td><td><input type="text" value="' + esc(m.nombre) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'comite.' + i + '.nombre\', this.value)"></td>' +
+      '<td><select' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'comite.' + i + '.cargo\', this.value, false, true)"><option value="jefe"' + (m.cargo === 'jefe' ? ' selected' : '') + '>Jefe o gerente</option><option value="profesional"' + (m.cargo === 'profesional' ? ' selected' : '') + '>Profesional</option></select></td>' +
+      '<td class="n"><input type="number" min="0" max="100" step="5" style="max-width:90px" value="' + Math.round(m.dedicacion * 100) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'comite.' + i + '.dedicacion\', Number(this.value) / 100, false, true)"></td>' +
+      '<td class="n">' + vrN(costo) + '</td><td>' + (ed && DD.comite.length > 1 ? '<button class="btn sec" onclick="DD.comite.splice(' + i + ',1);VR_render();VR_revisar()">Quitar</button>' : '') + '</td></tr>';
+  });
+  h += '</table></div>' + (ed && DD.comite.length < 5 ? '<button class="btn sec" onclick="DD.comite.push({nombre:\'Integrante ' + (DD.comite.length + 1) + '\',cargo:\'profesional\',dedicacion:0.2});VR_render();VR_revisar()">Agregar integrante</button>' : '') + '</div>';
+  return h;
+}
+
+// ---------- Proyectos ----------
+function VR_proy() { for (var i = 0; i < DD.proyectos.length; i++) if (DD.proyectos[i].id === VPROY) return DD.proyectos[i]; return null; }
+function VR_proyIdx() { for (var i = 0; i < DD.proyectos.length; i++) if (DD.proyectos[i].id === VPROY) return i; return -1; }
+function VR_nuevoProyecto() {
+  var n = 1; while (DD.proyectos.some(function (p) { return p.id === 'P' + n; })) n++;
+  var s0 = VV.cat.semanaInicio, act = VV.empresa.productos[0];
+  DD.proyectos.push({ id: 'P' + n, nombre: 'Proyecto ' + n, clase: '', justificacionClase: '', idea: { problema: '', paraQuien: '', propuesta: '' }, segmentoObjetivo: '', muestra: 400, reemplazaProductoActual: false,
+    producto: { endulzante: (act.endulzante || ['azucar_cana']).slice(), azucarAnadida100ml: act.azucarAnadida100ml, grasa100ml: act.grasa100ml, proteina100ml: act.proteina100ml, tamanoMl: act.tamanoMl, conservacion: 'uht' },
+    hoja: [{ descripcion: 'Leche cruda', categoria: 'contenido', tipo: 'variable', rubro: 'leche_cruda', cantidad: 1 }, { descripcion: 'Envase e insumos', categoria: 'envase', tipo: 'variable', rubro: 'insumos_envase_actual', cantidad: 1 }, { descripcion: 'Planta actual', categoria: 'mano_de_obra', tipo: 'variable', rubro: 'mano_obra_planta_actual', cantidad: 1 }],
+    plan: { precioEmpresa: vrR(act.precioEmpresa), mezcla: { supermercado: 1, tienda: 0, mercado: 0 }, publicidad: Math.round(act.publicidadRef), produccionSemanal: 0 },
+    gantt: [{ nombre: 'Estudio del consumidor', tipo: 'estudio_consumidor', inicio: s0, duracion: 5, responsable: 0, carga: 0.1 }, { nombre: 'Prueba de concepto', tipo: 'prueba_concepto', inicio: s0 + 5, duracion: 5, responsable: 0, carga: 0.1 }],
+    compuerta1: { semana: s0 + 10, continuar: true }, compuerta2: { semana: 0, continuar: true } });
+  VPROY = 'P' + n; VR_render(); VR_revisar();
+}
+function VR_proyectos() {
+  var ed = VR_puedeEditar(), h = '<div class="card"><h2>Proyectos de innovación (secciones 3 y 4)</h2><p>Idea libre: escriban qué problema resuelven, para quién y qué proponen. Cada proyecto pasa por dos compuertas con criterios publicados: la <b>compuerta 1</b> (paso al desarrollo) y la <b>compuerta 2</b> (paso al lanzamiento). Planifíquenlo en semanas con su Gantt.</p><div class="inline">' +
+    DD.proyectos.map(function (p) { return '<button class="btn ' + (p.id === VPROY ? '' : 'sec') + '" onclick="VPROY=\'' + p.id + '\';VR_render()">' + esc(p.nombre) + ' · ' + esc(VR_EST[p.estado || 'exploracion'] || p.estado) + '</button>'; }).join('') +
+    (ed && DD.proyectos.length < 8 ? '<button class="btn sec" onclick="VR_nuevoProyecto()">+ Nuevo proyecto</button>' : '') + '</div></div>';
+  var p = VR_proy();
+  if (!p) return h + '<div class="card"><p class="muted">Todavía no tienen proyectos. Creen uno para empezar.</p></div>' + VR_solicitudes();
+  var i = VR_proyIdx(), base = 'proyectos.' + i + '.', cerrado = p.estado === 'detenido' || p.estado === 'lanzado', e = ed && !cerrado, eIdea = e && !p.c1Aprobada;
+  function txt(path, val, ph, eds) { return '<textarea rows="2"' + (eds ? '' : ' disabled') + ' placeholder="' + esc(ph) + '" onchange="VR_set(\'' + base + path + '\', this.value)">' + esc(val || '') + '</textarea>'; }
+  function num(path, val, step, eds, rer) { return '<input type="number" step="' + (step || 'any') + '" value="' + (val === null || val === undefined ? '' : val) + '"' + (eds ? '' : ' disabled') + ' onchange="VR_set(\'' + base + path + '\', this.value, true' + (rer ? ', true' : '') + ')">'; }
+  h += '<div class="card"><h2>' + esc(p.nombre) + ' <span class="tag">' + esc(VR_EST[p.estado || 'exploracion'] || '') + '</span></h2>' +
+    '<div class="grid g2"><div><label>Nombre del proyecto</label><input type="text" value="' + esc(p.nombre) + '"' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'nombre\', this.value, false, true)"></div>' +
+    '<div><label>Segmento objetivo</label><select' + (eIdea ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'segmentoObjetivo\', this.value)"><option value="">Elegir…</option>' + Object.keys(VR_SEG).map(function (s) { return '<option value="' + s + '"' + (p.segmentoObjetivo === s ? ' selected' : '') + '>' + VR_SEG[s] + '</option>'; }).join('') + '</select></div></div>' +
+    '<div class="grid g3"><div><label>¿Qué problema resuelve?</label>' + txt('idea.problema', p.idea.problema, 'Problema del cliente', eIdea) + '</div><div><label>¿Para quién?</label>' + txt('idea.paraQuien', p.idea.paraQuien, 'Cliente o usuario', eIdea) + '</div><div><label>¿Qué proponen?</label>' + txt('idea.propuesta', p.idea.propuesta, 'Propuesta (producto, forma de venta, canal o modelo de negocio)', eIdea) + '</div></div>' +
+    '<div class="grid g2"><div><label>Clase de innovación</label><select' + (eIdea ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'clase\', this.value)"><option value="">Elegir…</option><option value="incremental"' + (p.clase === 'incremental' ? ' selected' : '') + '>Incremental: hacer mejor lo que hacemos (solo rubros del banco)</option><option value="radical"' + (p.clase === 'radical' ? ' selected' : '') + '>Radical: hacer algo diferente (puede pedir rubros nuevos)</option></select></div><div><label>Justificación de la clase</label>' + txt('justificacionClase', p.justificacionClase, 'Por qué es incremental o radical', eIdea) + '</div></div>' +
+    '<label class="chk"><input type="checkbox"' + (p.reemplazaProductoActual ? ' checked' : '') + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'reemplazaProductoActual\', this.checked)"> Es una mejora del producto actual (al lanzarse lo reemplaza en lugar de sumarse)</label>' +
+    (e ? '<div style="margin-top:8px"><button class="btn peligro" onclick="if(confirm(\'¿Detener este proyecto? No se puede deshacer.\')){VR_set(\'' + base + 'detener\', true, false, true)}">' + (p.detener ? 'Se detendrá al enviar' : 'Detener el proyecto') + '</button></div>' : '') + '</div>';
+  // producto
+  var pr = p.producto;
+  h += '<div class="card"><h2>Producto propuesto</h2><p class="muted">Atributos por 100 ml, como en la etiqueta. El mercado los valora con las preferencias de cada segmento (Brodock et al., 2021); la porción de referencia es de 240 ml.</p><label>Endulzante (uno o varios)</label><div class="inline">' +
+    Object.keys(VR_END).map(function (k) { var on = pr.endulzante.indexOf(k) >= 0; return '<label class="chk"><input type="checkbox"' + (on ? ' checked' : '') + (e ? '' : ' disabled') + ' onchange="VR_endulzante(' + i + ',\'' + k + '\', this.checked)"> ' + VR_END[k] + '</label>'; }).join('') + '</div>' +
+    '<div class="grid g4"><div><label>Azúcar añadida (g/100 ml)</label>' + num('producto.azucarAnadida100ml', pr.azucarAnadida100ml, 0.1, e) + '</div><div><label>Grasa (%)</label>' + num('producto.grasa100ml', pr.grasa100ml, 0.1, e) + '</div><div><label>Proteína (g/100 ml)</label>' + num('producto.proteina100ml', pr.proteina100ml, 0.1, e) + '</div><div><label>Tamaño (ml)</label>' + num('producto.tamanoMl', pr.tamanoMl, 10, e) + '</div></div>' +
+    '<div class="grid g2"><div><label>Conservación</label><select' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'producto.conservacion\', this.value)"><option value="uht"' + (pr.conservacion !== 'pasteurizado' ? ' selected' : '') + '>UHT (16 semanas de vida útil)</option><option value="pasteurizado"' + (pr.conservacion === 'pasteurizado' ? ' selected' : '') + '>Pasteurizado (1 semana)</option></select></div><div><label>Muestra de las pruebas de concepto y de producto</label><select' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'muestra\', Number(this.value), false, true)"><option value="400"' + (p.muestra !== 1600 ? ' selected' : '') + '>400 personas (margen ±4,9 %; ' + vrBs(VV.cat.estudios.prueba[400]) + ')</option><option value="1600"' + (p.muestra === 1600 ? ' selected' : '') + '>1.600 personas (margen ±2,5 %; ' + vrBs(VV.cat.estudios.prueba[1600]) + ')</option></select></div></div></div>';
+  // hoja de costos
+  var opR = VR_rubros();
+  h += '<div class="card"><h2>Hoja de costos</h2><p class="muted">Escriban cada cosa que su idea necesita y elijan el rubro del banco de referencias (todos con fuente). Variable: cantidad por litro de producto. Inversión, fijo por trimestre y desarrollo: cantidad en la unidad del rubro. Filas mínimas: contenido, envase y mano de obra. El costo de distribución (5,4 % de las ventas) lo agrega el simulador.</p><div class="scroll"><table><tr><th>Descripción</th><th>Categoría</th><th>Tipo de costo</th><th>Rubro del banco</th><th class="n">Cantidad</th><th class="n">Precio</th><th class="n">Monto</th><th></th></tr>';
+  p.hoja.forEach(function (f, j) {
+    var b = 'hoja.' + j + '.', ref = VR_rubro(f.rubro);
+    h += '<tr><td><input type="text" value="' + esc(f.descripcion) + '"' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + b + 'descripcion\', this.value)"></td>' +
+      '<td><select' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + b + 'categoria\', this.value)">' + Object.keys(VR_CAT).map(function (k) { return '<option value="' + k + '"' + (f.categoria === k ? ' selected' : '') + '>' + VR_CAT[k] + '</option>'; }).join('') + '</select></td>' +
+      '<td><select' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + b + 'tipo\', this.value)">' + Object.keys(VR_TIPO).map(function (k) { return '<option value="' + k + '"' + (f.tipo === k ? ' selected' : '') + '>' + VR_TIPO[k] + '</option>'; }).join('') + '</select></td>' +
+      '<td><select' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + b + 'rubro\', this.value, false, true)">' + opR.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (f.rubro === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></td>' +
+      '<td class="n"><input type="number" step="any" style="max-width:110px" value="' + f.cantidad + '"' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + b + 'cantidad\', this.value, true, true)"></td>' +
+      '<td class="n">' + (ref ? vrN(ref.precio, 2) + ' / ' + esc(ref.unidad) : '—') + '</td><td class="n">' + (ref ? vrN(ref.precio * f.cantidad, 2) : '—') + '</td>' +
+      '<td>' + (e ? '<button class="btn sec" onclick="DD.proyectos[' + i + '].hoja.splice(' + j + ',1);VR_render();VR_revisar()">×</button>' : '') + '</td></tr>';
+  });
+  h += '</table></div>' + (e ? '<button class="btn sec" onclick="DD.proyectos[' + i + '].hoja.push({descripcion:\'\',categoria:\'contenido\',tipo:\'variable\',rubro:\'leche_cruda\',cantidad:0});VR_render();VR_revisar()">Agregar fila</button>' : '') +
+    '<div id="vr-hoja" style="margin-top:10px">' + VR_hojaResumen(p) + '</div></div>';
+  // plan de lanzamiento
+  var pl = p.plan;
+  h += '<div class="card"><h2>Plan de lanzamiento (compuerta 2)</h2><div class="grid g4"><div><label>Precio a la empresa (Bs por unidad)</label>' + num('plan.precioEmpresa', pl.precioEmpresa, 0.01, e, true) + '</div><div><label>Publicidad del primer trimestre (Bs)</label>' + num('plan.publicidad', pl.publicidad, 1000, e) + '</div><div><label>Producción semanal (unidades)</label>' + num('plan.produccionSemanal', pl.produccionSemanal, 100, e) + '</div><div><label>Precio al consumidor</label><div class="calc">' + Object.keys(VR_CAN).filter(function (c) { return pl.mezcla[c] > 0; }).map(function (c) { return VR_CAN[c] + ': ' + vrBs(pl.precioEmpresa / (1 - VV.informes.industria.canales[c].margen), 2); }).join('<br>') + '</div></div></div>' +
+    '<label>Canales (% de las ventas)</label><div class="grid g3">' + Object.keys(VR_CAN).map(function (c) { return '<div><label class="muted">' + VR_CAN[c] + '</label><input type="number" min="0" max="100" value="' + Math.round((pl.mezcla[c] || 0) * 100) + '"' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'plan.mezcla.' + c + '\', Number(this.value) / 100, false, true)"></div>'; }).join('') + '</div></div>';
+  // Gantt
+  h += VR_gantt(p, i, e);
+  h += VR_resultados(p);
+  h += VR_solicitudes();
+  return h;
+}
+function VR_endulzante(i, k, on) {
+  var a = DD.proyectos[i].producto.endulzante, j = a.indexOf(k);
+  if (on && j < 0) a.push(k); if (!on && j >= 0) a.splice(j, 1);
+  if (!a.length) a.push('azucar_cana');
+  VR_render(); VR_revisar();
+}
+function VR_rubros() {
+  var o = [], B = VV.cat.banco, k;
+  for (k in B) o.push([k, B[k].nombre + ' (' + B[k].unidad + ')']);
+  var R = VV.innov.rubrosAprobados || {};
+  for (k in R) o.push([k, 'Rubro nuevo: ' + R[k].nombre + ' (' + R[k].unidad + ')']);
+  return o;
+}
+function VR_rubro(k) { return VV.cat.banco[k] || (VV.innov.rubrosAprobados || {})[k] || null; }
+function VR_hojaResumen(p) {
+  var r = VREV && VREV.hojas ? VREV.hojas[p.id] : null;
+  if (!r) return '<p class="muted">Calculando la hoja…</p>';
+  return '<div class="grid g4"><div class="kpi"><div class="v">' + vrBs(r.costoVariableL, 2) + '</div><div class="l">Costo variable por unidad</div></div><div class="kpi"><div class="v">' + vrBs(r.margenL, 2) + '</div><div class="l">Margen por unidad (después de distribución ' + vrBs(r.distribucionL, 2) + ')</div></div>' +
+    '<div class="kpi"><div class="v">' + (r.equilibrioConPublicidadTrim === null ? '—' : vrN(r.equilibrioConPublicidadTrim)) + '</div><div class="l">Punto de equilibrio por trimestre, con publicidad (sin: ' + (r.equilibrioSinPublicidadTrim === null ? '—' : vrN(r.equilibrioSinPublicidadTrim)) + ')</div></div>' +
+    '<div class="kpi"><div class="v">' + vrBs(r.inversion) + '</div><div class="l">Inversión · desarrollo ' + vrBs(r.desarrollo) + ' · fijo ' + vrBs(r.fijoTrim) + '/trim.</div></div></div>' +
+    (r.errores.length ? '<div class="msg err">' + r.errores.map(esc).join('<br>') + '</div>' : '<p class="muted">Hoja válida.</p>');
+}
+function VR_gantt(p, i, e) {
+  var base = 'proyectos.' + i + '.', s0 = VV.cat.semanaInicio, h = '<div class="card"><h2>Gantt del proyecto (semanas de la partida)</h2><p class="muted">El trimestre actual va de la semana ' + s0 + ' a la ' + VV.cat.semanaFin + '. Las actividades externas tienen duración fija. El desarrollo y la prueba de producto empiezan después de la compuerta 1; el lanzamiento, después de la compuerta 2 y del registro sanitario. La carga de cada responsable no puede superar su dedicación. Lo que ya empezó no se puede cambiar.</p><div class="scroll"><table><tr><th>Actividad</th><th>Tipo</th><th class="n">Inicio</th><th class="n">Duración</th><th class="n">Fin</th><th>Responsable</th><th class="n">Carga (%)</th><th></th></tr>';
+  p.gantt.forEach(function (a, j) {
+    var b = 'gantt.' + j + '.', lock = !e || a.inicio < s0, ext = ['estudio_consumidor', 'prueba_concepto', 'prueba_producto', 'registro_sanitario'].indexOf(a.tipo) >= 0;
+    h += '<tr><td><input type="text" value="' + esc(a.nombre) + '"' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'nombre\', this.value)"></td>' +
+      '<td><select' + (lock ? ' disabled' : '') + ' onchange="VR_tipoAct(' + i + ',' + j + ', this.value)">' + Object.keys(VR_ACT).map(function (k) { return '<option value="' + k + '"' + (a.tipo === k ? ' selected' : '') + '>' + VR_ACT[k] + '</option>'; }).join('') + '</select></td>' +
+      '<td class="n"><input type="number" min="1" max="156" style="max-width:80px" value="' + a.inicio + '"' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'inicio\', this.value, true, true)"></td>' +
+      '<td class="n"><input type="number" min="1" style="max-width:70px" value="' + a.duracion + '"' + (lock || ext ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'duracion\', this.value, true, true)"></td><td class="n">' + (a.inicio + a.duracion - 1) + '</td>' +
+      '<td><select' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'responsable\', Number(this.value))">' + DD.comite.map(function (m, k) { return '<option value="' + k + '"' + (a.responsable === k ? ' selected' : '') + '>' + esc(m.nombre) + '</option>'; }).join('') + '</select></td>' +
+      '<td class="n"><input type="number" min="1" max="100" style="max-width:70px" value="' + Math.round(a.carga * 100) + '"' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'carga\', Number(this.value) / 100)"></td>' +
+      '<td>' + (lock ? '' : '<button class="btn sec" onclick="DD.proyectos[' + i + '].gantt.splice(' + j + ',1);VR_render();VR_revisar()">×</button>') + '</td></tr>';
+  });
+  h += '</table></div>' + (e ? '<button class="btn sec" onclick="VR_agregarAct(' + i + ')">Agregar actividad</button>' : '');
+  var c1 = p.compuerta1 || {}, c2 = p.compuerta2 || {}, r = p.resultados || {};
+  h += '<div class="grid g2" style="margin-top:10px">' + ['compuerta1', 'compuerta2'].map(function (k, n) {
+    var c = k === 'compuerta1' ? c1 : c2, ya = !!r[k], lock = !e || ya;
+    return '<div class="box"><b>Compuerta ' + (n + 1) + '</b>' + (ya ? ' · evaluada en la semana ' + r[k].semana + ': ' + (r[k].aprobada ? '✅ aprobada' : '❌ no aprobada') : '') +
+      '<label>Semana</label><input type="number" min="1" max="156" value="' + (c.semana || '') + '"' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + 'proyectos.' + i + '.' + k + '.semana\', this.value, true, true)">' +
+      '<label class="chk"><input type="checkbox"' + (c.continuar !== false ? ' checked' : '') + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + 'proyectos.' + i + '.' + k + '.continuar\', this.checked)"> Si se aprueba, el plan sigue automáticamente (si no, queda en pausa para revisar)</label></div>';
+  }).join('') + '</div>';
+  h += VR_barras(p) + '</div>';
+  return h;
+}
+function VR_tipoAct(i, j, tipo) {
+  var a = DD.proyectos[i].gantt[j]; a.tipo = tipo;
+  if (tipo === 'registro_sanitario') a.duracion = VV.cat.registroSanitario.semanas;
+  else if (['estudio_consumidor', 'prueba_concepto', 'prueba_producto'].indexOf(tipo) >= 0) a.duracion = VV.cat.estudios.semanas;
+  if (!a.nombre) a.nombre = VR_ACT[tipo].split(' (')[0];
+  VR_render(); VR_revisar();
+}
+function VR_agregarAct(i) {
+  var g = DD.proyectos[i].gantt, fin = VV.cat.semanaInicio;
+  g.forEach(function (a) { fin = Math.max(fin, a.inicio + a.duracion); });
+  g.push({ nombre: 'Actividad interna', tipo: 'interna', inicio: fin, duracion: 2, responsable: 0, carga: 0.1 });
+  VR_render(); VR_revisar();
+}
+function VR_barras(p) {
+  if (!p.gantt.length) return '';
+  var ini = Infinity, fin = 0;
+  p.gantt.forEach(function (a) { ini = Math.min(ini, a.inicio); fin = Math.max(fin, a.inicio + a.duracion - 1); });
+  [p.compuerta1, p.compuerta2].forEach(function (c) { if (c && c.semana) { ini = Math.min(ini, c.semana); fin = Math.max(fin, c.semana); } });
+  var span = Math.max(1, fin - ini + 1), col = { interna: '#98a2b3', estudio_consumidor: '#2e90fa', prueba_concepto: '#7a5af8', desarrollo: '#f79009', prueba_producto: '#ee46bc', registro_sanitario: '#15b79e', lanzamiento: '#12b76a' };
+  var h = '<div style="margin-top:12px"><div class="muted">Semanas ' + ini + ' a ' + fin + '</div>';
+  p.gantt.forEach(function (a) {
+    var l = (a.inicio - ini) / span * 100, w = a.duracion / span * 100;
+    h += '<div style="position:relative;height:20px;margin:3px 0;background:rgba(127,127,127,.08);border-radius:4px"><div title="' + esc(a.nombre) + '" style="position:absolute;left:' + l + '%;width:' + Math.max(w, 1) + '%;top:0;bottom:0;background:' + col[a.tipo] + ';border-radius:4px;color:#fff;font-size:11px;padding-left:4px;overflow:hidden;white-space:nowrap">' + esc(a.nombre) + '</div></div>';
+  });
+  [['compuerta1', 'C1'], ['compuerta2', 'C2']].forEach(function (k) { var c = p[k[0]]; if (c && c.semana) h += '<div style="position:relative;height:16px"><div style="position:absolute;left:' + ((c.semana - ini) / span * 100) + '%;font-size:11px;font-weight:700">◆ ' + k[1] + ' (sem. ' + c.semana + ')</div></div>'; });
+  return h + '</div>';
+}
+function VR_resultados(p) {
+  var r = p.resultados || {}, h = '';
+  if (r.estudioConsumidor) {
+    var e = r.estudioConsumidor;
+    h += '<div class="card"><h2>Estudio del consumidor: ' + esc(VR_SEG[e.segmento]) + '</h2><p class="muted">Puntaje de cada nivel para este segmento (más puntos, más le gusta) e importancia de cada atributo. Fuente: Brodock et al. (2021).</p><div class="grid g3">' +
+      Object.keys(e.atributos).map(function (k) {
+        var nom = { endulzante: 'Endulzante', azucar: 'Azúcar añadida (g por porción de 240 ml)', grasa: 'Grasa', proteina: 'Proteína (g por porción)', tamano: 'Tamaño (onzas)' }[k];
+        return '<div class="box"><b>' + nom + '</b> · importancia ' + vrP(e.importancia[k]) + '<table>' + e.atributos[k].map(function (x) { return '<tr><td>' + esc(VR_END[x.nivel] || x.nivel) + '</td><td class="n">' + vrN(x.utilidad, 1) + '</td></tr>'; }).join('') + '</table></div>';
+      }).join('') + '</div></div>';
+  }
+  [['pruebaConcepto', 'Prueba de concepto'], ['pruebaProducto', 'Prueba de producto']].forEach(function (k) {
+    var x = r[k[0]]; if (!x) return;
+    h += '<div class="card"><h2>' + k[1] + ' (' + vrN(x.n) + ' personas)</h2><div class="scroll"><table><tr><th></th><th class="n">Participación estimada</th><th class="n">Volumen por trimestre</th><th class="n">Rango con 95 % de confianza</th></tr>' +
+      '<tr><td>Concepto del proyecto</td><td class="n">' + vrP(x.concepto.cuota.estimada) + '</td><td class="n">' + vrN(x.concepto.volumenTrim.estimado) + '</td><td class="n">' + vrN(x.concepto.volumenTrim.inferior) + ' a ' + vrN(x.concepto.volumenTrim.superior) + '</td></tr>' +
+      '<tr><td>Su producto actual (en la misma prueba)</td><td class="n">' + vrP(x.productoActual.cuota.estimada) + '</td><td class="n">' + vrN(x.productoActual.volumenTrim.estimado) + '</td><td class="n">' + vrN(x.productoActual.volumenTrim.inferior) + ' a ' + vrN(x.productoActual.volumenTrim.superior) + '</td></tr></table></div>' +
+      '<p>' + (x.superaAlActual ? '✅ La intención de compra del concepto supera la del producto actual.' : '❌ La intención de compra del concepto no supera la del producto actual.') + ' Margen de error: ±' + vrP(x.margenError) + '.</p></div>';
+  });
+  ['compuerta1', 'compuerta2'].forEach(function (k, n) {
+    var c = r[k]; if (!c) return;
+    h += '<div class="card"><h2>Compuerta ' + (n + 1) + ' · semana ' + c.semana + ': ' + (c.aprobada ? '✅ aprobada' : '❌ no aprobada') + '</h2><ul>' + c.requisitos.map(function (q) {
+      var det = q.detalle && q.detalle.limiteInferior !== undefined ? ' (límite inferior ' + vrN(q.detalle.limiteInferior) + ' frente a equilibrio ' + vrN(q.detalle.equilibrio) + ')' : (q.detalle && q.detalle.fondos !== undefined ? ' (fondos ' + vrBs(q.detalle.fondos) + ' frente a ' + vrBs(q.detalle.disponible) + ' disponibles)' : '');
+      return '<li>' + (q.cumple ? '✅ ' : '❌ ') + esc(q.texto) + esc(det) + '</li>';
+    }).join('') + '</ul></div>';
+  });
+  if (r.registroSanitario) h += '<div class="card"><p>✅ Registro sanitario obtenido en la semana ' + r.registroSanitario.semana + '.</p></div>';
+  return h;
+}
+function VR_solicitudes() {
+  var ed = VR_puedeEditar(), todas = (VV.innov.solicitudes || []).filter(function (s) { return s.estado !== 'pendiente'; });
+  var h = '<div class="card"><h2>Solicitar un rubro nuevo al banco (proyectos radicales)</h2><p class="muted">Si su proyecto radical necesita algo que no está en el banco (un equipo, un edulcorante, un envase distinto), pídanlo aquí. El docente busca su costo con una fuente verificable y lo agrega al banco para todos los equipos. Mientras tanto, la hoja de costos no es válida.</p>';
+  DD.solicitudes.forEach(function (s, j) {
+    h += '<div class="grid g3"><div><label>Rubro</label><input type="text" value="' + esc(s.nombre) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'solicitudes.' + j + '.nombre\', this.value)"></div><div><label>Unidad</label><input type="text" value="' + esc(s.unidad || '') + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'solicitudes.' + j + '.unidad\', this.value)"></div><div><label>Para qué lo necesitan</label><input type="text" value="' + esc(s.justificacion || '') + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'solicitudes.' + j + '.justificacion\', this.value)"></div></div>';
+  });
+  if (ed && DD.solicitudes.length < 10) h += '<button class="btn sec" onclick="DD.solicitudes.push({nombre:\'\',unidad:\'\',justificacion:\'\',proyecto:VPROY||\'\'});VR_render()">Agregar solicitud</button>';
+  if (todas.length) h += '<h3>Respuestas del docente</h3><ul>' + todas.map(function (s) { return '<li>' + esc(s.nombre) + ': ' + (s.estado === 'aprobado' ? '✅ incorporado al banco' : '❌ rechazado' + (s.motivo ? ' (' + esc(s.motivo) + ')' : '')) + '</li>'; }).join('') + '</ul>';
+  return h + '</div>';
+}
+
+// ---------- Productos ----------
+function VR_productos() {
+  var ed = VR_puedeEditar(), h = '<div class="card"><h2>Productos en el mercado (sección 5)</h2><p>Para cada producto deciden el precio a la empresa, los canales, la publicidad del trimestre y cuánto producir por semana. Producir de menos pierde ventas; producir de más deja inventario que vence a las 16 semanas (UHT). Capacidad de la planta: ' + vrN(VV.empresa.capacidadSemanal) + ' unidades por semana entre todos los productos.</p></div>';
+  VV.empresa.productos.forEach(function (p) {
+    if (!p.activo) return;
+    var d = DD.comercial[p.id], base = 'comercial.' + p.id + '.';
+    h += '<div class="card"><h2>' + esc(p.nombre) + '</h2><p class="muted">Inventario: ' + vrN(p.inventarioLitros) + ' unidades · costo variable ' + vrBs(p.costoVariable, 2) + ' por unidad · publicidad de referencia ' + vrBs(p.publicidadRef) + ' por trimestre.</p>' +
+      '<div class="grid g4"><div><label>Precio a la empresa (Bs)</label><input type="number" step="0.01" value="' + d.precioEmpresa + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'precioEmpresa\', this.value, true, true)"></div>' +
+      '<div><label>Publicidad del trimestre (Bs)</label><input type="number" step="1000" value="' + d.publicidad + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'publicidad\', this.value, true)"></div>' +
+      '<div><label>Producción semanal (vacío = lo que se espera vender)</label><input type="number" step="100" value="' + (d.produccionSemanal === null || d.produccionSemanal === undefined ? '' : d.produccionSemanal) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'produccionSemanal\', this.value === \'\' ? null : Number(this.value))"></div>' +
+      '<div><label>Precio al consumidor</label><div class="calc">' + Object.keys(VR_CAN).filter(function (c) { return d.mezcla[c] > 0; }).map(function (c) { return VR_CAN[c] + ': ' + vrBs(d.precioEmpresa / (1 - VV.informes.industria.canales[c].margen), 2); }).join('<br>') + '</div></div></div>' +
+      '<label>Canales (% de las ventas)</label><div class="grid g3">' + Object.keys(VR_CAN).map(function (c) { return '<div><label class="muted">' + VR_CAN[c] + ' (margen ' + vrP(VV.informes.industria.canales[c].margen) + ', cobro ' + (VV.informes.industria.canales[c].diasCobro ? VV.informes.industria.canales[c].diasCobro + ' días' : 'al contado') + ')</label><input type="number" min="0" max="100" value="' + Math.round((d.mezcla[c] || 0) * 100) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'mezcla.' + c + '\', Number(this.value) / 100, false, true)"></div>'; }).join('') + '</div></div>';
+  });
+  h += '<div class="card"><h2>Nota del equipo (opcional)</h2><textarea rows="3"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'nota\', this.value)">' + esc(DD.nota || '') + '</textarea></div>';
+  return h;
+}
+
+// ---------- Estados financieros ----------
+function VR_estados() {
+  var H = VV.empresa.historial;
+  if (!H.length) {
+    var b = VV.empresa.balanceInicial;
+    return '<div class="card"><h2>Balance inicial (Año 0)</h2>' + VR_tabla([['Caja', b.caja], ['Cuentas por cobrar', b.cxc], ['Inventario', b.inventario], ['Activo fijo neto', b.activoFijo], ['Total activo', b.activo], ['Cuentas por pagar', b.cxp], ['Deuda financiera (8 % anual)', b.deuda], ['Patrimonio', b.patrimonio]]) + '<p class="muted">Proporciones del balance auditado de Leche Gloria S.A. 2024 aplicadas a sus ventas. Los estados de cada trimestre aparecen aquí después de procesarlo.</p></div>';
+  }
+  var cols = H.map(function (h) { return 'T' + h.t; });
+  function fila(n, f, neg) { return '<tr><td>' + n + '</td>' + H.map(function (h) { var v = f(h); return '<td class="n">' + vrN(neg ? -v : v) + '</td>'; }).join('') + '</tr>'; }
+  function cab() { return '<tr><th></th>' + cols.map(function (c) { return '<th class="n">' + c + '</th>'; }).join('') + '</tr>'; }
+  var R = function (k) { return function (h) { return h.resultados[k] || 0; }; }, B = function (k) { return function (h) { return h.balance[k]; }; }, F = function (k) { return function (h) { return h.flujo[k]; }; }, C = function (k) { return function (h) { return h.costeoVariable[k]; }; };
+  var h = '<div class="card"><h2>Estado de resultados (costeo por absorción, NIC 2)</h2><div class="scroll"><table>' + cab() +
+    fila('Ventas', R('ventas')) + fila('Costo de ventas', R('costoVentas'), true) + fila('Capacidad no absorbida', R('capacidadNoAbsorbida'), true) + fila('Bajas por vencimiento', R('bajasVencimiento'), true) + fila('<b>Utilidad bruta</b>', R('utilidadBruta')) +
+    fila('Distribución', R('distribucion'), true) + fila('Publicidad', R('publicidad'), true) + fila('Administración', R('administracion'), true) + fila('Fijos de productos nuevos', R('fijosProductosNuevos'), true) + fila('Depreciación de inversiones nuevas', R('depreciacionInversionesNuevas'), true) +
+    fila('Innovación (comité, desarrollo, registro)', R('innovacion'), true) + fila('Investigación de mercados', R('investigacionMercados'), true) + fila('<b>Utilidad operativa</b>', R('utilidadOperativa')) + fila('Intereses', R('intereses'), true) + fila('Impuesto (IUE 25 %)', R('impuesto'), true) + fila('<b>Utilidad neta</b>', R('utilidadNeta')) + '</table></div></div>';
+  h += '<div class="card"><h2>Balance general</h2><div class="scroll"><table>' + cab() + fila('Caja', B('caja')) + fila('Cuentas por cobrar', B('cxc')) + fila('Inventario', B('inventario')) + fila('Activo fijo neto', B('activoFijo')) + fila('<b>Total activo</b>', B('activo')) + fila('Cuentas por pagar', B('cxp')) + fila('Deuda financiera', B('deuda')) + fila('Capital', B('capital')) + fila('Resultados acumulados', B('resultadosAcumulados')) + fila('<b>Total pasivo y patrimonio</b>', function (x) { return x.balance.pasivo + x.balance.patrimonio; }) + '</table></div></div>';
+  h += '<div class="card"><h2>Flujo de efectivo (método directo)</h2><div class="scroll"><table>' + cab() + fila('Cobros a clientes', F('cobros')) + fila('Pagos a proveedores', F('pagosProveedores'), true) + fila('Pagos de gastos', F('pagosGastos'), true) + fila('Intereses', F('intereses'), true) + fila('Impuesto', F('impuesto'), true) + fila('<b>Flujo operativo</b>', F('flujoOperativo')) + fila('Inversión (reposición y proyectos)', F('inversion'), true) + fila('Préstamo automático', F('prestamo')) + fila('<b>Variación de caja</b>', F('variacionCaja')) + '</table></div></div>';
+  h += '<div class="card"><h2>Informe interno: costeo variable y conciliación</h2><div class="scroll"><table>' + cab() + fila('Margen de contribución', C('margenContribucion')) + fila('Costos fijos de fabricación del período', C('costosFijosFabricacion'), true) + fila('Utilidad operativa (costeo variable)', C('utilidadOperativa')) + fila('Utilidad operativa (absorción)', R('utilidadOperativa')) + fila('Diferencia: costos fijos que quedan en el inventario', C('conciliacion')) + '</table></div><p class="muted">Producir más de lo que se vende sube la utilidad por absorción porque parte de los costos fijos queda en el inventario; el costeo variable lo muestra.</p></div>';
+  var u = H[H.length - 1], prods = Object.keys(u.operacion.porProducto);
+  h += '<div class="card"><h2>Operación semana a semana del trimestre ' + u.t + '</h2>' + prods.map(function (id) {
+    var r = u.operacion.porProducto[id];
+    return '<h3>' + esc(VR_nomProd(id)) + '</h3><div class="scroll"><table><tr><th>Semana</th><th class="n">Producción</th><th class="n">Demanda</th><th class="n">Ventas</th><th class="n">Perdidas</th><th class="n">Vencido</th><th class="n">Inventario final</th></tr>' +
+      r.semanas.map(function (w) { return '<tr><td>' + w.semana + '</td><td class="n">' + vrN(w.produccion) + '</td><td class="n">' + vrN(w.demanda) + '</td><td class="n">' + vrN(w.ventas) + '</td><td class="n">' + vrN(w.perdidas) + '</td><td class="n">' + vrN(w.vencido) + '</td><td class="n">' + vrN(w.inventarioLitros) + '</td></tr>'; }).join('') + '</table></div>';
+  }).join('') + '</div>';
+  return h;
+}
+function VR_tabla(f) { return '<div class="scroll"><table>' + f.map(function (x) { return '<tr><td>' + x[0] + '</td><td class="n">' + vrN(x[1]) + '</td></tr>'; }).join('') + '</table></div>'; }
+
+// ===================== Docente: panel "Vida real" =====================
+var VRP = null;
+function VR_aPanel() { return '<div id="vrpanel"><div class="card"><p class="muted">Cargando…</p></div></div>'; }
+function VR_cargarPanel() {
+  call('apiAdmin', TOK, 'vrPanel', { simId: SIMID }).then(function (r) { VRP = r; $('vrpanel').innerHTML = VR_htmlPanel(r); }).catch(function (e) { $('vrpanel').innerHTML = '<div class="msg err">' + esc(e) + '</div>'; });
+}
+function VR_htmlPanel(r) {
+  if (!r.equipos || !r.equipos.length) return '<div class="card"><p>Todavía no hay equipos registrados.</p></div>';
+  var h = '<div class="card"><h2>Simulador vida real · estado de los equipos</h2><p class="muted">Trimestre ' + Math.min(r.t, r.horizonte) + ' de ' + r.horizonte + '. Indicadores de rendición de cuentas: resultado comercial (ventas de productos nuevos), retorno de la innovación y calidad del proceso (compuertas evaluadas).</p><div class="scroll"><table><tr><th>Equipo</th><th class="n">Ventas último trim.</th><th class="n">Utilidad neta</th><th class="n">Caja</th><th class="n">Ventas de productos nuevos</th><th class="n">Retorno</th><th class="n">Proceso</th><th>Productos</th><th>Proyectos</th></tr>' +
+    r.equipos.map(function (e) {
+      var i = e.indicadores || {};
+      return '<tr><td>' + esc(e.nombre) + '</td><td class="n">' + (e.ventas === null ? '—' : vrN(e.ventas)) + '</td><td class="n">' + (e.utilidadNeta === null ? '—' : vrN(e.utilidadNeta)) + '</td><td class="n">' + vrN(e.caja) + '</td><td class="n">' + (e.indicadores ? vrP(i.vitalidad) : '—') + '</td><td class="n">' + (e.indicadores ? vrN(i.retorno, 2) : '—') + '</td><td class="n">' + (e.indicadores ? vrP(i.proceso) : '—') + '</td><td>' + esc(e.productos.join(', ')) + '</td><td>' +
+        e.proyectos.map(function (p) { return esc(p.nombre) + ' (' + esc(p.clase || 'sin clase') + ', ' + esc(VR_EST[p.estado] || p.estado) + (p.c1 !== null ? ', C1 ' + (p.c1 ? '✅' : '❌') : '') + (p.c2 !== null ? ', C2 ' + (p.c2 ? '✅' : '❌') : '') + ')'; }).join('<br>') + '</td></tr>';
+    }).join('') + '</table></div></div>';
+  var sol = [];
+  r.equipos.forEach(function (e) { (e.solicitudes || []).forEach(function (s) { sol.push({ e: e, s: s }); }); });
+  h += '<div class="card"><h2>Solicitudes de rubros nuevos (proyectos radicales)</h2>' + (sol.length ? '<div class="scroll"><table><tr><th>Equipo</th><th>Rubro</th><th>Unidad</th><th>Para qué</th><th>Estado</th></tr>' + sol.map(function (x) { return '<tr><td>' + esc(x.e.nombre) + '</td><td>' + esc(x.s.nombre) + '</td><td>' + esc(x.s.unidad) + '</td><td>' + esc(x.s.justificacion) + '</td><td>' + esc(x.s.estado) + (x.s.estado === 'pendiente' ? ' <button class="btn sec" onclick="VR_rechazar(\'' + esc(x.e.equipoId) + '\',\'' + esc(String(x.s.nombre).replace(/'/g, '')) + '\')">Rechazar</button>' : '') + '</td></tr>'; }).join('') + '</table></div>' : '<p class="muted">No hay solicitudes.</p>') +
+    '<h3>Incorporar un rubro al banco (para todos los equipos)</h3><div class="grid g4"><div><label>Nombre</label><input type="text" id="vrrn"></div><div><label>Unidad</label><input type="text" id="vrru" placeholder="kg, unidad, mes…"></div><div><label>Precio (Bs por unidad)</label><input type="number" id="vrrp" step="any"></div><div><label>Fuente verificable</label><input type="text" id="vrrf" placeholder="Cotización, página web, estudio…"></div></div>' +
+    '<button class="btn" style="margin-top:8px" onclick="adm(\'vrRubro\',{nombre:$(\'vrrn\').value,unidad:$(\'vrru\').value,precio:$(\'vrrp\').value,fuente:$(\'vrrf\').value},false).then(VR_cargarPanel)">Incorporar al banco</button><p class="muted">El nombre debe coincidir con el de la solicitud para marcarla como atendida.</p></div>';
+  return h;
+}
+function VR_rechazar(equipoId, nombre) {
+  var m = prompt('Motivo del rechazo (lo verá el equipo):', ''); if (m === null) return;
+  adm('vrRubro', { equipoId: equipoId, nombre: nombre, rechazar: true, motivo: m }, false).then(VR_cargarPanel);
+}
+function VR_htmlRanking(r) {
+  return '<p>Indicadores al cierre de T' + r.t + '. Puntaje (decisión del docente): resultado comercial 35 %, retorno 35 %, calidad del proceso 30 %, normalizados en la clase.</p><div class="scroll"><table><tr><th>#</th><th>Equipo</th><th class="n">Puntaje</th><th class="n">Ventas de productos nuevos (último año)</th><th class="n">Retorno de la innovación</th><th class="n">Proceso</th><th class="n">Utilidad acumulada</th><th class="n">Caja</th></tr>' +
+    r.filas.map(function (d, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(d.nombre) + '</td><td class="n"><b>' + d.puntaje + '</b></td><td class="n">' + vrN(d.vitalidad, 1) + ' %</td><td class="n">' + vrN(d.retorno, 2) + '</td><td class="n">' + vrN(d.proceso, 1) + ' %</td><td class="n">' + vrN(d.utilidadAcum) + '</td><td class="n">' + vrN(d.caja) + '</td></tr>'; }).join('') + '</table></div>';
+}
+</script>

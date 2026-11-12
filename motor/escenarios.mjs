@@ -2,7 +2,7 @@
 import fs from 'fs'; import vm from 'vm'; import path from 'path'; import { fileURLToPath } from 'url';
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const ctx = { module: undefined, console, Math, JSON }; vm.createContext(ctx);
-for (const f of ['DatosVR.gs', 'MotorVR.gs']) vm.runInContext(fs.readFileSync(path.join(dir, f), 'utf8'), ctx, { filename: f });
+for (const f of ['DatosVR.gs', 'MotorVR.gs']) vm.runInContext(fs.readFileSync(path.join(dir, '..', 'fuente', f), 'utf8'), ctx, { filename: f });
 const D = ctx.VR_DATOS, fmt = (x) => Math.round(x).toLocaleString('es-BO');
 function correr(cambio) {
   let E = ctx.vrCrearPartida(D, 5); const dec = ctx.vrDecisionesNeutras(E); cambio(dec, E);

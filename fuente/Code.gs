@@ -90,6 +90,7 @@ function apiMiEquipo(tok) {
 // ---------- vista del equipo ----------
 function apiEstado(tok) {
   var ses = sess_(tok, 'equipo'), P = getParams_(), pa = partida_(ses.simId), eq = equipoById_(ses.equipoId);
+  if (vrEsVR_(pa)) return vrApiEstado_(ses, pa, eq); // simulador "vida real" (VR.gs)
   var tVista = Math.min(pa.t, P.general.totalTrimestres + 1);
   var S = migrar_(estadoPrevio_(P, eq, tVista), P);
   var sched = scheduleEvents_(pa.semilla);
@@ -210,6 +211,7 @@ function ideaPublica_(P, id, conEfectos) {
 // ---------- guardar decisiones ----------
 function apiGuardar(tok, dec, enviar) {
   var ses = sess_(tok, 'equipo'), P = getParams_(), pa = partida_(ses.simId);
+  if (vrEsVR_(pa)) return vrApiGuardar_(ses, pa, equipoById_(ses.equipoId), dec, enviar);
   if (pa.estado !== 'abierto') throw new Error('El trimestre está cerrado: el docente debe abrirlo para recibir decisiones.');
   if (pa.t > P.general.totalTrimestres) throw new Error('La partida terminó.');
   var eq = equipoById_(ses.equipoId), S = estadoPrevio_(P, eq, pa.t);
@@ -229,6 +231,7 @@ function apiGuardar(tok, dec, enviar) {
 }
 function apiEstimar(tok, dec) {
   var ses = sess_(tok, 'equipo'), P = getParams_(), pa = partida_(ses.simId);
+  if (vrEsVR_(pa)) return vrApiEstimar_(ses, pa, equipoById_(ses.equipoId), dec);
   var eq = equipoById_(ses.equipoId), S = estadoPrevio_(P, eq, Math.min(pa.t, P.general.totalTrimestres));
   return estimarCostos_(P, S, dec, pa.t);
 }
@@ -260,6 +263,7 @@ function rivalesDe_(equipos, mundos, i) {
 }
 
 function procesarTrimestre_(simId) {
+  if (vrEsVR_(partida_(simId))) return vrProcesar_(simId);
   var P = getParams_(), pa = partida_(simId), t = pa.t;
   if (t > P.general.totalTrimestres) return { ok: false, mensaje: 'La partida ya terminó.' };
   var lock = LockService.getScriptLock(); lock.waitLock(30000);
@@ -401,8 +405,8 @@ function apiAdmin(tok, accion, datos) {
   if (accion === 'simulaciones') {
     var eqs = rows_('Equipos'), ints = rows_('Integrantes');
     var nomDoc = {}; rows_('Docentes').forEach(function (d) { nomDoc[d.docenteId] = d.nombre; });
-    return { yo: { nombre: ses.nombre, email: ses.email, superadmin: !!ses.superadmin, rol: ses.superadmin ? 'Superadministrador' : 'Profesor' }, total: P.general.totalTrimestres, mandatos: Object.keys(P.mandatos).map(function (k) { return { id: k, nombre: P.mandatos[k].nombre }; }),
-      lista: simulaciones_().filter(function (s) { return AX_puedeSim_(ses, s); }).map(function (s) { var pa = partida_(s.simId); return { acceso: s.acceso || 'activa', docente: nomDoc[s.docenteId] || '', simId: pa.simId, codigo: pa.codigo, nombre: pa.nombre, sigla: pa.sigla, t: pa.t, estado: pa.estado, mandato: pa.mandato, maxIntegrantes: pa.maxIntegrantes, registroAbierto: pa.registroAbierto, equipos: eqs.filter(function (e) { return String(e.simId) === String(s.simId); }).length, integrantes: ints.filter(function (i) { return String(i.simId) === String(s.simId); }).length }; }) };
+    return { yo: { nombre: ses.nombre, email: ses.email, superadmin: !!ses.superadmin, rol: ses.superadmin ? 'Superadministrador' : 'Profesor' }, total: P.general.totalTrimestres, mandatos: Object.keys(P.mandatos).map(function (k) { return { id: k, nombre: P.mandatos[k].nombre }; }).concat([{ id: VR_MANDATO, nombre: 'Simulador vida real (Lácteos Chiquitano, 12 trimestres)' }]),
+      lista: simulaciones_().filter(function (s) { return AX_puedeSim_(ses, s); }).map(function (s) { var pa = partida_(s.simId); return { total: vrEsVR_(pa) ? VR_DATOS.horizonteTrimestres : P.general.totalTrimestres, acceso: s.acceso || 'activa', docente: nomDoc[s.docenteId] || '', simId: pa.simId, codigo: pa.codigo, nombre: pa.nombre, sigla: pa.sigla, t: pa.t, estado: pa.estado, mandato: pa.mandato, maxIntegrantes: pa.maxIntegrantes, registroAbierto: pa.registroAbierto, equipos: eqs.filter(function (e) { return String(e.simId) === String(s.simId); }).length, integrantes: ints.filter(function (i) { return String(i.simId) === String(s.simId); }).length }; }) };
   }
   if (accion === 'crearSimulacion') {
     var nom = String(datos.nombre || '').trim(); if (!nom) throw new Error('Escribe el nombre de la simulación.');
@@ -417,6 +421,11 @@ function apiAdmin(tok, accion, datos) {
   // acciones de una simulación (el profesor solo las suyas)
   AX_simDe_(ses, datos.simId);
   var pa = partida_(datos.simId);
+  if (String(accion).indexOf('vr') === 0) { if (!vrEsVR_(pa)) throw new Error('Esta acción es solo para el simulador vida real.'); return vrApiAdmin_(ses, pa, accion, datos); }
+  if (vrEsVR_(pa) && ['ranking', 'textos', 'calificar', 'debriefing'].indexOf(accion) >= 0) {
+    if (accion === 'ranking') return vrRanking_(pa);
+    throw new Error('Esta herramienta es del simulador anterior; en el simulador vida real use el panel "Vida real".');
+  }
   if (accion === 'acceso') {
     var val = datos.valor === 'cerrada' ? 'cerrada' : 'activa';
     setSim_(pa.simId, { acceso: val });
@@ -468,7 +477,7 @@ function apiAdmin(tok, accion, datos) {
     var res = rows_('Resultados').filter(function (r) { return Number(r.trimestre) === pa.t - 1 && String(r.simId) === String(pa.simId); });
     return {
       partida: { simId: pa.simId, codigo: pa.codigo, nombre: pa.nombre, sigla: pa.sigla, t: pa.t, estado: pa.estado, mandato: pa.mandato, maxIntegrantes: pa.maxIntegrantes, registroAbierto: pa.registroAbierto },
-      total: P.general.totalTrimestres,
+      total: vrEsVR_(pa) ? VR_DATOS.horizonteTrimestres : P.general.totalTrimestres,
       equipos: eqs2.map(function (e) {
         var d = decs.filter(function (x) { return String(x.equipoId) === String(e.equipoId); })[0];
         var r = res.filter(function (x) { return String(x.equipoId) === String(e.equipoId); })[0];
@@ -525,7 +534,7 @@ function apiAdmin(tok, accion, datos) {
     return { ok: true, mensaje: 'Equipo eliminado.' };
   }
   if (accion === 'abrir' || accion === 'cerrar') {
-    if (pa.t > P.general.totalTrimestres) throw new Error('La partida terminó.');
+    if (pa.t > (vrEsVR_(pa) ? VR_DATOS.horizonteTrimestres : P.general.totalTrimestres)) throw new Error('La partida terminó.');
     setSim_(pa.simId, { estado: accion === 'abrir' ? 'abierto' : 'cerrado' });
     return { ok: true, mensaje: 'Trimestre ' + pa.t + (accion === 'abrir' ? ' abierto.' : ' cerrado.') };
   }

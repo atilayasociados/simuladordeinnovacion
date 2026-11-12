@@ -3,7 +3,7 @@ import fs from 'fs'; import vm from 'vm'; import path from 'path'; import { file
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const ctx = { module: undefined, console, Math, JSON };
 vm.createContext(ctx);
-for (const f of ['DatosVR.gs', 'MotorVR.gs']) vm.runInContext(fs.readFileSync(path.join(dir, f), 'utf8'), ctx, { filename: f });
+for (const f of ['DatosVR.gs', 'MotorVR.gs']) vm.runInContext(fs.readFileSync(path.join(dir, '..', 'fuente', f), 'utf8'), ctx, { filename: f });
 const D = ctx.VR_DATOS;
 let fallas = 0;
 const ok = (c, m) => { if (!c) { fallas++; console.log('FALLA:', m); } else console.log('ok  ', m); };

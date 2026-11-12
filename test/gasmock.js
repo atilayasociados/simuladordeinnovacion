@@ -50,7 +50,7 @@ function makeGas() {
   // FUENTE: carpeta alternativa de fuentes (pruebas de equivalencia). AZAR_FIJO: Math.random reproducible.
   if (process.env.AZAR_FIJO) vm.runInContext('(function(){var a=' + Number(process.env.AZAR_FIJO) + ';Math.random=function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};})()', ctx);
   const DIR = process.env.FUENTE || path.join(__dirname, '..', 'fuente');
-  for (const f of ['Params.gs', 'Engine.gs', 'Informes.gs', 'Proyectos.gs', 'Evaluacion.gs', 'Db.gs', 'Setup.gs', 'Code.gs', 'Acceso.gs']) vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f });
+  for (const f of ['Params.gs', 'Engine.gs', 'Informes.gs', 'Proyectos.gs', 'Evaluacion.gs', 'Db.gs', 'Setup.gs', 'Code.gs', 'Acceso.gs', 'DatosVR.gs', 'MotorVR.gs', 'InnovacionVR.gs', 'VR.gs']) vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f });
   // Atajos SOLO para pruebas (no existen en el servidor): permiten que las pruebas antiguas obtengan sesiones sin pasar por la pantalla.
   vm.runInContext(fs.readFileSync(path.join(__dirname, 'legacy.js'), 'utf8'), ctx, { filename: 'legacy.js' });
   // Las pruebas antiguas no completan la Estrategia anual (obligatoria desde v2.6): se completa con valores

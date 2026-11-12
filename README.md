@@ -19,6 +19,22 @@ Simulador de negocios para la materia de Innovación (UAGRM). Esta versión reem
 | `tools/origen.mjs` | Fija la versión de `gas_codigo.js` que usa la Edge Function. |
 | `test/` | Pruebas: originales (`acceso.js`, `etapa1–4.js`, `integration.js`) y del servidor nuevo (`nucleo.test.mjs`, `ui.test.mjs`). |
 
+## Simulador "vida real" (Lácteos Chiquitano)
+
+Una simulación usa el motor "vida real" cuando se crea con el mandato **VR — Simulador vida real**. Las demás siguen con el motor anterior sin cambios.
+
+| Archivo | Contenido |
+|---|---|
+| `fuente/DatosVR.gs` | Datos del Año 0, todos con fuente (banco de datos aprobado por el docente). |
+| `fuente/MotorVR.gs` | Empresa del Año 0, mercado (logit por segmento, Brodock et al., 2021), semana a semana (producción, inventario, vencimiento) y estados financieros (absorción NIC 2, costeo variable, balance y flujo). |
+| `fuente/InnovacionVR.gs` | Comité y presupuesto (0,8 %), banco de referencias, hoja de costos, estudios, Gantt, compuertas y lanzamiento. |
+| `fuente/VR.gs` | Servidor: estado, guardar, revisar, procesar, panel del docente, rubros nuevos y ranking (35/35/30). Toda validación se repite aquí. |
+| `fuente/VRUI.html` | Pantallas del equipo (Resumen, Informes, Comité, Proyectos, Productos, Estados financieros) y panel "Vida real" del docente. |
+| `motor/` | Pruebas del motor: `node motor/prueba.mjs`, `node motor/prueba_innovacion.mjs`, `node motor/escenarios.mjs`. |
+| `test/vr.js`, `test/vr_ui.test.mjs` | Prueba integral del servidor (12 trimestres) y de las pantallas en Chromium. |
+
+No requiere cambios en la base de datos: usa las tablas existentes (`Estados` guarda el mercado en la fila `simId-MERCADO`).
+
 ## Seguridad
 
 - Las tablas tienen RLS activado, sin políticas, y sin permisos para `anon` y `authenticated`: con la clave publicable nadie puede leerlas ni modificarlas.

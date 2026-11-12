@@ -28,6 +28,7 @@ function pantallaLogin(modo) {
 function cargar() {
   $('app').innerHTML = '<p class="muted">Cargando…</p>';
   call('apiEstado', TOK).then(function (v) {
+    if (v && v.modelo === 'VR') { VR_iniciar(v); return; } // simulador vida real (VRUI.html)
     V = v; D = v.borrador ? JSON.parse(JSON.stringify(v.borrador)) : {};
     delete D._estado; delete D._fecha;
     prepararBorrador();
@@ -44,6 +45,7 @@ function vigilarApertura(activar) {
     if (!TOK || ROL === 'docente' || document.hidden) return;
     call('apiEstado', TOK).then(function (v) {
       if (!V || v.partida.estado !== 'abierto' || (v.partida.t === V.partida.t && V.partida.estado === 'abierto')) return;
+      if (v.modelo === 'VR') { vigilarApertura(false); VR_iniciar(v); aviso('El docente abrió el trimestre ' + v.partida.t + ': ya pueden decidir.', 'ok'); return; }
       vigilarApertura(false); V = v; D = v.borrador ? JSON.parse(JSON.stringify(v.borrador)) : {}; delete D._estado; delete D._fecha;
       prepararBorrador(); render(); estimar(); aviso('El docente abrió el trimestre ' + v.partida.t + ': ya pueden decidir.', 'ok');
     }).catch(function () { });
@@ -629,14 +631,14 @@ function renderAdmin() {
   $('titulo').textContent = 'Simulador de Innovación · Panel docente';
   document.body.classList.add('ax-doc');
   var yo = SIMS.yo || {};
-  $('meta').innerHTML = '<span class="ax-who"><b>' + esc(yo.nombre || '') + '</b> · ' + esc(yo.rol || '') + '</span>' + (sim ? '<span>' + esc(sim.nombre) + ' (' + esc(sim.codigo) + ')</span><span>' + (sim.t > SIMS.total ? 'Terminada' : 'T' + sim.t + ' · ' + sim.estado) + '</span>' : '<span>Sin simulación seleccionada</span>') + '<a href="#" class="ax-salir" onclick="pantallaLogin();return false">Salir</a>';
+  $('meta').innerHTML = '<span class="ax-who"><b>' + esc(yo.nombre || '') + '</b> · ' + esc(yo.rol || '') + '</span>' + (sim ? '<span>' + esc(sim.nombre) + ' (' + esc(sim.codigo) + ')</span><span>' + (sim.t > (sim.total || SIMS.total) ? 'Terminada' : 'T' + sim.t + ' · ' + sim.estado) + '</span>' : '<span>Sin simulación seleccionada</span>') + '<a href="#" class="ax-salir" onclick="pantallaLogin();return false">Salir</a>';
   $('nav').style.display = 'flex'; $('pie').style.display = 'none';
-  var tabs = ATABS.concat(yo.superadmin ? [['docentes', 'Docentes']] : []).concat([['cuenta', 'Mi cuenta']]);
+  var tabs = (sim && sim.mandato === 'VR' ? ATABS.filter(function (t) { return ['textos', 'debriefing'].indexOf(t[0]) < 0; }).concat([['vida', 'Vida real']]) : ATABS).concat(yo.superadmin ? [['docentes', 'Docentes']] : []).concat([['cuenta', 'Mi cuenta']]);
   $('nav').innerHTML = tabs.map(function (t) { return '<button class="' + (ATAB === t[0] ? 'on' : '') + '" onclick="irA(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
   if (['simulaciones', 'docentes', 'cuenta'].indexOf(ATAB) < 0 && !ADM) { $('app').innerHTML = '<div class="card"><p>Primero cree o seleccione una simulación en la pestaña Simulaciones.</p></div>'; return; }
-  var f = { docentes: AX_aDocentes, cuenta: AX_aCuenta, simulaciones: aSimulaciones, partida: aPartida, equipos: AX_aEquipos, ranking: aRanking, textos: P4_aTextos, debriefing: P4_aDebrief, resultados: aResultados, bitacoras: aBitacoras }[ATAB];
+  var f = { docentes: AX_aDocentes, cuenta: AX_aCuenta, simulaciones: aSimulaciones, partida: aPartida, equipos: AX_aEquipos, ranking: aRanking, vida: VR_aPanel, textos: P4_aTextos, debriefing: P4_aDebrief, resultados: aResultados, bitacoras: aBitacoras }[ATAB];
   $('app').innerHTML = f();
-  if (ATAB === 'ranking') cargarRanking(); if (ATAB === 'resultados') cargarResultadosClase(); if (ATAB === 'bitacoras') cargarBitacorasClase(); if (ATAB === 'textos') P4_cargarTextos(); if (ATAB === 'equipos') AX_cargarEquipos(); if (ATAB === 'docentes') AX_cargarDocentes(); if (ATAB === 'cuenta') AX_cargarCuenta();
+  if (ATAB === 'vida') VR_cargarPanel(); if (ATAB === 'ranking') cargarRanking(); if (ATAB === 'resultados') cargarResultadosClase(); if (ATAB === 'bitacoras') cargarBitacorasClase(); if (ATAB === 'textos') P4_cargarTextos(); if (ATAB === 'equipos') AX_cargarEquipos(); if (ATAB === 'docentes') AX_cargarDocentes(); if (ATAB === 'cuenta') AX_cargarCuenta();
 }
 function irA(t) { ATAB = t; cargarAdmin(); }
 function elegirSim(id) { SIMID = id; ATAB = 'partida'; cargarAdmin(); }
@@ -710,6 +712,7 @@ function aRanking() { return '<div class="card"><h2>Ranking y debriefing</h2><di
 function cargarRanking() {
   call('apiAdmin', TOK, 'ranking', { simId: SIMID }).then(function (r) {
     if (!r.filas.length) { $('rk').innerHTML = 'Aún no hay trimestres procesados.'; return; }
+    if (r.modelo === 'VR') { $('rk').innerHTML = VR_htmlRanking(r); return; }
     $('rk').innerHTML = '<p>Indicadores al cierre de T' + r.t + '. Puntaje: valor 30 %, vitalidad 20 %, cuota en segmentos en crecimiento 15 %, resiliencia ante la disrupción 15 %, madurez 10 %, clima 10 % (normalizados en la clase).</p><div class="scroll"><table><tr><th>#</th><th>Equipo</th><th class="n">Puntaje</th><th class="n">Valor de la empresa (miles)</th><th class="n">Valor sin innovar</th><th class="n">Utilidad acumulada</th><th class="n">Utilidad sin innovar</th><th class="n">ROI de innovación</th><th class="n">Vitalidad media</th><th class="n">Cuota S2/S4</th><th class="n">Resiliencia (Δ cuota T13–T16)</th><th class="n">Madurez</th><th class="n">Clima</th></tr>' +
       r.filas.map(function (d, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(d.nombre) + '</td><td class="n"><b>' + d.puntaje + '</b></td><td class="n">' + kbs(d.valor) + '</td><td class="n">' + kbs(d.valorSinInnovar) + '</td><td class="n">' + kbs(d.utilidadAcum) + '</td><td class="n">' + kbs(d.utilidadSinInnovar) + '</td><td class="n">' + d.roi + '</td><td class="n">' + pct(d.vitalidad) + '</td><td class="n">' + pct(d.cuotaCrecimiento) + '</td><td class="n">' + d.resiliencia + '</td><td class="n">' + d.madurez + '</td><td class="n">' + d.clima + '</td></tr>'; }).join('') + '</table></div><p class="muted">Preguntas para el debriefing: ¿qué decisiones explican la diferencia entre el primero y el último? ¿Quién recuperó primero la inversión frente a la empresa que no innovó? ¿Qué equipo leyó mejor las señales del disruptor?</p>';
   }).catch(function (e) { $('rk').innerHTML = esc(e); });
