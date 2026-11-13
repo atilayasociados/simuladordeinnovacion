@@ -95,21 +95,21 @@ function apiEstado(tok) {
   var S = migrar_(estadoPrevio_(P, eq, tVista), P);
   var sched = scheduleEvents_(pa.semilla);
   var draft = tVista <= P.general.totalTrimestres ? filtrarBorrador_(getJson_('Decisiones', eq.equipoId, tVista), ses.registro) : null;
-  var nots = tVista <= P.general.totalTrimestres ? noticiasPara_(P, tVista, S, sched).map(function (n) { return { id: n.id, texto: n.texto, anticipada: n.anticipada }; }) : [];
+  var nots = tVista <= P.general.totalTrimestres ? senalesPara_(P, tVista, S, sched).map(function (n) { return { id: n.id, texto: n.texto, anticipada: n.anticipada, fuente: n.fuente, ambito: n.ambito, micro: n.micro, informe: n.informe, metodo: n.metodo, estudio: n.estudio }; }) : [];
   var yo = integrantesDe_(pa.simId, eq.equipoId).filter(function (i) { return String(i.registro) === String(ses.registro); })[0];
   return {
     partida: { nombre: pa.nombre, sigla: pa.sigla, codigo: pa.codigo, t: tVista, estado: pa.estado, total: P.general.totalTrimestres, finalizada: tVista > P.general.totalTrimestres },
     equipo: { id: eq.equipoId, nombre: eq.nombre, mandato: P.mandatos[S.mandato] || P.mandatos.MA },
     usuario: yo ? { registro: yo.registro, nombre: (yo.nombres + ' ' + yo.apPaterno).trim() } : { registro: ses.registro, nombre: ses.registro },
     flags: {
-      anualEditable: esInicioAnio_(tVista), c4Disponible: tVista >= P.general.entradaC4 && tVista <= 16 && S.c4resp === 'ninguna',
-      licitacion: tVista === 16
+      anualEditable: esInicioAnio_(tVista), c4Disponible: S.c4resp === 'ninguna' && S.world.comps.some(function (c) { return c.id === 'C4' && c.activo; }) && !S.world.c4Adquirido,
+      licitacion: tVista === 16, normaEtiquetado: normaEtiquetado_(tVista)
     },
     cat: {
       attrs: ATTR_NOMBRES, segmentos: P.segmentos.map(function (s) { return { id: s.id, nombre: s.nombre, part: s.part, g: s.g, pref: s.pref, est: s.est, nuevo: s.nuevo }; }),
-      canales: P.canales, accionesEntorno: P.accionesEntorno || [], iniciativas: P.iniciativas, premios: P.premios, metodos: P.metodos, fidelidades: P.fidelidades, umbrales: P.umbrales, posturas: P.posturas,
+      canales: P.canales, herramientas: P.herramientas || [], iniciativas: P.iniciativas, premios: P.premios, metodos: P.metodos, tiemposRef: tiemposReferencia_(P), gruposInv: P.gruposInv, modalidadesInv: P.modalidadesInv, descuentoContrato: P.descuentoContrato, contratoInicial: normContrato_(P, P.contratoInicial), fidelidades: P.fidelidades, umbrales: P.umbrales, posturas: P.posturas,
       p3: P3_CAT_, tecnicas: TECNICAS_, fuentesExt: FUENTES_EXT_, scamper: SCAMPER_, morfoParams: MORFO_PARAMS_, kanoNom: KANO_NOM_, tiposNom: TIPOS_NOM_, portafolioNom: PORTAFOLIO_NOM_, ptsNom: PTS_NOM_,
-      general: { semanasTrimestre: P.general.semanasTrimestre, costoValidacion: P.general.costoValidacion, costoPiloto: P.general.costoPiloto, costoLanzamiento: P.general.costoLanzamiento, costoRevision: P.general.costoRevision, costoUnidadAutonoma: P.general.costoUnidadAutonoma, costoCapacitacion: P.general.costoCapacitacion, costoTiempoLibrePunto: P.general.costoTiempoLibrePunto, maxProyectos: P.general.maxProyectos, costoAlianzaC4: P.general.costoAlianzaC4, costoAdquisicionC4: P.general.costoAdquisicionC4, costoPatente: P.general.costoPatente, costoGestionProducto: P.general.costoGestionProducto, capexEscalamiento: P.general.capexEscalamiento, promoMax: P.general.promoMax, costoPreparar: P.general.costoPreparar, recargoRepeticion: P.general.recargoRepeticion, maxProyectosAnio1: P.general.maxProyectosAnio1, costoTestConcepto: P.general.costoTestConcepto, recargoAcelerar: P.general.recargoAcelerar }
+      general: { semanasTrimestre: P.general.semanasTrimestre, costoValidacion: P.general.costoValidacion, costoPiloto: P.general.costoPiloto, costoLanzamiento: P.general.costoLanzamiento, costoRevision: P.general.costoRevision, costoUnidadAutonoma: P.general.costoUnidadAutonoma, costoCapacitacion: P.general.costoCapacitacion, costoTiempoLibrePunto: P.general.costoTiempoLibrePunto, maxProyectos: P.general.maxProyectos, costoAlianzaC4: P.general.costoAlianzaC4, costoAdquisicionC4: P.general.costoAdquisicionC4, costoPatente: P.general.costoPatente, costoGestionProducto: P.general.costoGestionProducto, capexEscalamiento: P.general.capexEscalamiento, promoMax: P.general.promoMax, costoTestConcepto: P.general.costoTestConcepto, recargoAcelerar: P.general.recargoAcelerar }
     },
     estado: vistaEquipo_(P, S),
     empresas: empresasPublicas_(pa.simId, tVista - 1, eq.equipoId),
@@ -122,14 +122,16 @@ function empresasPublicas_(simId, t, miId) {
   var res = t >= 1 ? rows_('Resultados').filter(function (r) { return String(r.simId) === String(simId) && Number(r.trimestre) === t; }) : [];
   return equiposDe_(simId).map(function (e) {
     var yo = String(e.equipoId) === String(miId);
-    var r = yo ? res.filter(function (x) { return String(x.equipoId) === String(e.equipoId); })[0] : null;
-    return { nombre: e.nombre, yo: yo, ventas: r ? Number(r.ventas) : null, cuota: r ? Number(r.cuotaTotal) : null, productos: r ? Number(r.productosActivos) : null };
+    // La participación y los productos en el mercado son observables (los muestra el informe de Mercado);
+    // las ventas de las otras empresas son privadas.
+    var r = res.filter(function (x) { return String(x.equipoId) === String(e.equipoId); })[0] || null;
+    return { nombre: e.nombre, yo: yo, ventas: r && yo ? Number(r.ventas) : null, cuota: r ? Number(r.cuotaTotal) : null, productos: r ? Number(r.productosActivos) : null, t: r ? t : null };
   });
 }
 function vistaEquipo_(P, S) {
   return {
     t: S.t, saldo: Math.round(S.saldo), presupuestoAnual: S.presupuestoAnual, org: S.org, iq: S.iq, conocimiento: S.conocimiento,
-    vigilanciaHasta: S.vigilanciaHasta, c4resp: S.c4resp, feedback: S.feedback, noticiasEval: S.noticiasEval,
+    vigilanciaHasta: S.vigilanciaHasta, c4resp: S.c4resp, feedback: S.feedback, noticiasEval: S.noticiasEval, lecturas: (S.lecturas || []).slice(-60), calibracion: S.calibracion || {}, herr: (S.world && S.world.herr) || {},
     informes: S.informes || [], ultMetodo: S.ultMetodo || {}, seguimiento: S.seguimiento || [], coherencia: S.coherencia || [], preparados: S.preparados || {},
     proyectos: S.proyectos.map(function (p) {
       var o2 = p.flujo === 2 ? vistaProyecto2_(p) : {};
@@ -146,7 +148,9 @@ function vistaEquipo_(P, S) {
     productos: S.world.productos.filter(function (p) { return p.activo; }).map(function (p) {
       return { id: p.id, nombre: p.nombre, attrs: p.attrs, precio: p.precio, costUnit: p.costUnit, canales: p.canales, modelo: p.modelo, proteccion: p.proteccion, AW: p.AW, comunicacion: p.comunicacion, segPub: p.segPub || 'todos', pronHist: p.pronHist || [], desde: p.desde, legado: p.legado };
     }),
-    hist: S.hist
+    hist: S.hist, hist0: S.hist0 || [],
+    portafolioAnios: (function () { var out = [], aMax = Math.max(1, Math.ceil(((S.t || 0) + 1) / 4)); for (var a = 1; a <= aMax; a++) { var r = portafolioAnio_(S, a); if (r.meta || r.proyectos) out.push(r); } return out; })(),
+    contrato: S.contrato || {}, contratoAnual: costoContratoAnual_(P, S.contrato || {}), contratoTrim: costoContratoTrim_(P, S.contrato || {}, Math.max(1, S.t + 1))
   };
 }
 function conceptoPublico_(P, c) {
@@ -218,6 +222,12 @@ function apiGuardar(tok, dec, enviar) {
   var est = estimarCostos_(P, S, dec, pa.t);
   if (enviar && (!dec.hipotesis || String(dec.hipotesis).trim().length < 20)) throw new Error('Para enviar, escribe la hipótesis del equipo (al menos 20 caracteres).');
   if (enviar && esInicioAnio_(pa.t)) { var fA = anualFaltantes_(dec.anual); if (fA.length) throw new Error('Para enviar, completen la Estrategia anual: falta ' + fA.join(', ') + '.'); }
+  if (enviar) {
+    var acts = actividadesPlan_(P, migrar_(copy_(S), P), dec, pa.t, pa.semilla, scheduleEvents_(pa.semilla)), Cr = cronogramaLimpio_(dec.cronograma);
+    var sinPlan = acts.filter(function (a) { return !Cr[a.concepto]; }).length;
+    if (sinPlan) throw new Error('Para enviar, completen el cronograma de semanas-persona (4. Proyectos): faltan ' + sinPlan + ' actividad(es) sin estimación o sin semanas de inicio y fin.');
+  }
+  if (enviar) { var fS = senalesFaltantes_(P, migrar_(copy_(S), P), dec, pa.t, scheduleEvents_(pa.semilla)); if (fS.length) throw new Error('Para enviar, completen la lectura del entorno (1. Entorno): ' + fS.join(' y ') + '.'); }
   if (enviar && informesPendientes_(migrar_(S, P), dec, pa.t).length) throw new Error('Para enviar, escriban en Resultados → Informes de investigación qué decisión toman con cada informe recibido (al menos 10 caracteres).');
   var lock = LockService.getScriptLock(); lock.waitLock(30000);
   try {
@@ -233,7 +243,9 @@ function apiEstimar(tok, dec) {
   var ses = sess_(tok, 'equipo'), P = getParams_(), pa = partida_(ses.simId);
   if (vrEsVR_(pa)) return vrApiEstimar_(ses, pa, equipoById_(ses.equipoId), dec);
   var eq = equipoById_(ses.equipoId), S = estadoPrevio_(P, eq, Math.min(pa.t, P.general.totalTrimestres));
-  return estimarCostos_(P, S, dec, pa.t);
+  var r = estimarCostos_(P, S, dec, pa.t);
+  try { r.actividades = actividadesPlan_(P, S, dec || {}, pa.t, pa.semilla, scheduleEvents_(pa.semilla)); } catch (e) { r.actividades = []; }
+  return r;
 }
 function apiBitacora(tok, datos) {
   var ses = sess_(tok, 'equipo'), pa = partida_(ses.simId), t = Math.max(1, Math.min(pa.t - 1, 20));
@@ -600,3 +612,26 @@ function rankingClase_(P, pa) {
   datos.sort(function (a, b) { return b.puntaje - a.puntaje; });
   return { filas: datos, t: tUlt };
 }
+
+/** Tiempos de referencia (semanas-persona) de las actividades que consumen tiempo del equipo, con su rango. */
+function tiemposReferencia_(P) {
+  var g = P.general, r = function (x) { return Math.max(0.5, Math.round(2 * x) / 2); };
+  var L = [
+    ['Idear', 'Técnica de ideación: ' + TECNICAS_.scamper.nombre, TECNICAS_.scamper.sem],
+    ['Idear', 'Técnica de ideación: ' + TECNICAS_.flor.nombre, TECNICAS_.flor.sem],
+    ['Idear', 'Técnica de ideación: ' + TECNICAS_.morfo.nombre, TECNICAS_.morfo.sem],
+    ['Idear', 'Ideas de afuera: ' + FUENTES_EXT_.concurso.nombre, FUENTES_EXT_.concurso.sem],
+    ['Idear', 'Ideas de afuera: ' + FUENTES_EXT_.intra.nombre, FUENTES_EXT_.intra.sem],
+    ['Idear', 'Ideas de afuera: ' + FUENTES_EXT_.startups.nombre, FUENTES_EXT_.startups.sem],
+    ['Evaluar', 'Test de concepto con clientes', 1],
+    ['Prototipar', 'Prototipo y prueba con 5 u 8 usuarios', 1],
+    ['Prototipar', 'Prototipo y prueba con 12 usuarios', 2],
+    ['Especificar', 'Planta piloto y comité (puerta)', 2],
+    ['Piloto', 'Piloto en tiendas', g.semPiloto],
+    ['Lanzar', 'Lanzamiento', g.semLanzamiento],
+    ['Revisar', 'Revisión después de la acción', g.semRevision],
+    ['Estrategia anual', 'Capacitación en Design Thinking', g.semCapacitacion]
+  ];
+  return L.map(function (x) { return { fase: x[0], actividad: x[1], ref: x[2], min: r(x[2] * 0.8), max: r(x[2] * 1.35) }; });
+}
+

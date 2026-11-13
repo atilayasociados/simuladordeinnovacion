@@ -44,14 +44,11 @@ var DEF = {
     costoAdquisicionC4: 450000,
     costoGestionProducto: 40000,  // costo fijo trimestral por producto nuevo activo (marca, inventario, distribución)
     maxProyectos: 3,
-    maxProyectosAnio1: 2,
     costoTestConcepto: 5000,
     recargoAcelerar: 0.5,
     entradaC4: 10,
     invasionC4: 14,
-    recargoRepeticion: 0.5,       // +50 % si se repite un método de investigación en trimestres consecutivos
     promoMax: 60000,              // promoción en el punto de venta por producto y trimestre
-    costoPreparar: 8000,          // preparar una respuesta a una noticia del entorno
     publicidadBase: 20000         // publicidad inicial de la leche saborizada (mantiene el conocimiento de marca)
   },
 
@@ -93,16 +90,26 @@ var DEF = {
   ],
   premios: { bajo: { fN: 0.8, fM: 0.0, fS: 1.0, costo: 5000 }, medio: { fN: 1.3, fM: 0.2, fS: 1.0, costo: 12000 }, alto: { fN: 0.9, fM: 0.5, fS: 0.7, costo: 30000 } },
 
+  // Catálogo de la consultora (precios didácticos, subsidiados: en el mercado boliviano costarían unas 3 veces más).
+  // grupo: A macroentorno, B clientes, C industria, D proveedores. modalidad: suscripcion | medida | sindicado.
+  // Precio: costo fijo, o base + porSeg por cada segmento elegido (1 a 5). continuo: puede ir en el contrato anual.
   metodos: [
-    { id: 'encuesta', fam: 'A', nombre: 'Encuesta', costo: 12000, sem: 2, err: 6, desc: 'Importancia que declaran los clientes de hasta 2 segmentos, con margen de error.' },
-    { id: 'observacion', fam: 'A', nombre: 'Observación etnográfica', costo: 30000, sem: 6, err: 2, desc: 'Cómo actúan los clientes de hasta 2 segmentos y qué necesidad no dicen.' },
-    { id: 'extremos', fam: 'A', nombre: 'Usuarios extremos', costo: 15000, sem: 3, err: 0, desc: 'Una tendencia que puede volverse común, con su fuerza y su horizonte.' },
-    { id: 'lideres', fam: 'A', nombre: 'Usuarios líderes', costo: 20000, sem: 4, err: 0, desc: '2 conceptos de alta calidad para un proyecto activo.' },
-    { id: 'industria', fam: 'B', nombre: 'Estudio de la industria', costo: 18000, sem: 1, err: 0, desc: 'Participación de cada empresa en rangos y ventas por segmento, con un trimestre de retraso.' },
-    { id: 'competidores', fam: 'B', nombre: 'Análisis de competidores', costo: 14000, sem: 1, err: 0, desc: 'Lo observable de cada rival: precio, envase, mensaje, canales y presencia.' },
-    { id: 'vigilancia', fam: 'B', nombre: 'Vigilancia del entorno', costo: 22000, sem: 2, err: 0, desc: 'Boletín de señales PESTELDC con su nivel de confianza durante 4 trimestres.' },
-    { id: 'percepcion', fam: 'C', nombre: 'Estudio de percepción de marcas', costo: 16000, sem: 2, err: 0.7, desc: 'Mapa perceptual y curva de valor de las marcas en hasta 2 segmentos.' }
+    { id: 'vigilancia', grupo: 'A', inciso: 'A.1', fam: 'B', modalidad: 'suscripcion', nombre: 'Vigilancia del entorno', costo: 22000, err: 0, continuo: true, pregunta: '¿Qué noticias son reales y cuándo llegarán?', proyecto: 'Antes de crear proyectos: anticipa leyes, costos y entrantes que pueden abrir o cerrar oportunidades (las noticias llegan un trimestre antes).', desc: 'Boletín de señales PESTEL con su nivel de confianza y plazo, durante 4 trimestres.' },
+    { id: 'encuesta', grupo: 'B', inciso: 'B.1', fam: 'A', modalidad: 'medida', continuo: true, nombre: 'Encuesta', base: 8000, porSeg: 4000, err: 6, pregunta: '¿Qué dicen valorar los clientes?', proyecto: 'Fase Definir: muestra qué dice valorar el segmento, para elegir el problema. Mejora la calidad de las ideas que generen para ese segmento, pero subestima lo que no dicen.', desc: 'Importancia que declaran los clientes de cada segmento elegido, con margen de error. Subestima las necesidades latentes.' },
+    { id: 'observacion', grupo: 'B', inciso: 'B.2', fam: 'A', modalidad: 'medida', continuo: true, nombre: 'Observación etnográfica', base: 0, porSeg: 15000, err: 2, pregunta: '¿Qué hacen y qué necesitan sin decirlo?', proyecto: 'Fases Definir e Idear: revela la necesidad latente del segmento; las ideas que la atienden valen más y la evaluación de sus conceptos es más precisa.', desc: 'Persona, citas, recorrido del cliente, mapa de empatía y necesidad latente de cada segmento elegido.' },
+    { id: 'extremos', grupo: 'B', inciso: 'B.3', fam: 'A', modalidad: 'medida', continuo: true, nombre: 'Usuarios extremos', costo: 15000, base: 0, porSeg: 15000, err: 0, pregunta: '¿Qué necesidades viven de forma exagerada las personas en los extremos del segmento?', proyecto: 'Antes de elegir el reto: personas que viven la necesidad del segmento de forma exagerada (uso intenso y casi nulo) revelan necesidades que el resto no dice; es contacto directo con el cliente.', desc: 'Dos casos extremos del segmento, las necesidades que revelan y una tendencia que puede volverse común.' },
+    { id: 'lideres', grupo: 'B', inciso: 'B.4', fam: 'A', modalidad: 'medida', continuo: true, nombre: 'Usuarios líderes (co-creación)', costo: 20000, err: 0, pregunta: '¿Qué ideas proponen los clientes adelantados?', proyecto: 'Fase Idear: entrega 2 conceptos de alta calidad directamente al proyecto que elijan.', desc: '2 conceptos de alta calidad para un proyecto activo.' },
+    { id: 'industria', grupo: 'C', inciso: 'C.1', fam: 'B', modalidad: 'sindicado', nombre: 'Mercado', costo: 18000, err: 0, continuo: true, pregunta: '¿Cuánto vende cada empresa y en qué segmentos?', proyecto: 'Para elegir dónde competir: qué segmentos crecen y cuánto vende cada rival; ayuda a fijar la meta de ventas del proyecto.', desc: 'Participación de cada empresa en rangos y ventas por segmento, con un trimestre de retraso.' },
+    { id: 'competidores', grupo: 'C', inciso: 'C.2', fam: 'B', modalidad: 'sindicado', nombre: 'Competidores actuales y potenciales', costo: 14000, err: 0, continuo: true, pregunta: '¿Qué ofrece cada rival y quién se prepara para entrar?', proyecto: 'Fases Definir y Lanzar: contra qué compite su producto (precio, atributos, canales) y quién puede imitarlo o entrar.', desc: 'Precio, atributos, envase, mensaje, canales y presencia de cada rival, y señales de quién prepara su ingreso o una imitación.' },
+    { id: 'percepcion', grupo: 'C', inciso: 'C.3', fam: 'C', modalidad: 'medida', nombre: 'Posicionamiento de marcas', base: 8000, porSeg: 4000, err: 0.7, continuo: true, pregunta: '¿Cómo nos perciben los clientes frente a los rivales?', proyecto: 'Fases Definir y Lanzar: muestra espacios vacíos en el mapa de marcas y la curva de valor, para diferenciar el concepto.', desc: 'Mapa perceptual y curva de valor de las marcas en cada segmento elegido.' },
+    { id: 'sustitutos', grupo: 'C', inciso: 'C.4', fam: 'B', modalidad: 'sindicado', nombre: 'Sustitutos', costo: 10000, err: 0, continuo: true, pregunta: '¿Qué alternativas ganan terreno?', proyecto: 'Fase Definir: revela alternativas que atienden la misma necesidad (por ejemplo, bebidas vegetales).', desc: 'Precio, crecimiento y atractivo de las bebidas alternativas, como las vegetales.' },
+    { id: 'proveedores', grupo: 'D', inciso: 'D.1', fam: 'B', modalidad: 'sindicado', nombre: 'Proveedores', costo: 10000, err: 0, continuo: true, pregunta: '¿Cómo evolucionarán nuestros costos de insumos?', proyecto: 'Fases Especificar y Lanzar: anticipa costos de leche, envases y transporte que afectan el margen del producto nuevo.', desc: 'Tendencia del precio de la leche cruda, de los envases importados y del transporte, y proveedores alternativos.' }
   ],
+  gruposInv: { A: 'Macroentorno', B: 'Clientes (demanda)', C: 'Industria (competencia)', D: 'Proveedores' },
+  modalidadesInv: { suscripcion: 'Suscripción', medida: 'A medida', sindicado: 'Sindicado' },
+  descuentoContrato: 0.15,          // contrato anual de investigación continua
+  contratoInicial: { industria: 4 }, // heredado: Mercado (C.1) cada trimestre
+
 
   posturas: {
     ofensiva: ['Ofensiva', 'Busca ser la primera en el mercado con productos nuevos; invierte mucho en investigación y proyectos.'],
@@ -207,29 +214,32 @@ var DEF = {
 
   // Noticias visibles en el trimestre t. tipo real: oportunidad, amenaza, ambas o ruido.
   // Menú general de acciones ante el entorno: el mismo para todas las noticias; el equipo elige cuál aplica.
-  accionesEntorno: [
-    { id: 'leche', nombre: 'Contratar un proveedor de leche de respaldo', costo: 8000, seg: false, desc: 'Contrato de reserva con un segundo acopiador de leche, con precio pactado por un año.' },
-    { id: 'envases', nombre: 'Comprar envases importados por adelantado', costo: 15000, seg: false, desc: 'Compra anticipada de envases y tapas importados para los próximos trimestres.' },
-    { id: 'etiqueta', nombre: 'Reformular la receta y rediseñar la etiqueta', costo: 12000, seg: false, desc: 'Ajuste de azúcar y grasas en la fórmula y diseño de una etiqueta nueva.' },
-    { id: 'rutas', nombre: 'Armar rutas alternativas y stock de seguridad', costo: 6000, seg: false, desc: 'Rutas de distribución alternativas y un depósito con producto e insumos de reserva en la ciudad.' },
-    { id: 'competidor', nombre: 'Preparar un plan comercial contra un competidor', costo: 10000, seg: true, desc: 'Precios, promociones y presencia listos para responder a un rival en el segmento elegido.' },
-    { id: 'estudio', nombre: 'Hacer un estudio rápido de un segmento', costo: 5000, seg: true, desc: 'Entrevistas y datos de ventas para entender qué está cambiando en el segmento elegido.' },
-    { id: 'campana', nombre: 'Lanzar una campaña anticipada de marca', costo: 10000, seg: true, desc: 'Campaña en redes y puntos de venta para posicionar la marca en el segmento elegido antes que los rivales.' }
+  // Herramientas de la empresa frente al entorno: disponibles en cualquier trimestre, con costo y duración.
+  // Se pagan con el presupuesto operativo (estado de resultados: "Herramientas del entorno").
+  // Costos calibrados para que contratarlas "por si acaso" todo el tiempo no convenga: solo rinden a quien lee bien el entorno.
+  herramientas: [
+    { id: 'leche', grupo: 'cobertura', nombre: 'Proveedor de leche de respaldo', costo: 25000, dur: 4, seg: false, desc: 'Precio de la leche cruda pactado con un segundo acopiador. Si el precio de mercado sube, su costo de leche no sube mientras esté vigente.' },
+    { id: 'envases', grupo: 'cobertura', nombre: 'Compra anticipada de envases importados', costo: 100000, dur: 4, seg: false, desc: 'Envases y tapas importados comprados por adelantado al precio actual (incluye financiamiento y almacenaje). Su costo de envase no sube mientras esté vigente.' },
+    { id: 'rutas', grupo: 'cobertura', nombre: 'Rutas y distribución alternativas', costo: 45000, dur: 2, seg: false, desc: 'Transporte por rutas secundarias y depósitos de reserva. Si se cortan las carreteras, recupera cerca del 70 % de las entregas perdidas.' },
+    { id: 'etiqueta', grupo: 'cobertura', nombre: 'Adecuación de etiqueta y comunicación nutricional', costo: 40000, dur: 0, seg: false, desc: 'Rediseño de etiquetas y mensajes nutricionales de todos sus productos actuales. Adecúa sus productos a una norma de etiquetado vigente o aprobada: reduce a la mitad la pérdida de atractivo que esa norma cause a los productos poco saludables. Permanente para los productos que tengan al contratarla. Solo se puede contratar cuando existe una norma vigente o aprobada.', requiere: 'norma' },
+    { id: 'competidor', grupo: 'comercial', nombre: 'Plan comercial frente a un competidor', costo: 10000, dur: 2, seg: true, desc: 'Precios, promociones y presencia preparados para responder a un rival nuevo en el segmento elegido: mejora 5 % el atractivo de sus productos allí mientras ese rival compita.' },
+    { id: 'campana', grupo: 'comercial', nombre: 'Campaña anticipada de marca', costo: 10000, dur: 1, seg: true, desc: 'Campaña en redes y puntos de venta en el segmento elegido: mejora 6 % el atractivo de sus productos allí durante el trimestre.' }
   ],
+
   noticias: [
-    { id: 'N01', area: 'Económico', t: 1, tipo: 'amenaza', texto: 'Las ventas de bebidas lácteas tradicionales cayeron por tercer año consecutivo en Santa Cruz.' },
-    { id: 'N02', area: 'Demográfico', t: 1, tipo: 'oportunidad', texto: 'Crece la matrícula universitaria y se construyen nuevas residencias estudiantiles.' },
-    { id: 'N03', area: 'Tecnológico', t: 2, tipo: 'oportunidad', texto: 'Aumentan con fuerza los pedidos por aplicaciones de delivery en la ciudad.' },
-    { id: 'N04', area: 'Cultural', t: 4, tipo: 'oportunidad', texto: 'Estudio: los jóvenes buscan desayunos rápidos, saciantes y fáciles de llevar.' },
-    { id: 'N05', area: 'Económico', t: 6, tipo: 'amenaza', texto: 'Una startup local de bebidas vegetales vendidas por app cierra una ronda de inversión.' },
-    { id: 'N06', area: 'Legal', t: 7, tipo: 'ambas', texto: 'Se presenta un proyecto de ley de etiquetado frontal para alimentos altos en azúcar.' },
-    { id: 'N07', area: 'Legal', t: 8, tipo: 'ambas', texto: 'Se aprueba la ley de etiquetado frontal: regirá desde el próximo trimestre.' },
-    { id: 'N08', area: 'Económico', t: 9, tipo: 'amenaza', texto: 'La startup de bebidas vegetales anuncia su lanzamiento en universidades con precios bajos.' },
-    { id: 'N09', area: 'Económico', t: 11, tipo: 'ambas', texto: 'Se amplía la brecha cambiaria y se retrasan las importaciones de envases y alimentos.' },
-    { id: 'N10', area: 'Tecnológico', t: 13, tipo: 'amenaza', texto: 'La startup mejora su fórmula y prepara su llegada a supermercados y oficinas.' },
-    { id: 'N11', area: 'Político', t: 15, tipo: 'oportunidad', texto: 'La gobernación prepara una licitación de alimentación escolar y universitaria (requisito: producto saludable y nutritivo).' },
-    { id: 'N12', area: 'Ecológico', t: 16, tipo: 'oportunidad', texto: 'Crece en redes el interés por bebidas vegetales y envases sostenibles.' },
-    { id: 'N13', area: 'Cultural', t: 17, tipo: 'oportunidad', texto: 'Estudio: los universitarios y deportistas prefieren marcas con compromiso ambiental.' }
+    { id: 'N01', area: 'Económico', t: 1, tipo: 'amenaza', ambito: 'Clientes', llega: 0, texto: 'Las ventas de bebidas lácteas tradicionales cayeron por tercer año consecutivo en Santa Cruz.' },
+    { id: 'N02', area: 'Demográfico', t: 1, tipo: 'oportunidad', ambito: 'Demográfico', llega: 0, texto: 'Crece la matrícula universitaria y se construyen nuevas residencias estudiantiles.' },
+    { id: 'N03', area: 'Tecnológico', t: 2, tipo: 'oportunidad', ambito: 'Tecnológico', llega: 0, texto: 'Aumentan con fuerza los pedidos por aplicaciones de delivery en la ciudad.' },
+    { id: 'N04', area: 'Cultural', t: 4, tipo: 'oportunidad', ambito: 'Clientes', llega: 0, texto: 'Estudio: los jóvenes buscan desayunos rápidos, saciantes y fáciles de llevar.' },
+    { id: 'N05', area: 'Económico', t: 6, tipo: 'amenaza', ambito: 'Entrantes', llega: 4, texto: 'Una startup local de bebidas vegetales vendidas por app cierra una ronda de inversión.' },
+    { id: 'N06', area: 'Legal', t: 7, tipo: 'ambas', ambito: 'Legal', llega: 2, texto: 'Se presenta un proyecto de ley de etiquetado frontal para alimentos altos en azúcar.' },
+    { id: 'N07', area: 'Legal', t: 8, tipo: 'ambas', ambito: 'Legal', llega: 1, texto: 'Se aprueba la ley de etiquetado frontal: regirá desde el próximo trimestre.' },
+    { id: 'N08', area: 'Económico', t: 9, tipo: 'amenaza', ambito: 'Entrantes', llega: 1, texto: 'La startup de bebidas vegetales anuncia su lanzamiento en universidades con precios bajos.' },
+    { id: 'N09', area: 'Económico', t: 11, tipo: 'ambas', ambito: 'Proveedores', llega: 1, texto: 'Se amplía la brecha cambiaria y se retrasan las importaciones de envases y alimentos.' },
+    { id: 'N10', area: 'Tecnológico', t: 13, tipo: 'amenaza', ambito: 'Entrantes', llega: 1, texto: 'La startup mejora su fórmula y prepara su llegada a supermercados y oficinas.' },
+    { id: 'N11', area: 'Político', t: 15, tipo: 'oportunidad', ambito: 'Político', llega: 1, texto: 'La gobernación prepara una licitación de alimentación escolar y universitaria (requisito: producto saludable y nutritivo).' },
+    { id: 'N12', area: 'Ecológico', t: 16, tipo: 'oportunidad', ambito: 'Ecológico', llega: 2, texto: 'Crece en redes el interés por bebidas vegetales y envases sostenibles.' },
+    { id: 'N13', area: 'Cultural', t: 17, tipo: 'oportunidad', ambito: 'Clientes', llega: 1, texto: 'Estudio: los universitarios y deportistas prefieren marcas con compromiso ambiental.' }
   ],
   ruido: [
     'Rumor: una cadena extranjera de supermercados dejaría el país.',

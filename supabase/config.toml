@@ -1,0 +1,5 @@
+# Configuración mínima para la CLI de Supabase (publicación desde GitHub Actions).
+project_id = "simulador-innovacion"
+
+[functions.api]
+verify_jwt = false

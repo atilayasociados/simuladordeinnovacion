@@ -30,11 +30,14 @@ try {
   await pg.click('text=✓ Registrar Equipo'); await pg.waitForTimeout(1500);
   const enTrabajo = await pg.isVisible('nav >> text=Situación');
   await pg.click('nav >> text=Decidir'); await pg.waitForTimeout(300); await pg.click('nav .sub >> text=2. Estrategia anual'); await pg.waitForTimeout(300);
-  R.anualEnBlanco = await pg.inputValue('input[data-p="anual.p4.producto"]') === '' && await pg.inputValue('select[data-p="anual.postura"]') === '';
-  for (const [k, v] of [['producto', '40'], ['proceso', '20'], ['posicion', '20'], ['paradigma', '20']]) await pg.fill('input[data-p="anual.p4.' + k + '"]', v);
+  R.anualEnBlanco = !(await pg.isChecked('input[data-p="anual.mapa4p.producto"]')) && await pg.inputValue('select[data-p="anual.postura"]') === '';
+  for (const k of ['producto', 'posicion']) await pg.evaluate((k) => { const e = document.querySelector('input[data-p="anual.mapa4p.' + k + '"]'); if (e && !e.checked) e.click(); }, k); await pg.waitForTimeout(300);
+  await pg.fill('input[data-p="anual.mapa4p.porque"]', 'Buscaremos en producto y posición para los universitarios.'); await pg.dispatchEvent('input[data-p="anual.mapa4p.porque"]', 'change');
   for (const [k, v] of [['nucleo', '60'], ['adyacente', '30'], ['transf', '10']]) await pg.fill('input[data-p="anual.' + k + '"]', v);
   for (const [k, v] of [['postura', 'ofensiva'], ['estructura', 'integrada'], ['tiempoLibre', '10'], ['incentivo', 'reconocimiento'], ['politica', 'aprendizaje'], ['composicion', 'multifuncional'], ['umbral', 'moderado'], ['capacitacion', 'no']]) await pg.selectOption('select[data-p="anual.' + k + '"]', v);
   await pg.fill('textarea[data-p="anual.hipotesis"]', 'Con 30 % adyacente lanzaremos un producto para universitarios antes de T8.'); await pg.waitForTimeout(300);
+  await pg.click('nav .sub >> text=1. Entorno'); await pg.waitForTimeout(300);
+  for (const v of ['dudosa', 'ignorar']) { for (let k = 0; k < 20; k++) { const hay = await pg.evaluate((v) => { const r = document.querySelector('input[type=radio][value="' + v + '"]:not(:checked)'); if (!r) return false; r.click(); return true; }, v); if (!hay) break; await pg.waitForTimeout(120); } }
   await pg.click('nav .sub >> text=Hipótesis'); await pg.fill('textarea[data-p="hipotesis"]', 'Si observamos a los universitarios descubriremos necesidades latentes.'); await pg.dispatchEvent('textarea[data-p="hipotesis"]', 'change');
   await pg.waitForTimeout(700); await pg.click('text=Enviar decisiones'); await pg.waitForTimeout(900);
   const enviado = (s.mem.tablas.decisiones || []).some((d) => d.fila.includes('enviado') && d.fila.map(String).includes('218001234'));

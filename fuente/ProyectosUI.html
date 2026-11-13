@@ -1,6 +1,7 @@
 <script>
-// ---------- Proyectos: Definir, Idear y Evaluar (v1.9) ----------
-var FASES2 = ['Definir', 'Idear', 'Evaluar', 'Prototipar', 'Especificar', 'Puerta', 'Piloto', 'Lanzar'];
+// ---------- Proyectos: la ruta de cinco fases (v3.1) ----------
+var FASES2 = ['Definir el reto', 'Idear', 'Prototipar y probar', 'Desarrollar y validar', 'Lanzar'];
+var DEC_OPS = { seguir: 'Seguir', solucion: 'Cambiar la solución', segmento: 'Cambiar el segmento o el reto', esperar: 'Esperar (no avanza este trimestre)', detener: 'Detener el proyecto' };
 var CRIT_PUGH = [['ajuste', 'Ajuste con el cliente'], ['viab', 'Viabilidad técnica'], ['costo', 'Costo por unidad'], ['nov', 'Novedad'], ['estr', 'Ajuste estratégico']];
 var PTSK = ['sab', 'nut', 'conv', 'salud', 'sost', 'precio'];
 var TABP = {};
@@ -26,6 +27,8 @@ function prepararBorrador2() {
     a.votos = a.votos || {}; a.votos[reg] = a.votos[reg] || {};
     if (!Array.isArray(a.combinar)) a.combinar = ['', ''];
     a.pugh = a.pugh || {};
+    a.reglaSel = a.reglaSel || {};
+    if (p.decision && !p.decision.decidido) { a.decision = a.decision || {}; a.decision.clave = p.decision.clave; } else delete a.decision;
     P3_borrador(p, a);
   });
   V.estado.proyectos.forEach(function (p) { if (p.flujo === 2 && p.etapa === 'lanzado' && p.resLanz && !p.aar) { var a = D.proyectos[p.id] = D.proyectos[p.id] || {}; a.aar = a.aar || { causas: [], tipo: '' }; } });
@@ -45,6 +48,9 @@ function limpiar2(d) {
     if (p.etapa !== 'piloto') delete a.pil;
     if (p.etapa !== 'lanzar') delete a.lan;
     if (a.aar && !(a.aar.causas || []).length) delete a.aar;
+    if (a.decision && !a.decision.opcion) delete a.decision;
+    if (a.decision && a.decision.opcion !== 'segmento') ['segmento', 'evidencia', 'frase', 'insight', 'reto'].forEach(function (k) { delete a.decision[k]; });
+    if (p.etapa !== 'idear' || !(a.reglaSel && Number(a.reglaSel.minInt) > 0)) delete a.reglaSel;
     delete a._ideas; delete a._votosTot; delete a._nVot; delete a._nAutores;
   });
 }
@@ -59,14 +65,19 @@ function revisarBriefCli(b) {
   var j = ['cuando', 'quiero', 'para'].every(function (k) { return String(b[k] || '').trim().length >= 5; }); R.push([j, j ? 'Trabajo por hacer completo.' : 'Completen cuando / quiero / para.']);
   var e = !!b.evidencia && String(b.frase || '').trim().length >= 10; R.push([e, e ? 'Tiene evidencia.' : 'Sin evidencia: elijan un informe y copien una frase.']);
   var k = /\d/.test(b.criterio || '') && /(trimestre|T\d|año|mes)/i.test(b.criterio || ''); R.push([k, k ? 'Criterio con cifra y plazo.' : 'El criterio necesita una cifra y un plazo.']);
+  var ins = String(b.insight || '').trim(), io = ins.length >= 20 && ins !== String(b.frase || '').trim(); R.push([io, io ? 'Insight escrito con sus palabras.' : 'Escriban el insight con sus palabras (no copien la frase).']);
+  var en = String(b.encaje || '').trim().length >= 15; R.push([en, en ? 'Explican el encaje con la estrategia.' : 'Expliquen cómo encaja con su Estrategia anual.']);
+  var seg = b._seg, ct = (V.estado.informes || []).some(function (i) { return ['observacion', 'extremos'].indexOf(i.metodo) >= 0 && (!i.segs || !i.segs.length || i.segs.indexOf(seg) >= 0); });
+  R.push([ct, ct ? 'Tienen un estudio de contacto directo con ' + seg + '.' : 'Sin estudio de contacto directo con ' + seg + ' (observación o usuarios extremos): la encuesta informa, pero no reemplaza observar al cliente.']);
   return R;
 }
 function leerBrief() {
-  return { nombre: $('npNom').value.trim(), segmento: $('npSeg').value, tec: $('npTec').value, mod: $('npMod').value, portafolio: $('npPort').value,
-    brief: { cuando: $('npCuando').value.trim(), quiero: $('npQuiero').value.trim(), para: $('npPara').value.trim(), reto: $('npReto').value.trim(), evidencia: $('npEv').value, frase: $('npFrase').value.trim(), criterio: $('npCrit').value.trim() } };
+  var v = function (id) { var e = $(id); return e ? e.value.trim() : ''; };
+  return { nombre: v('npNom'), segmento: v('npSeg'), tec: v('npTec'), mod: v('npMod'), portafolio: v('npPort'),
+    brief: { cuando: v('npCuando'), quiero: v('npQuiero'), para: v('npPara'), reto: v('npReto'), evidencia: v('npEv'), frase: v('npFrase'), evidencia2: v('npEv2'), frase2: v('npFrase2'), insight: v('npInsight'), encaje: v('npEncaje'), criterio: v('npCrit') } };
 }
 function revisarBriefUI() {
-  var np = leerBrief(), R = revisarBriefCli(np.brief);
+  var np = leerBrief(); np.brief._seg = np.segmento; var R = revisarBriefCli(np.brief); delete np.brief._seg;
   $('npRev').innerHTML = '<ul class="fb">' + R.map(function (r) { return '<li>' + (r[0] ? '<span class="tag ok">bien</span> ' : '<span class="tag aviso">mejorar</span> ') + esc(r[1]) + '</li>'; }).join('') + '</ul>';
   $('npTipo').innerHTML = 'Tipo de innovación según sus respuestas: <b>' + esc(tipoNom(tipoP(np.tec === 'si', np.mod === 'si'))) + '</b>';
 }
@@ -77,27 +88,86 @@ function agregarProyecto2() {
   D.nuevosProyectos.push(np); render(); estimar();
 }
 
+/** Qué saben del segmento antes de idear: los estudios de clientes recibidos (los del trimestre en curso llegan al cerrarlo). */
+function conocimientoSegmento(seg) {
+  var E = V.estado, K = (E.conocimiento && E.conocimiento.pesos || {})[seg], lat = E.conocimiento && E.conocimiento.latentes && E.conocimiento.latentes[seg];
+  var enCurso = ['encuesta', 'observacion'].filter(function (m) { return (D.investigacion.metodos || []).indexOf(m) >= 0 && ((D.investigacion.segs || {})[m] || []).indexOf(seg) >= 0; });
+  if (!K && !lat) return '<p class="ayuda aviso-l"><b>Antes de idear:</b> todavía no tienen estudios de clientes de ' + esc(seg) + '. Si generan ideas ahora, estarían adivinando qué valora el segmento y la calidad de sus ideas será menor. ' + (enCurso.length ? 'El estudio que encargaron este trimestre llegará recién al cerrarlo: les servirá para idear desde el próximo trimestre.' : 'Pueden encargar una encuesta u observación en 3. Investigación; llegará al trimestre siguiente, y entonces conviene idear.') + '</p>';
+  return '<p class="ayuda"><b>Lo que saben de ' + esc(seg) + ' para idear:</b> ' + (K ? esc(K.metodo) + ' de T' + K.t + '. ' : '') + (lat ? 'Necesidad latente: ' + esc(lat.join(', ')) + '. ' : 'Aún no conocen sus necesidades latentes (las revela la observación etnográfica). ') + 'Las ideas que respondan a lo que saben del cliente valen más.</p>';
+}
+
+// ---------- Cronograma de semanas-persona (trimestre a trimestre) ----------
+var CRONO_KEYS = [];
+function cronoEstado() {
+  var A = (EST && EST.actividades) || [], C = (D && D.cronograma) || {}, cap = V.cat.general.semanasTrimestre || 12, porSem = cap / 12;
+  var carga = []; for (var w = 1; w <= 12; w++) carga.push(0);
+  var plan = 0, refMin = 0, refMax = 0, faltan = 0;
+  A.forEach(function (a) {
+    refMin += a.min; refMax += a.max;
+    var c = C[a.concepto] || {}, sem = Number(c.sem) || 0, ini = Number(c.ini) || 0, fin = Number(c.fin) || 0;
+    if (!(sem > 0) || !ini || !fin) { faltan++; return; }
+    plan += sem; var d = fin - ini + 1; for (var k = ini; k <= fin; k++) carga[k - 1] += sem / d;
+  });
+  return { A: A, C: C, cap: cap, porSem: porSem, carga: carga, plan: plan, refMin: refMin, refMax: refMax, faltan: faltan, sobre: carga.filter(function (x) { return x > porSem + 1e-9; }).length };
+}
+function cronoHTML() {
+  var z = cronoEstado(), A = z.A, html = '';
+  CRONO_KEYS = A.map(function (a) { return a.concepto; });
+  html += '<div class="card" id="cronoCard"><h2>Cronograma de semanas-persona de este trimestre</h2>' +
+    '<p>El equipo tiene <b>' + z.cap + ' semanas-persona</b> este trimestre (una persona a tiempo completo durante 12 semanas, o tres personas un tercio de su tiempo). Para cada actividad que eligieron, estimen cuántas semanas-persona tomará y en qué semanas del trimestre la harán. La referencia es un <b>rango</b>: el tiempo real depende de la novedad del proyecto, las iteraciones, su madurez y la capacitación. Si lo real supera lo que queda, la actividad <b>no se ejecuta</b>.</p>' +
+    ayuda('Es común subestimar el tiempo de las tareas (falacia de la planificación; Kahneman y Tversky, 1979; Buehler et al., 1994). Dejen un margen y no pongan todo en paralelo: la fila "Carga por semana" muestra cuánto trabajo cae en cada semana. Más detalle en 2. Estrategia anual → "Planificar el tiempo del equipo".', 0) ;
+  if (!A.length) return html + '<p class="muted">Todavía no eligieron actividades que consuman semanas-persona (ideas, validación, prototipos, pilotos, lanzamientos o capacitación). Al elegirlas aparecerán aquí.</p></div>';
+  var opt = function (sel) { var o = '<option value="">—</option>'; for (var w = 1; w <= 12; w++) o += '<option value="' + w + '"' + (Number(sel) === w ? ' selected' : '') + '>' + w + '</option>'; return o; };
+  html += '<div class="scroll"><table class="crono"><tr><th>Actividad</th><th class="n">Referencia</th><th class="n">Su estimación</th><th>Semana inicio</th><th>Semana fin</th>' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (w) { return '<th class="cw">' + w + '</th>'; }).join('') + '</tr>' +
+    A.map(function (a, i) {
+      var c = z.C[a.concepto] || {}, ini = Number(c.ini) || 0, fin = Number(c.fin) || 0;
+      return '<tr><td>' + esc(a.concepto) + '</td><td class="n">' + String(a.min).replace('.', ',') + ' a ' + String(a.max).replace('.', ',') + '</td><td class="n"><input type="number" min="0.5" max="12" step="0.5" class="crono-n" data-cron="' + i + '" data-campo="sem" value="' + (c.sem === undefined ? '' : c.sem) + '"></td>' +
+        '<td><select data-cron="' + i + '" data-campo="ini">' + opt(ini) + '</select></td><td><select data-cron="' + i + '" data-campo="fin">' + opt(fin) + '</select></td>' +
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (w) { return '<td class="cw' + (ini && fin && w >= ini && w <= fin ? ' on' : '') + '"></td>'; }).join('') + '</tr>';
+    }).join('') +
+    '<tr class="carga"><th colspan="5">Carga por semana (semanas-persona; capacidad ' + String(Math.round(z.porSem * 100) / 100).replace('.', ',') + ' por semana)</th>' + z.carga.map(function (x) { return '<td class="cw' + (x > z.porSem + 1e-9 ? ' sobre' : '') + '">' + (x ? (Math.round(x * 10) / 10).toString().replace('.', ',') : '') + '</td>'; }).join('') + '</tr></table></div>';
+  var av = [];
+  if (z.faltan) av.push(z.faltan + ' actividad(es) sin estimación o sin semanas de inicio y fin (obligatorio para enviar).');
+  if (z.plan > z.cap) av.push('Planificaron ' + z.plan + ' semanas-persona y tienen ' + z.cap + ': alguna actividad no se ejecutará.');
+  else if (z.refMax > z.cap) av.push('Si las actividades toman lo máximo de su referencia (' + z.refMax + '), no alcanzarán las ' + z.cap + ' semanas-persona.');
+  if (z.sobre) av.push(z.sobre + ' semana(s) con más carga de la que el equipo puede atender: repartan mejor las actividades en el tiempo.');
+  html += '<p><b>Total planificado: ' + String(z.plan).replace('.', ',') + ' de ' + z.cap + ' semanas-persona</b> · Referencia del conjunto: ' + String(z.refMin).replace('.', ',') + ' a ' + String(z.refMax).replace('.', ',') + '.</p>' + (av.length ? '<ul class="fb">' + av.map(function (x) { return '<li class="aviso-l">' + esc(x) + '</li>'; }).join('') + '</ul>' : '<p class="muted">El cronograma cabe en la capacidad del equipo. Recuerden que lo real puede variar.</p>');
+  return html + '</div>';
+}
+function pintarCrono() { setTimeout(function () { var b = document.getElementById('cronoBox'); if (b) b.innerHTML = cronoHTML(); }, 0); }
+
 function vProyectos2() {
   var E = V.estado, g = V.cat.general, O = E.org, html = '', t = V.partida.t, anio = Math.floor((t - 1) / 4) + 1;
   var act = E.proyectos.filter(function (p) { return p.estado === 'activo'; });
-  var maxP = anio === 1 ? (g.maxProyectosAnio1 || g.maxProyectos) : g.maxProyectos;
+  var maxP = g.maxProyectos;
   html += '<div class="card"><h2>Cómo avanza un proyecto de innovación</h2><div class="etapas">' + FASES2.map(function (f, i) { return '<span class="hecho">' + (i + 1) + '. ' + f + '</span>'; }).join('') + '</div>' +
-    '<p>Cada proyecto les pide <b>una sola tarea por trimestre</b>, la de su fase. Definir: escriben el brief al crear el proyecto. Idear: cada integrante aporta ideas con una técnica, votan y arman hasta 3 fichas de concepto. Evaluar: con el test de concepto comparan los conceptos en la matriz de Pugh y eligen uno. Las fases siguientes continúan con el prototipo, el piloto y el lanzamiento.</p>' +
-    ayuda('Acelerar una fase cuesta 50 % más en dinero y semanas y permite avanzar hasta dos fases en un trimestre, pero se aprende menos: en Idear llegan 30 % menos propuestas externas y el test de concepto es menos preciso (±1,0 en lugar de ±0,5).', 5, 'Stage') + '</div>';
+    '<p>Antes de los proyectos están el <b>Entorno</b> y la <b>Investigación</b>: ahí buscan señales y conocen al cliente. La observación y los usuarios extremos son los estudios de contacto directo (empatía).</p><ol>' +
+    '<li><b>Definir el reto.</b> Eligen hallazgos de sus informes, escriben el insight con sus palabras y lo convierten en un reto “¿Cómo podríamos…?” sin traer la solución.</li>' +
+    '<li><b>Idear.</b> Primero abren opciones (técnicas e ideas de afuera); después las cierran: fijan su regla de selección <i>antes</i> del test de concepto y eligen un concepto.</li>' +
+    '<li><b>Prototipar y probar.</b> Antes de cada prueba escriben su hipótesis (“Creemos que…”) y su criterio; prueban prototipos baratos e iteran.</li>' +
+    '<li><b>Desarrollar y validar.</b> Especifican, presentan el caso de negocio a la Puerta y hacen un piloto pequeño con un límite de recompra fijado antes.</li>' +
+    '<li><b>Lanzar.</b> Deciden cómo lanzar y luego gestionan el producto y revisan lo aprendido.</li></ol>' +
+    '<p>Cada vez que llega un resultado (test, prueba de prototipo, comité o piloto), comparan su criterio con el resultado y deciden: <b>seguir, cambiar la solución, cambiar el segmento o el reto, esperar o detener</b>. Pueden volver atrás desde cualquier fase. El orden es lógico, no obligatorio (Amabile, 1996; Brown, 2019).</p>' +
+    ayuda('Hoy el simulador procesa una fase por proyecto en cada trimestre. Acelerar una fase cuesta 50 % más en dinero y semanas y permite avanzar hasta dos fases en un trimestre, pero se aprende menos: en Idear llegan 30 % menos propuestas externas y el test de concepto es menos preciso (±1,0 en lugar de ±0,5).', 5, 'Stage') + '</div>';
+  html += '<div id="cronoBox">' + cronoHTML() + '</div>';
   html += '<div class="card"><h2>Su gestión de la creatividad hoy</h2><div class="grid g4">' + [['Motivación intrínseca', Number(O.MI).toFixed(2)], ['Autoeficacia creativa', Number(O.AE).toFixed(2)], ['Diversidad del equipo', Number(O.DIV).toFixed(2)], ['Madurez en innovación', O.madurez + ' de 5']].map(function (k) { return '<div class="kpi"><div class="v" style="font-size:18px">' + k[1] + '</div><div class="l">' + k[0] + '</div></div>'; }).join('') + '</div>' +
     ayuda('Con más motivación y autoeficacia las fichas de concepto salen mejores; con más diversidad, el análisis morfológico rinde más.', 2) + '</div>';
   // nuevo proyecto
   var cupo = maxP - act.length - D.nuevosProyectos.length;
-  html += '<div class="card"><h2>Nuevo proyecto · fase Definir</h2><p class="muted">Máximo ' + maxP + ' proyectos activos' + (anio === 1 ? ' en el primer año (3 desde el segundo)' : '') + '. Tienen ' + act.length + (D.nuevosProyectos.length ? ' y ' + D.nuevosProyectos.length + ' por crear' : '') + '.</p>';
+  html += '<div class="card"><h2>Nuevo proyecto · fase 1: Definir el reto</h2><p class="muted">Máximo ' + maxP + ' proyectos activos. Tienen ' + act.length + (D.nuevosProyectos.length ? ' y ' + D.nuevosProyectos.length + ' por crear' : '') + '.</p>';
   if (cupo > 0) {
     var infs = (E.informes || []).slice().sort(function (a, b) { return b.t - a.t; });
-    html += '<div class="grid g2"><div><label>Nombre del proyecto</label><input type="text" id="npNom" placeholder="Ejemplo: Desayuno camino a clases"></div><div><label>Segmento</label><select id="npSeg">' + V.cat.segmentos.map(function (s) { return '<option value="' + s.id + '">' + esc(s.id + ' ' + s.nombre) + '</option>'; }).join('') + '</select></div></div>' +
-      '<h3>Trabajo por hacer del cliente</h3>' + ayuda('Qué “trabajo” contrata el cliente cuando compra (Christensen et al., 2016). Escríbanlo desde su vida, no desde el producto.', 3, 'Trabajos por hacer') +
+    var optInf = '<option value="">Elijan un informe…</option>' + infs.map(function (i) { return '<option value="' + i.id + '">' + esc(i.nombre + (i.segs && i.segs.length ? ' · ' + i.segs.join(', ') : '') + ' · T' + i.t) + '</option>'; }).join('');
+    html += '<div class="grid g2"><div><label>Nombre del proyecto</label><input type="text" id="npNom" placeholder="Ejemplo: Desayuno camino a clases"></div><div><label>Segmento</label><select id="npSeg" onchange="revisarBriefUI()">' + V.cat.segmentos.map(function (s) { return '<option value="' + s.id + '">' + esc(s.id + ' ' + s.nombre) + '</option>'; }).join('') + '</select></div></div>' +
+      '<h3>1. Hallazgos: lo que vieron en sus informes</h3>' + ayuda('Sintetizar es encontrar patrones en lo que observaron y darles sentido antes de buscar soluciones (Kelley y Kelley, 2013; Brown, 2019). Una encuesta informa; empatizar exige observar al cliente en su contexto: los estudios de contacto directo son la observación etnográfica y los usuarios extremos.', 3, 'Síntesis') +
+      '<div class="grid g2"><div><label>Hallazgo 1: informe</label><select id="npEv" onchange="revisarBriefUI()">' + optInf + '</select><label>Frase copiada del informe</label><input type="text" id="npFrase" placeholder="Ejemplo: “Si no lo puedo tomar con una mano en el micro, no me sirve.”"></div>' +
+      '<div><label>Hallazgo 2 (opcional): informe</label><select id="npEv2">' + optInf + '</select><label>Frase copiada del informe</label><input type="text" id="npFrase2" placeholder="Ejemplo: 7 de 12 desayunan de pie o en movimiento."></div></div>' +
+      '<h3>2. Insight: qué descubrieron, con sus palabras</h3><textarea id="npInsight" rows="2" placeholder="Comen en movimiento y con una sola mano libre: lo que no se pueda tomar así, no les sirve, aunque sea nutritivo."></textarea>' +
+      '<h3>3. Trabajo por hacer del cliente</h3>' + ayuda('Qué “trabajo” contrata el cliente cuando compra (Christensen et al., 2016). Escríbanlo desde su vida, no desde el producto.', 3, 'Trabajos por hacer') +
       '<div class="grid g3"><div><label>Cuando…</label><input type="text" id="npCuando" placeholder="salgo a las 6:30 y no alcanzo a desayunar"></div><div><label>quiero…</label><input type="text" id="npQuiero" placeholder="algo que me quite el hambre"></div><div><label>para…</label><input type="text" id="npPara" placeholder="rendir en las clases de la mañana"></div></div>' +
-      '<label>Evidencia: informe que respalda el insight</label><select id="npEv"><option value="">Sin evidencia todavía</option>' + infs.map(function (i) { return '<option value="' + i.id + '">' + esc(i.nombre + (i.segs && i.segs.length ? ' · ' + i.segs.join(', ') : '') + ' · T' + i.t) + '</option>'; }).join('') + '</select>' +
-      '<label>Frase copiada del informe</label><input type="text" id="npFrase" placeholder="Ejemplo: “Si no lo puedo tomar con una mano en el micro, no me sirve.”">' +
-      '<label>Reto: ¿Cómo podríamos…?</label><input type="text" id="npReto" placeholder="¿Cómo podríamos ofrecer a los universitarios un desayuno que se tome con una mano en el micro?">' +
-      '<label>Criterio de éxito (cifra y plazo)</label><input type="text" id="npCrit" placeholder="8 % de S2 dos trimestres después del lanzamiento">' +
+      '<h3>4. Reto</h3><label>¿Cómo podríamos…? (la necesidad, sin la solución)</label><input type="text" id="npReto" placeholder="¿Cómo podríamos ayudar a los universitarios a alimentarse bien mientras se trasladan?">' +
+      '<label>Cómo encaja este reto con su Estrategia anual y con lo que la empresa sabe hacer</label><input type="text" id="npEncaje" placeholder="Es adyacente: mismo tipo de producto, segmento nuevo; lo podemos producir en nuestra línea.">' +
+      '<label>Criterio de éxito en el mercado (cifra y plazo)</label><input type="text" id="npCrit" placeholder="8 % de S2 dos trimestres después del lanzamiento">' +
       '<div class="grid g3"><div><label>¿Necesita tecnología que hoy no tenemos?</label><select id="npTec" onchange="revisarBriefUI()"><option value="no">No</option><option value="si">Sí</option></select></div><div><label>¿Cambia cómo vendemos o cobramos?</label><select id="npMod" onchange="revisarBriefUI()"><option value="no">No</option><option value="si">Sí</option></select></div><div><label>Lugar en el portafolio</label><select id="npPort">' + Object.keys(V.cat.portafolioNom).map(function (k) { return '<option value="' + k + '">' + esc(V.cat.portafolioNom[k]) + '</option>'; }).join('') + '</select></div></div>' +
       '<p class="calc" id="npTipo">Tipo de innovación según sus respuestas: <b>Rutinaria</b></p>' + ayuda('Pisano (2015): si no cambia la tecnología ni el modelo de negocio, es rutinaria; si cambia solo el modelo, disruptiva; si cambia solo la tecnología, radical; si cambian ambos, arquitectónica. Al elegir el concepto se compara con el tipo real.', 1, 'Pisano') +
       '<div class="inline"><button class="btn sec" onclick="revisarBriefUI()">Revisar el brief</button><button class="btn" onclick="agregarProyecto2()">Agregar proyecto</button></div><div id="npRev"></div>';
@@ -112,9 +182,9 @@ function vProyectos2() {
 }
 
 function faseIdx(p) {
-  if (p.etapa === 'idear') return 1; if (p.etapa === 'evaluar') return 2; if (p.etapa === 'lanzado') return 8;
-  var k3 = { prototipar: 3, especificar: 4, piloto: 6, lanzar: 7 }[p.etapa]; if (k3) return k3;
-  if (p.etapa === 'prototipo') return p.piloto ? 6 : (p.iter > 0 ? 3 : 3); return 0;
+  var k = { idear: 1, evaluar: 1, prototipar: 2, especificar: 3, piloto: 3, lanzar: 4, lanzado: 5 }[p.etapa];
+  if (k !== undefined) return k;
+  if (p.etapa === 'prototipo') return p.piloto ? 3 : 2; return 0;
 }
 function cabecera2(p) {
   var k = faseIdx(p);
@@ -126,8 +196,10 @@ function tarjeta2(p) {
   if (p.etapa !== 'idear' && p.etapa !== 'evaluar') return tarjetaProyecto(p) + '<div class="card">' + fichaCompleta2(p) + '</div>';
   var html = '<div class="card proj"><h2>' + esc(p.nombre) + ' <span class="tag">' + esc(segNom(p.segmento)) + '</span> <span class="tag">' + esc(V.cat.portafolioNom[p.portafolio] || '') + '</span> <span class="tag">' + esc(tipoNom(p.tipoDecl)) + ' (declarado)</span></h2>' + cabecera2(p);
   var malos = (p.revisionBrief || []).filter(function (r) { return !r.ok; });
+  if (p.etapa === 'idear') html += conocimientoSegmento(p.segmento);
   if (malos.length && p.etapa === 'idear') html += '<p class="ayuda"><b>Revisión del brief:</b> ' + malos.map(function (r) { return esc(r.texto); }).join(' ') + '</p>';
-  html += '<div class="tarea"><p class="lbl">Tarea de este trimestre · ' + (p.etapa === 'idear' ? 'Idear' : 'Evaluar') + '</p>' + (p.etapa === 'idear' ? tareaIdear(p) : tareaEvaluar(p)) +
+  html += cajaDecision(p);
+  html += '<div class="tarea"><p class="lbl">Tarea de este trimestre · ' + (p.etapa === 'idear' ? 'Idear: abrir opciones y armar conceptos' : 'Idear: comparar y elegir un concepto') + '</p>' + (p.etapa === 'idear' ? tareaIdear(p) : tareaEvaluar(p)) +
     chkB('proyectos.' + p.id + '.acelerar', '<b>Acelerar esta fase</b> (+50 % de costo y semanas; ' + (p.etapa === 'idear' ? 'el comité elegirá directamente el concepto con mejor resultado del test, sin matriz de Pugh' : 'pueden iniciar el prototipo en este mismo trimestre') + ')', 'data-rerender="1"') + '</div>';
   return html + fichaCompleta2(p) + '</div>';
 }
@@ -197,9 +269,11 @@ function tabFichas(p, a) {
       '<label>Concepto en una frase: Para [quién] que [necesidad], [producto] es [qué] que [beneficio], a diferencia de [alternativa]</label>' + txtA(b + 'frase', 'Para universitarios que desayunan camino a clases, …') +
       '<label>Qué mejora: repartan 10 puntos</label><div class="grid g6">' + PTSK.map(function (k) { return '<div><label class="muted">' + esc(V.cat.ptsNom[k]) + '</label>' + inp(b + 'pts.' + k, 'number', 'min=0 max=10 data-rerender="1"') + '</div>'; }).join('') + '</div>' +
       '<p class="' + (s === 10 || !f.nombre ? 'muted' : 'err') + '">' + s + ' de 10 puntos' + (s !== 10 && f.nombre ? ': deben ser exactamente 10.' : '') + '</p>' +
-      '<div class="grid g4"><div><label>¿Tecnología nueva?</label>' + sel(b + 'tec', [['no', 'No'], ['si', 'Sí']]) + '</div><div><label>¿Cambia cómo vendemos o cobramos?</label>' + sel(b + 'mod', [['no', 'No'], ['si', 'Sí']]) + '</div><div><label>Tipo en las 4P</label>' + sel(b + 'tipo4p', ['Producto', 'Proceso', 'Posición', 'Paradigma'].map(function (x) { return [x, x]; })) + '</div><div>' + chkB(b + 'test', 'Enviar al test de concepto (' + bs(V.cat.general.costoTestConcepto) + ')') + '</div></div></div>';
+      '<div class="grid g4"><div><label>¿Tecnología nueva?</label>' + sel(b + 'tec', [['no', 'No'], ['si', 'Sí']]) + '</div><div><label>¿Cambia cómo vendemos o cobramos?</label>' + sel(b + 'mod', [['no', 'No'], ['si', 'Sí']]) + '</div><div><label>P principal (4P)</label>' + sel(b + 'tipo4p', ['Producto', 'Proceso', 'Posición', 'Paradigma'].map(function (x) { return [x, x]; }), 'data-rerender="1"') + '<label class="muted">¿Cambia también otra P?</label>' + ['Producto', 'Proceso', 'Posición', 'Paradigma'].filter(function (x) { return x !== (f.tipo4p || 'Producto'); }).map(function (x) { return chkA(b + 'otras4p', x, x); }).join('') + '</div><div>' + chkB(b + 'test', 'Enviar al test de concepto (' + bs(V.cat.general.costoTestConcepto) + ')') + '</div></div></div>';
   });
-  html += chkB('proyectos.' + pid + '.cerrarIdear', 'Pasar a Evaluar al procesar el trimestre aunque no hagan el test de concepto') +
+  html += '<div class="box"><h3>Regla de selección · fíjenla antes del test</h3>' + ayuda('Elegir entre ideas es difícil: sin criterios previos se tiende a lo conocido y se elige casi al azar (Sawyer y Henriksen, 2024). Decidan ahora, antes de ver resultados, qué intención de compra mínima debe tener un concepto para elegirlo. Sin esta regla el test no se hace.', 5, 'Selección') +
+    '<div class="grid g2"><div><label>Intención de compra mínima para elegir un concepto (%)</label>' + inp('proyectos.' + pid + '.reglaSel.minInt', 'number', 'min=1 max=99 step=1') + '</div><div><label>Otros criterios que usarán (deseable, factible, viable)</label>' + inp('proyectos.' + pid + '.reglaSel.texto', 'text', 'placeholder="Además, precio dentro del rango aceptable y producible en nuestra línea."') + '</div></div></div>' +
+    chkB('proyectos.' + pid + '.cerrarIdear', 'Pasar a Evaluar al procesar el trimestre aunque no hagan el test de concepto') +
     '<p class="muted">Al procesar reciben una devolución escrita de cada ficha. Las fichas enviadas al test pasan a Evaluar con su informe.</p>';
   return html;
 }
@@ -242,6 +316,33 @@ function bloqueTest(f) {
     '<div><h3>Clasificación de Kano para el segmento</h3><table>' + PTSK.map(function (k) { return '<tr><td>' + esc(V.cat.ptsNom[k]) + '</td><td>' + esc(V.cat.kanoNom[T.kano[k]] || '') + '</td><td class="n">' + (f.pts[k] || 0) + ' pts</td></tr>'; }).join('') + '</table>' +
     '<h3>Lo que dijeron los clientes</h3>' + T.frases.map(function (x) { return '<p class="cita">' + esc(x) + '</p>'; }).join('') + '</div></div>';
 }
+/** Caja de decisión en un punto de aprendizaje: criterio previo frente a resultado y cinco opciones. */
+function cajaDecision(p) {
+  var d = p.decision; if (!d || p.estado !== 'activo') return '';
+  if (d.decidido) { var u = (p.decisiones || []).filter(function (x) { return x.clave === d.clave; })[0]; return u ? '<p class="msg ok">Decisión registrada tras ' + esc(d.punto) + ': <b>' + esc(DEC_OPS[u.opcion] || u.opcion) + '</b>.</p>' : ''; }
+  var pid = p.id, a = D.proyectos[pid] || {}, x = a.decision || {}, b = 'proyectos.' + pid + '.decision.';
+  var est = d.cumple === null ? '<span class="tag aviso">sin criterio previo</span>' : (d.cumple ? '<span class="tag ok">cumple</span>' : '<span class="tag mal">no cumple</span>');
+  var html = '<div class="box dec"><h3>Decisión del equipo · ' + esc(d.punto) + '</h3>' +
+    '<table><tr><th>Su criterio (fijado antes)</th><th>Resultado</th><th></th></tr><tr><td>' + esc(d.criterio) + '</td><td>' + esc(d.resultado) + '</td><td>' + est + '</td></tr></table>' +
+    ayuda('Comparen lo que dijeron que harían con lo que pasó, y decidan. Seguir cuando no se cumple su criterio, o cambiar cuando sí se cumple, es posible, pero queda registrado con su explicación (Cooper, 1990; Amabile, 1996).', 5, 'Puerta') +
+    '<label>Qué deciden</label>' + sel(b + 'opcion', [['', 'Elijan una opción…'], ['seguir', d.seguir], ['solucion', d.solucion], ['segmento', 'Cambiar el segmento o el reto: volver a Definir'], ['esperar', DEC_OPS.esperar], ['detener', DEC_OPS.detener]], 'data-rerender="1"') +
+    '<label>Por qué (citen el dato)</label>' + txtA(b + 'porque', 'Ejemplo: el mejor concepto llegó a 34 %, sobre nuestro mínimo de 30 %; seguimos con él.');
+  if (x.opcion === 'segmento') {
+    var infs = (V.estado.informes || []).slice().sort(function (m, n) { return n.t - m.t; });
+    html += '<div class="grid g2"><div><label>Nuevo segmento</label>' + sel(b + 'segmento', [['', 'Elijan…']].concat(V.cat.segmentos.map(function (s) { return [s.id, s.id + ' ' + s.nombre]; }))) + '</div><div><label>Informe que respalda el cambio</label>' + sel(b + 'evidencia', [['', 'Sin evidencia todavía']].concat(infs.map(function (i) { return [i.id, i.nombre + (i.segs && i.segs.length ? ' · ' + i.segs.join(', ') : '') + ' · T' + i.t]; }))) + '</div></div>' +
+      '<label>Frase copiada del informe</label>' + inp(b + 'frase', 'text') + '<label>Nuevo insight</label>' + inp(b + 'insight', 'text') +
+      '<label>Nuevo reto: ¿Cómo podríamos…?</label>' + inp(b + 'reto', 'text', 'placeholder="¿Cómo podríamos ayudar a los oficinistas a desayunar en su escritorio?"') +
+      '<p class="muted">Vuelven a Idear: conservan sus fichas, pero los tests, el concepto y los prototipos eran para el reto anterior y se descartan (quedan en el historial).</p>';
+  }
+  if (x.opcion === 'solucion' || x.opcion === 'segmento') html += '<p class="muted">Este trimestre el proyecto solo cambia de rumbo; las tareas de la fase nueva empiezan el próximo trimestre.</p>';
+  return html + '</div>';
+}
+function registroDecisiones(p) {
+  var L = p.decisiones || []; if (!L.length) return '';
+  var r = p.resumenDecisiones || {};
+  return '<div><b>REGISTRO DE DECISIONES</b><p class="muted">' + L.length + ' decisiones · ' + (r.conCriterio || 0) + ' con criterio previo · ' + (r.coherentes || 0) + ' coherentes con ese criterio' + (p.pivotes ? ' · ' + p.pivotes + ' cambios de segmento o reto' : '') + '</p><div class="scroll"><table><tr><th>T</th><th>Punto</th><th>Criterio</th><th>Resultado</th><th>Decisión</th><th>Por qué</th></tr>' +
+    L.map(function (d) { return '<tr><td>T' + d.t + '</td><td>' + esc(d.punto) + '</td><td>' + esc(d.criterio) + '</td><td>' + esc(d.resultado) + '</td><td>' + esc(DEC_OPS[d.opcion] || d.opcion) + (d.coherente === false ? ' <span class="tag aviso">contra su criterio</span>' : '') + '</td><td>' + esc(d.porque) + '</td></tr>'; }).join('') + '</table></div></div>';
+}
 function tareaEvaluar(p) {
   var pid = p.id, a = D.proyectos[pid], F = p.fichas || [];
   var html = ayuda('Comparen cada concepto con su producto actual criterio por criterio: +1 si es mejor, 0 si es igual, −1 si es peor (Pugh, 1991). Lean antes el test de concepto: la matriz se llena con datos, no con gustos.', 5, 'Pugh');
@@ -277,11 +378,14 @@ function avisosPugh(p, a) {
 // ----- ficha completa (solo lectura) -----
 function fichaCompleta2(p) {
   var b = p.brief || {}, html = '<details><summary>Ver ficha completa</summary><div class="hist">';
-  html += '<div><b>DEFINIR · BRIEF</b><p>Cuando ' + esc(b.cuando || '…') + ', quiero ' + esc(b.quiero || '…') + ', para ' + esc(b.para || '…') + '.</p><p>Criterio de éxito: ' + esc(b.criterio || '—') + '</p>' + (b.frase ? '<p class="cita">' + esc(b.frase) + '</p>' : '') +
+  html += '<div><b>DEFINIR EL RETO</b>' + (b.frase ? '<p class="cita">' + esc(b.frase) + '</p>' : '') + (b.frase2 ? '<p class="cita">' + esc(b.frase2) + '</p>' : '') + (b.insight ? '<p><b>Insight:</b> ' + esc(b.insight) + '</p>' : '') +
+    '<p>Cuando ' + esc(b.cuando || '…') + ', quiero ' + esc(b.quiero || '…') + ', para ' + esc(b.para || '…') + '.</p><p><b>Reto:</b> ' + esc(p.reto || '') + '</p>' + (b.encaje ? '<p><b>Encaje con la estrategia:</b> ' + esc(b.encaje) + '</p>' : '') + '<p>Criterio de éxito: ' + esc(b.criterio || '—') + '</p>' +
     '<p>Tipo declarado: ' + esc(tipoNom(p.tipoDecl)) + ' · portafolio: ' + esc(V.cat.portafolioNom[p.portafolio] || '') + '</p><ul class="fb">' + (p.revisionBrief || []).map(function (r) { return '<li>' + (r.ok ? '<span class="tag ok">bien</span> ' : '<span class="tag aviso">mejorar</span> ') + esc(r.texto) + '</li>'; }).join('') + '</ul></div>';
   if (p.nIdeas || (p.externas || []).length) html += '<div><b>IDEAR</b><p>' + (p.tecnica ? esc(V.cat.tecnicas[p.tecnica].nombre) + ': ' + p.nIdeas + ' ideas del equipo. ' : '') + (p.externas || []).length + ' propuestas externas.</p></div>';
-  (p.fichas || []).forEach(function (f) { html += '<div><b>FICHA · ' + esc(f.nombre) + '</b> <span class="muted">T' + f.t + ' · ' + esc(f.origen) + '</span><p class="muted">' + esc(f.frase || '') + '</p><p>' + PTSK.map(function (k) { return esc(V.cat.ptsNom[k]) + ' ' + (f.pts[k] || 0); }).join(' · ') + '</p><ul class="fb">' + (f.devolucion || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' + (f.test ? '<p>Test: intención declarada ' + f.test.intencion + ' %, rango Bs ' + f.test.vw.pmc.toFixed(2) + '–' + f.test.vw.pme.toFixed(2) + ', calidad corregida ' + Number(f.test.qCorr).toFixed(1) + '.</p>' : '') + '</div>'; });
-  if (p.comparacionTipo) html += '<div><b>EVALUAR · ELECCIÓN</b><p>' + esc(p.comparacionTipo) + '</p>' + (p.justificacion ? '<p class="cita">' + esc(p.justificacion) + '</p>' : '') + '</div>';
+  (p.fichas || []).forEach(function (f) { html += '<div><b>FICHA · ' + esc(f.nombre) + '</b> <span class="muted">T' + f.t + ' · ' + esc(f.origen) + '</span><p class="muted">' + esc(f.frase || '') + '</p><p>' + PTSK.map(function (k) { return esc(V.cat.ptsNom[k]) + ' ' + (f.pts[k] || 0); }).join(' · ') + '</p><ul class="fb">' + (f.devolucion || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul><p class="muted">4P: ' + esc(f.tipo4p || 'Producto') + ((f.otras4p || []).length ? ' (también ' + esc(f.otras4p.join(', ')) + ')' : '') + '</p>' + (f.test ? '<p>Test: intención declarada ' + f.test.intencion + ' %, rango Bs ' + f.test.vw.pmc.toFixed(2) + '–' + f.test.vw.pme.toFixed(2) + ', calidad corregida ' + Number(f.test.qCorr).toFixed(1) + '.</p>' : '') + '</div>'; });
+  if (p.reglaSel) html += '<div><b>IDEAR · REGLA DE SELECCIÓN (T' + p.reglaSel.t + ')</b><p>Intención de compra mínima: ' + p.reglaSel.minInt + ' %' + (p.reglaSel.texto ? ' · ' + esc(p.reglaSel.texto) : '') + '</p></div>';
+  if (p.comparacionTipo) html += '<div><b>IDEAR · ELECCIÓN</b><p>' + esc(p.comparacionTipo) + '</p>' + (p.eleccionVsRegla ? '<p>Intención del concepto elegido: ' + p.eleccionVsRegla.intencion + ' % frente a su regla de ' + p.eleccionVsRegla.minInt + ' % (' + (p.eleccionVsRegla.cumple ? 'cumple' : 'no cumple') + ').</p>' : '') + (p.justificacion ? '<p class="cita">' + esc(p.justificacion) + '</p>' : '') + '</div>';
+  html += registroDecisiones(p);
   (p.historial || []).forEach(function (h) { html += '<div><b>T' + h.t + ' · ' + esc(h.fase.toUpperCase()) + '</b><p>' + esc(h.texto) + '</p></div>'; });
   return html + '</div></details>';
 }
@@ -321,7 +425,8 @@ function P3_tarjeta(p) {
   var pid = p.id, a = D.proyectos[pid] || {}, html = '<div class="card proj"><h2>' + esc(p.lan ? p.lan.nombre : p.nombre) + ' <span class="tag">' + esc(segNom(p.segmento)) + '</span> <span class="tag">' + esc(V.cat.portafolioNom[p.portafolio] || '') + '</span> <span class="tag">' + esc(tipoNom(p.tipoReal || p.tipoDecl)) + (p.tipoReal ? ' (tipo real)' : '') + '</span></h2>' + cabecera2(p);
   if (p.concepto) html += '<p><b>Concepto:</b> ' + esc(p.concepto.nombre) + (p.concepto.desc ? ' · <span class="muted">' + esc(p.concepto.desc) + '</span>' : '') + '</p>';
   if (p.estado === 'activo') {
-    var et = { prototipar: 'Prototipar', especificar: 'Especificar y presentarse a la Puerta', piloto: 'Piloto (prueba de mercado)', lanzar: 'Lanzar' }[p.etapa];
+    html += cajaDecision(p);
+    var et = { prototipar: 'Prototipar y probar', especificar: 'Desarrollar y validar: especificar y presentarse a la Puerta', piloto: 'Desarrollar y validar: piloto (prueba de mercado)', lanzar: 'Lanzar' }[p.etapa];
     html += '<div class="tarea"><p class="lbl">Tarea de este trimestre · ' + et + '</p>' + ({ prototipar: P3_tProto, especificar: P3_tEsp, piloto: P3_tPil, lanzar: P3_tLan }[p.etapa])(p, a);
     if (p.etapa !== 'lanzar') html += chkB('proyectos.' + pid + '.acelerar', '<b>Acelerar esta fase</b> (+50 % de costo y semanas; ' + (p.etapa === 'prototipar' ? 'la versión rinde menos, pero si confirma el supuesto pasan a Especificar en el mismo trimestre' : 'se gana tiempo, pero se aprende menos') + ')', 'data-rerender="1"');
     html += chkB('proyectos.' + pid + '.detener', 'Detener el proyecto (las semanas se liberan; lo invertido no se recupera)') + '</div>';
@@ -337,7 +442,10 @@ function P3_tProto(p, a) {
   html += '<label>Siguiente paso</label>' + sel(base + 'siguiente', [['probar', u ? 'Iterar: probar una nueva versión' : 'Probar la primera versión'], ['avanzar', 'Avanzar a Especificar y Puerta'], ['volver', 'Volver a Evaluar (la idea no funciona)']], 'data-rerender="1"');
   if (v.siguiente === 'avanzar' || v.siguiente === 'volver') return html;
   html += '<h3>1. Qué queremos aprender</h3><label>El supuesto más riesgoso</label>' + sel(base + 'supuesto', Object.keys(c.sup).map(function (k) { return [k, c.sup[k]]; }), 'data-rerender="1"') +
-    '<label>La pregunta que el prototipo debe responder</label>' + inp(base + 'pregunta', 'text', 'placeholder="¿Pueden abrirlo con una mano y sin explicación, en menos de 30 segundos?"');
+    '<label>La pregunta que el prototipo debe responder</label>' + inp(base + 'pregunta', 'text', 'placeholder="¿Pueden abrirlo con una mano y sin explicación, en menos de 30 segundos?"') +
+    ayuda('Antes de construir, escriban qué creen y qué resultado los haría seguir. Así la prueba sirve para decidir y no solo para confirmar lo que ya pensaban (Christensen, 1997: identificar los supuestos y probarlos antes de comprometer dinero).', 5, 'Prototipo') +
+    '<label>Hipótesis: Creemos que…</label>' + inp(base + 'creemos', 'text', 'placeholder="Creemos que los universitarios lo abrirán con una mano, sin ayuda, en el micro."') +
+    '<label>Criterio: seguimos si al menos ___ de las personas probadas lo logran</label>' + inp(base + 'criterio', 'number', 'min=1 max=12 step=1 placeholder="6"');
   html += '<h3>2. Diseñar el prototipo</h3><label>Formato (decide qué puede observar el simulador)</label>' + sel(base + 'formato', Object.keys(c.fmt).map(function (k) { return [k, c.fmt[k].nom + ' · ' + c.fmt[k].desc]; }), 'data-rerender="1"');
   var fm = c.fmt[v.formato || 'maqueta'];
   if (fm && fm.obs.indexOf(v.supuesto || 'uso') < 0) html += '<p class="msg err">Con ' + esc(fm.nom.toLowerCase()) + ' los clientes no pueden comprobar ese supuesto: la versión solo traerá opiniones y no mejorará el producto.</p>';
@@ -352,6 +460,7 @@ function P3_infProto(u, abierto) {
   var c = P3_c(), L = { solo: '<span class="tag ok">Solo</span>', ayuda: '<span class="tag aviso">Con ayuda</span>', no: '<span class="tag mal">No pudo</span>', '—': '—' };
   var h = '<details' + (abierto ? ' open' : '') + '><summary><b>Informe de prueba · versión ' + u.v + ' · T' + u.t + '</b> · ' + esc(c.fmt[u.formato].nom) + ' · ' + u.n + ' personas</summary><div class="informe">';
   h += '<p class="muted">Pregunta: ' + esc(u.pregunta) + ' · Supuesto: ' + esc(c.sup[u.supuesto]) + '</p>';
+  if (u.creemos || u.criterio) h += '<p><b>Hipótesis:</b> ' + esc(u.creemos || '—') + (u.criterio ? ' · <b>Criterio:</b> al menos ' + u.criterio + ' de ' + u.n + ' · <b>Resultado:</b> ' + u.logrados + ' de ' + u.n + ' ' + (u.cumpleCriterio ? '<span class="tag ok">cumple</span>' : '<span class="tag mal">no cumple</span>') : '') + '</p>';
   if (u.formato === 'maqueta') h += '<div class="grid g3"><div class="kpi"><div class="v">' + u.solos + ' de ' + u.n + '</div><div class="l">Lo lograron solos</div></div><div class="kpi"><div class="v">' + (u.ayuda + u.no) + ' de ' + u.n + '</div><div class="l">Con ayuda o no pudieron</div></div><div class="kpi"><div class="v">' + (u.mediana || '—') + ' s</div><div class="l">Tiempo mediano</div></div></div>';
   h += '<div class="scroll"><table><tr><th>#</th><th>Quién</th><th>Resultado</th><th class="n">Seg.</th><th>Lo que hizo o dijo</th></tr>' + u.filas.map(function (f, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(f.quien) + '</td><td>' + L[f.res] + '</td><td class="n">' + (f.seg || '—') + '</td><td>' + esc(f.frase) + '</td></tr>'; }).join('') + '</table></div>';
   h += '<p><b>Malla receptora de información</b></p><div class="grid g2">' + [['gusto', 'Lo que gustó'], ['criticas', 'Críticas'], ['preguntas', 'Preguntas'], ['ideas', 'Ideas nuevas']].map(function (q) { return '<div class="malla"><b>' + q[1] + '</b><ul>' + (u.malla[q[0]] || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>'; }).join('') + '</div>';

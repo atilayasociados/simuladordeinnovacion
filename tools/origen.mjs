@@ -1,11 +1,11 @@
 // Fija qué versión de la lógica del simulador (gas_codigo.js) carga la Edge Function.
 // La función descarga gas_codigo.js de GitHub (commit exacto) al arrancar y verifica su SHA-256,
 // así lo que se despliega en Supabase es pequeño (index.ts, nucleo.js, http.js, origen_codigo.js).
-// Uso (después de node build.js, commit y push): node tools/origen.mjs  → luego commit, push y desplegar.
+// Uso (después de node build.js, commit y push): node tools/origen.mjs  → luego commit y push: GitHub Actions despliega solo.
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 import { sha256Bytes } from '../supabase/functions/api/nucleo.js';
-const REPO = 'jhonnyatilalijeron-ui/simulador-innovacion';
+const REPO = 'atilayasociados/simuladordeinnovacion';
 const RUTA = 'supabase/functions/api/gas_codigo.js';
 const commit = execSync('git log -n 1 --format=%H -- ' + RUTA).toString().trim();
 const cambios = execSync('git status --porcelain -- ' + RUTA).toString().trim();

@@ -76,7 +76,7 @@ async function trimestre(t) {
       require('./p3driver').decidir3(p, a, i === 2 ? 'sinPiloto' : 'acelera', n);
     });
     const est = G.apiEstimar(tkA(i), dec);
-    if (t === 2 && i === 5) ok(est.avisos.some(x => /máximo 2 proyectos/.test(x)), 'no avisa máximo de proyectos en año 1');
+    if (t === 2 && i === 5) ok(!est.avisos.some(x => /máximo 2 proyectos/.test(x)), 'ya no hay un máximo especial de proyectos en el año 1');
     try { G.apiGuardar(tkA(i), dec, true); } catch (e) { fallas.push('T' + t + ' ' + n + ': ' + e.message); }
   });
   const r = G.apiAdmin(adm, 'procesar', { simId: 'S01' }); ok(/procesado/.test(r.mensaje), 'procesar T' + t);
@@ -132,7 +132,7 @@ async function navegador() {
       if (p.nombre.startsWith('Proyecto')) ok(['prototipar', 'especificar', 'piloto', 'lanzar', 'lanzado'].indexOf(p.etapa) >= 0, n + ' no avanzó de Evaluar: ' + p.etapa);
     });
     if (i === 1) ok(P2[0].revisionBrief.some(r => !r.ok && /solución|Cómo podríamos/.test(r.texto)), 'revisión del brief no detecta problemas');
-    if (i === 5) ok(P2.length === 2, 'Londras debería tener 2 proyectos (máximo año 1): ' + P2.length);
+    if (i === 5) ok(P2.length === 3, 'Londras puede tener 3 proyectos desde el año 1 (ya no hay límite especial): ' + P2.length);
     if (i === 3) ok(P2[0].fichas.some(f => f.combinado), 'no se creó el concepto combinado');
   });
   const lanz = NOM.filter((n, i) => G.apiEstado(tkA(i)).estado.proyectos.some(p => p.flujo === 2 && p.etapa === 'lanzado')).length;

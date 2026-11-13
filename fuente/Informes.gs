@@ -12,6 +12,9 @@ function migrar_(S, P) {
   S.seguimiento = S.seguimiento || [];
   S.coherencia = S.coherencia || [];
   S.nextInf = S.nextInf || 1;
+  if (!S.contrato) S.contrato = normContrato_(P, P.contratoInicial);
+  if (!S.hist0 || !S.hist0.length) S.hist0 = anio0_(P);
+  if (S.t === 0 && !(S.informes || []).some(function (i) { return i.t === 0 && i.metodo === 'industria'; })) informeInicialMercado_(P, S);
   var O = S.org;
   if (O.nucleo === undefined) {
     // desde el esquema anterior: incremental/radical y clientes actuales/nuevos
@@ -40,10 +43,22 @@ function portafolioAInterno_(O) {
   O.act = 100 - O.nue;
 }
 
-/** Costo de un método con recargo por repetirlo en el trimestre siguiente. */
-function costoMetodo_(P, S, m, t) {
-  var rep = S.ultMetodo && S.ultMetodo[m.id] === t - 1;
-  return { costo: m.costo * (rep ? 1 + P.general.recargoRepeticion : 1), recargo: rep };
+/** Informe de Mercado del T0: lo entrega el contrato heredado (C.1 cada trimestre desde el Año 0), así que la empresa
+ * abre el T1 con datos. Se calcula para una sola empresa; la pantalla reparte la participación entre las empresas del curso. */
+function informeInicialMercado_(P, S) {
+  var keep = MKT_; setMercado_(1, [], []);
+  try {
+    var r = informeIndustria_(P, S, { hist: [] }, 1, { sequia: 0, bloqueos: [], ruido: {} });
+    r.datos.n1 = true;
+    var inf = nuevoInforme_(S, metById_(P, 'industria'), 0, { pregunta: r.pregunta, ficha: r.ficha + ' Entregado por su contrato continuo heredado (datos al cierre del Año 0).', limites: r.limites, datos: r.datos });
+    inf.requiere = false; inf.origen = 'contrato';
+  } finally { MKT_ = keep; }
+}
+
+/** Costo de un estudio: fijo, o base + precio por segmento (1 a 5 segmentos). */
+function costoMetodo_(P, S, m, t, nSeg) {
+  if (m.porSeg) return { costo: (m.base || 0) + m.porSeg * Math.max(1, Number(nSeg) || 1), recargo: false };
+  return { costo: m.costo, recargo: false };
 }
 
 // ---------- utilidades de informes ----------
@@ -125,7 +140,69 @@ function informeCompetidores_(P, S, t) {
   return {
     pregunta: '¿Qué ofrece hoy cada rival en el punto de venta y dónde hay un espacio libre?',
     ficha: 'Visita a 40 puntos de venta y revisión de publicidad: precios de góndola, envases, mensajes y canales.',
-    limites: 'Muestra lo que los rivales ya lanzaron, no lo que preparan. Sus costos, márgenes, proyectos y la calidad real de sus productos no son observables.',
+    limites: 'Lo observable es lo que los rivales ya lanzaron. Las señales de entrada o de imitación son indicios (contrataciones, registros, comentarios de distribuidores) y pueden no cumplirse a tiempo. Sus costos, márgenes y la calidad real de sus productos no son observables.',
+    datos: { filas: filas, entrantes: entrantes_(P, S, t) }
+  };
+}
+
+/** Señales de competidores potenciales: entrantes e imitaciones en preparación. */
+function entrantes_(P, S, t) {
+  var W = S.world, g = P.general, L = [];
+  function conf(d) { return d <= 1 ? 'alta' : (d <= 3 ? 'media' : 'baja'); }
+  var c4 = W.comps.filter(function (c) { return c.id === 'C4'; })[0];
+  if (c4 && !c4.activo && !W.c4Adquirido && t >= 6 && g.entradaC4 > t) { var d = g.entradaC4 - t; L.push({ quien: 'Startup local de bebidas vegetales por app', senal: 'Prepara su ingreso con precio bajo, empezando por universitarios.', horizonte: d === 1 ? 'próximo trimestre' : d + ' trimestres', confianza: conf(d) }); }
+  if (c4 && c4.activo && !W.c4Adquirido && W.invasion > t && W.invasion - t <= 3) { var d2 = W.invasion - t; L.push({ quien: c4.nombre, senal: 'Negocia su llegada a supermercados y oficinas.', horizonte: d2 === 1 ? 'próximo trimestre' : d2 + ' trimestres', confianza: conf(d2) }); }
+  (W.pendClones || []).forEach(function (pc) {
+    if (pc.t <= t) return;
+    var orig = W.productos.filter(function (p) { return p.id === pc.prodId; })[0]; if (!orig) return;
+    var d3 = pc.t - t; L.push({ quien: 'Marca regional', senal: 'Prepara un producto parecido a "' + orig.nombre + '", a menor precio.', horizonte: d3 === 1 ? 'próximo trimestre' : d3 + ' trimestres', confianza: conf(d3) });
+  });
+  return L;
+}
+
+/** Sustitutos: bebidas alternativas a los lácteos. */
+function informeSustitutos_(P, S, t, sched) {
+  var W = S.world, c4 = W.comps.filter(function (c) { return c.id === 'C4'; })[0], filas = [];
+  var veg = { categoria: 'Bebidas vegetales (avena, almendra, soya)', precio: c4 ? r2_(c4.precio) : 19.2, segmentos: 'S2, S4' };
+  if (c4 && c4.activo) {
+    var cs = c4.ultCuota || {}, pres = Object.keys(cs).map(function (k) { return k + ' ' + Math.round(100 * cs[k] * MKT_.N) + ' %'; }).join(', ');
+    veg.tendencia = 'En crecimiento: una marca local ya vende por aplicación' + (pres ? ' (participación aproximada: ' + pres + ')' : '') + '.'; veg.atractivo = 'alto';
+  } else if (t >= 6) { veg.tendencia = 'Crece desde una base pequeña; hay inversión en emprendimientos locales.'; veg.atractivo = 'medio'; }
+  else { veg.tendencia = 'Nicho pequeño, vendido sobre todo por aplicaciones y en tiendas naturistas.'; veg.atractivo = 'bajo'; }
+  if (t >= 16) veg.tendencia += ' Aumenta el interés por bebidas vegetales y envases sostenibles.';
+  filas.push(veg);
+  filas.push({ categoria: 'Desayunos y bebidas para llevar (cafeterías, apps de delivery)', precio: 14, segmentos: 'S2, S3', tendencia: t >= 2 ? 'Crecen los pedidos por aplicación y el consumo fuera de casa.' : 'Estable.', atractivo: t >= 2 ? 'medio' : 'bajo' });
+  return {
+    pregunta: '¿Qué alternativas a las bebidas lácteas ganan terreno entre los clientes?',
+    ficha: 'Análisis documental: precios en góndola y en aplicaciones, informes sectoriales y entrevistas a distribuidores.',
+    limites: 'Describe categorías completas, no marcas individuales. Las tendencias son estimaciones y el canal informal no está cubierto.',
+    datos: { filas: filas }
+  };
+}
+
+/** Proveedores: tendencias de costos de insumos y logística. */
+function informeProveedores_(P, S, t, sched) {
+  var filas = [];
+  function conf(d) { return d <= 1 ? 'alta' : (d <= 2 ? 'media' : 'baja'); }
+  var leche = { insumo: 'Leche cruda', alternativa: 'Contrato de precio pactado con un segundo acopiador.' };
+  var sq = sched.sequia;
+  if (sq && t >= sq && t <= sq + 1) { leche.tendencia = 'Precio elevado cerca de 8 % por menor producción.'; leche.confianza = 'alta'; }
+  else if (sq && sq - t >= 1 && sq - t <= 3) { leche.tendencia = 'Los acopiadores anticipan menor producción por lluvias bajo lo normal: riesgo de alza de hasta 8 % durante dos trimestres, en unos ' + (sq - t) + ' trimestre(s).'; leche.confianza = conf(sq - t); }
+  else { leche.tendencia = 'Estable.'; leche.confianza = 'alta'; }
+  filas.push(leche);
+  var env = { insumo: 'Envases y tapas importados', alternativa: 'Compra anticipada de envases, o un proyecto de envase de proveedor local.' };
+  if (t >= 12 && t <= 15) { env.tendencia = 'Alza vigente de unos Bs 0,40 por litro por escasez de divisas, prevista hasta T15.'; env.confianza = 'alta'; }
+  else if (t >= 9 && t < 12) { env.tendencia = 'Se amplía la brecha cambiaria: riesgo de alza de unos Bs 0,40 por litro en ' + (12 - t) + ' trimestre(s).'; env.confianza = conf(12 - t); }
+  else { env.tendencia = t > 15 ? 'Se normaliza el abastecimiento.' : 'Estable.'; env.confianza = 'alta'; }
+  filas.push(env);
+  var tr = { insumo: 'Transporte y distribución', alternativa: 'Rutas secundarias y depósitos de reserva.' };
+  if ((sched.bloqueos || []).indexOf(t + 1) >= 0) { tr.tendencia = 'Organizaciones sociales anuncian movilizaciones: riesgo de bloqueos de carreteras el próximo trimestre.'; tr.confianza = 'media'; }
+  else { tr.tendencia = 'Sin alertas para el próximo trimestre.'; tr.confianza = 'media'; }
+  filas.push(tr);
+  return {
+    pregunta: '¿Cómo evolucionarán nuestros costos de insumos y la logística en los próximos trimestres?',
+    ficha: 'Consulta a acopiadores, importadores y transportistas; seguimiento del tipo de cambio y de precios de insumos.',
+    limites: 'Son pronósticos de proveedores: pueden adelantarse, retrasarse o no ocurrir. No cubren cambios de la regulación.',
     datos: { filas: filas }
   };
 }
@@ -153,18 +230,27 @@ function informeVigilancia_(P, S, t, sched) {
 }
 
 /** Tendencias anticipadas por usuarios extremos (alineadas con los cambios reales del motor). */
-function informeExtremos_(P, S, t) {
-  var T = [];
+var EXTREMOS_ = {
+  S1: [['Uso intenso', 'Una madre de cuatro niños compra seis litros por semana; busca porciones individuales que no se derramen en la lonchera.'], ['Uso mínimo', 'Un padre dejó de comprar leche saborizada: dice que sus hijos la dejan a medias y se desperdicia.']],
+  S2: [['Uso intenso', 'Un estudiante que vive a dos horas del campus desayuna todos los días en el micro, con una mano libre.'], ['Uso mínimo', 'Una estudiante no compra lácteos: no encuentra dónde comprarlos cerca de la facultad ni puede llevarlos sin que se calienten.']],
+  S3: [['Uso intenso', 'Un cajero con turno doble toma tres lácteos al día en su escritorio, sin pausa para comer.'], ['Uso mínimo', 'Una contadora dejó de comprar: no hay refrigerador en su oficina y no quiere cargar una caja de litro.']],
+  S4: [['Uso intenso', 'Un corredor de montaña toma cuatro lácteos al día; busca proteína alta, poca azúcar y porciones que pueda llevar.'], ['Uso mínimo', 'Una persona a dieta evita los lácteos saborizados por el azúcar, aunque le gustan.']],
+  S5: [['Uso intenso', 'Un jubilado toma leche tres veces al día; le preocupa su fuerza y sus huesos, pero le cuesta abrir el envase.'], ['Uso mínimo', 'Una adulta mayor dejó de comprar: le cuesta abrir los envases y desperdicia la caja de litro porque vive sola.']]
+};
+function informeExtremos_(P, S, t, seg) {
+  var T = [], sid = seg ? seg.id : 'S2';
   if (t < 12) T.push({ texto: 'Los productos con mucha azúcar serán rechazados por familias, deportistas y adultos mayores.', atributo: 'Saludable', segmentos: 'S1, S4, S5', fuerza: t < 6 ? 'moderada' : 'fuerte', horizonte: t < 6 ? '1 a 2 años' : 'menos de 1 año' });
   T.push({ texto: 'La sostenibilidad del envase y del producto ganará peso en universitarios y deportistas.', atributo: 'Sostenibilidad', segmentos: 'S2, S4', fuerza: t < 12 ? 'débil' : 'moderada', horizonte: t < 12 ? '3 a 4 años' : '1 a 2 años' });
   if (t < 10) T.push({ texto: 'Comprar por aplicación y recibir en el lugar donde se está será lo normal para universitarios y oficinistas.', atributo: 'Conveniencia', segmentos: 'S2, S3', fuerza: 'moderada', horizonte: '1 año' });
   return {
-    pregunta: '¿Qué necesidad, hoy exagerada en usuarios extremos, podría volverse común en el mercado?',
-    ficha: 'Entrevistas en profundidad a 6 usuarios en los dos extremos del uso (uso intenso y casi nulo). Análisis de patrones comunes.',
-    limites: 'Es una hipótesis sobre el futuro, no una certeza. Puede no cumplirse o tardar más. Conviene confirmarla con vigilancia del entorno.',
+    pregunta: '¿Qué necesidades viven de forma exagerada los usuarios extremos de ' + sid + (seg ? ' (' + seg.nombre + ')' : '') + ' y cuáles podrían volverse comunes?',
+    ficha: 'Entrevistas en profundidad y acompañamiento a 6 personas de ' + sid + ' en los dos extremos del uso (uso intenso y casi nulo). Análisis de patrones comunes.',
+    limites: 'Los extremos exageran las necesidades: sirven para inspirar y formular hipótesis, no para medir cuánto pesa cada atributo en el segmento (para eso, encuesta u observación). Las tendencias son hipótesis sobre el futuro.',
     datos: {
-      casos: [['Uso intenso', 'Un corredor de montaña toma cuatro lácteos al día; busca proteína alta, poca azúcar y porciones que pueda llevar.'], ['Uso mínimo', 'Una adulta mayor dejó de comprar: le cuesta abrir los envases y desperdicia la caja de litro.']],
-      tendencias: T
+      seg: sid,
+      casos: EXTREMOS_[sid] || EXTREMOS_.S2,
+      latentes: seg && seg.latentes && seg.latentes.length ? seg.latentes.map(function (k) { return ATTR_NOMBRES[k]; }) : [],
+      tendencias: T.filter(function (x) { return x.segmentos.indexOf(sid) >= 0; }).length ? T.filter(function (x) { return x.segmentos.indexOf(sid) >= 0; }) : T
     }
   };
 }

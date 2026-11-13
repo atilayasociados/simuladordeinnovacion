@@ -38,7 +38,7 @@ try {
   R.subMenu = await pg.isVisible('nav .sub button.on:has-text("Manual del estudiante")');
   // botón "Ir a" lleva a la pantalla
   await pg.click('.man-sec >> text=Ir a 4. Proyectos →'); await pg.waitForTimeout(300);
-  R.irFunciona = await pg.isVisible('text=Nuevo proyecto · fase Definir');
+  R.irFunciona = await pg.isVisible('text=Nuevo proyecto · fase 1: Definir el reto');
   // 4) recorrer todas las secciones
   await pg.click('nav >> text=Aprender'); await pg.waitForTimeout(300);
   const n = await pg.$$eval('.man-idx button', (b) => b.length); let todas = true;
@@ -59,7 +59,7 @@ try {
   // 7) celular
   await pg.setViewportSize({ width: 390, height: 844 }); await pg.waitForTimeout(300);
   R.anchoCel = await pg.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
-  await pg.selectOption('.man-sel', 'evaluar'); await pg.waitForTimeout(200); R.selCel = await pg.isVisible('.man-sec h2:has-text("Fase 3. Evaluar")');
+  await pg.selectOption('.man-sel', 'evaluar'); await pg.waitForTimeout(200); R.selCel = await pg.isVisible('.man-sec h2:has-text("Comparar y elegir un concepto")');
   await pg.screenshot({ path: OUT + '/manual_celular.png' });
   // botón fijo de la barra superior
   await pg.setViewportSize({ width: 1280, height: 900 });
@@ -70,7 +70,7 @@ try {
   // 8) tabla de cinco años del caso
   await pg.setViewportSize({ width: 1280, height: 900 });
   await pg.click('nav >> text=Situación'); await pg.waitForTimeout(300);
-  R.anios = await pg.isVisible('text=Renovación: los clientes cambian lo que valoran');
+  R.anios = await pg.isVisible('text=Cómo transcurre el tiempo') && !(await pg.isVisible('text=Renovación: los clientes cambian lo que valoran'));
 } catch (e) { R.falla = e.message; }
 console.log(JSON.stringify(R, null, 1)); console.log('Errores de página:', errs.length ? errs : 'ninguno');
 const ok = !R.falla && R.publico && R.publicoSinBotonesIr && R.publicoNavega && R.cierra && /Paso 4/.test(R.ctx || '') && R.ctxAbre && R.subMenu && R.irFunciona && R.todasAbren && R.busca.length >= 1 && R.buscaSinTilde >= 1 && R.verTodo === R.secciones && R.anchoCel && R.selCel && R.botonBarra && R.anios && !errs.length;

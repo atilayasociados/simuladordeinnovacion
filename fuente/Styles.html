@@ -17,6 +17,8 @@ nav .sub{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;padding-top:6px;bord
 .leyenda{font-size:12px;columns:2;margin:4px 0 0;padding-left:20px}
 .cita{font-style:italic;border-left:3px solid #B4531E;padding-left:8px;margin:4px 0}
 .box{border:1px solid var(--borde);border-radius:6px;padding:8px 10px}
+.box.dec{border:1.5px solid var(--azul2);background:#F8FAFE;margin:8px 0}
+.box.dec table{margin:4px 0}
 .okbox{background:#E5F3EC;border-radius:6px;padding:8px 10px}
 .limbox{background:#FBEFE6;border-radius:6px;padding:8px 10px;font-size:13px}
 .decbox{border:1.5px dashed var(--azul2);border-radius:6px;padding:8px 10px;margin-top:8px}
@@ -60,6 +62,22 @@ textarea{min-height:70px}
 footer.acciones{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--borde);padding:10px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;z-index:6}
 footer .est{font-size:13px}
 footer .avisos{font-size:12px;color:var(--aviso);max-width:640px}
+/* v3.2 · Pie en bloques: resumen del borrador y avisos antes de enviar */
+footer.acciones{align-items:stretch;box-shadow:0 -2px 8px rgba(31,56,100,.08)}
+.pie-tit{font-weight:700;font-size:11px;line-height:1.3;letter-spacing:.06em;text-transform:uppercase;color:var(--azul);margin:0 0 5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pie-tit .tag{text-transform:none;letter-spacing:0;font-weight:500}
+.pie-res{flex:1 1 360px;min-width:0}
+.pie-kpis{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.pie-kpi{display:inline-flex;flex-direction:column;background:var(--claro);border:1px solid var(--borde);border-left:3px solid var(--azul2);border-radius:6px;padding:3px 9px;font-size:13px;line-height:1.3}
+.pie-kpi small{font-size:10.5px;color:var(--suave)}
+.pie-av{flex:1 1 320px;max-width:640px;min-width:0;background:#FFF1E6;border:1px solid #F2B77C;border-left:4px solid #C2410C;border-radius:6px;padding:6px 10px;max-height:118px;overflow:auto}
+.pie-av .pie-tit{color:#9A3412}
+.pie-av ul{margin:0;padding-left:16px;font-size:12px;color:#7C2D12}
+.pie-av li{margin:1px 0}
+.pie-av.ok{background:#ECF8F0;border-color:#A6D8B6;border-left-color:var(--ok);max-height:none}
+.pie-av.ok .pie-tit{color:var(--ok);margin:0}
+.pie-btn{align-self:center}
+@media (max-width:700px){.pie-av{max-height:84px}.pie-kpi{font-size:12px}}
 .login{max-width:420px;margin:60px auto}
 .msg{padding:8px 12px;border-radius:6px;margin:8px 0;font-size:13px}
 .msg.err{background:#FDECEA;color:var(--mal)}.msg.ok{background:#E3F3EA;color:var(--ok)}
@@ -81,8 +99,8 @@ svg text{font-family:Arial;font-size:11px;fill:#5b6577}
 p.err,span.err{color:#B42318}
 .nowrap{white-space:nowrap}
 details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
-.hist{display:grid;gap:8px;font-size:13.5px}
-.hist>div{border-left:3px solid #D0D7E2;padding-left:10px}
+.hist{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;font-size:13.5px}
+.hist>div{border-left:3px solid #D0D7E2;padding-left:10px;min-width:0;overflow-wrap:anywhere}
 .hist b{font-size:11px;letter-spacing:.05em;color:#5b6577}
 @media (max-width:760px){.g3,.g6{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .bmc{display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:6px 0}
@@ -115,5 +133,21 @@ details summary{cursor:pointer;font-weight:600;color:var(--azul2);padding:6px 0}
 .paso-a{border-top:1px solid #eee;padding-top:8px;margin-top:10px}.paso-a h3{margin-top:4px}
 @media (max-width:760px){.cadena{grid-template-columns:1fr 1fr}.cadena>div::after{display:none}}
 .como{font-size:13px;margin:6px 0;color:#33405a}.suma{margin:6px 0 2px}
+.enl-ef{display:flex;flex-wrap:wrap;gap:8px 14px;margin:8px 0 2px}.enl-ef a{display:inline-block;padding:6px 10px;border:1px solid #D8DCE6;border-radius:8px;background:#F7F9FC;text-decoration:none;font-weight:600}
+table.crono td,table.crono th{padding:4px 5px}table.crono .cw{width:20px;text-align:center;font-size:11px;padding:2px}table.crono td.cw.on{background:#2F6FBF}table.crono tr.carga td.cw{background:#F3F5F9}table.crono tr.carga td.cw.sobre{background:#F4C7C3;color:#8A1C12;font-weight:700}.crono-n{width:70px}.inv-proy{display:inline-block;margin-top:3px;color:#1F5A33;font-size:13px}li.aviso-l{color:#8A5A00}
+th.sub-g{background:#E8EEF7;color:#1F3B63;font-size:13px}
+.ent-tags{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px}.ent-resp{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:0 10px;margin:2px 0 6px}.ent-resp .chk{font-size:13px}
+th.a0,td.a0{background:#F6F6F2;color:#555}
 .inv-segs{display:grid;grid-template-columns:1fr;gap:0}.inv-segs .chk{font-size:13px;padding:1px 0}
+/* v3.2 · Dónde decide el equipo: campos y zonas de decisión con fondo ámbar claro */
+:root{--dec:#FFF3C4;--dec-borde:#C9971C;--dec-zona:#FFFAEA}
+#app input[data-p]:not([type=checkbox]):not([type=radio]),#app input[data-campo],#app input[data-cron],#app select[data-p],#app select[data-campo],#app select[data-cron],#app textarea[data-p],#app input[id^="np"],#app select[id^="np"],#app textarea[id^="np"]{background:var(--dec);border-color:var(--dec-borde)}
+#app input[data-p]:focus,#app input[data-campo]:focus,#app select[data-p]:focus,#app select[data-campo]:focus,#app textarea[data-p]:focus,#app [id^="np"]:focus{background:#fff;outline:2px solid var(--dec-borde);outline-offset:0}
+#app input[data-p]:disabled,#app select[data-p]:disabled,#app textarea[data-p]:disabled{background:#F1F1F1;border-color:var(--borde)}
+#app label.chk:has(input[data-p]),#app label.chk:has(input[data-arr]){background:var(--dec);border:1px solid #EAD18A;border-radius:5px;padding:3px 7px}
+#app label.chk:has(input:disabled){background:#F4F4F4;border-color:#E2E2E2}
+.tarea{background:var(--dec-zona);border:1px solid #EAD18A;border-left:4px solid var(--dec-borde)}
+.box.dec,.decbox{background:var(--dec-zona);border-color:var(--dec-borde)}
+.leyenda-dec{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--suave)}
+.leyenda-dec i{display:inline-block;width:14px;height:14px;background:var(--dec);border:1px solid var(--dec-borde);border-radius:3px}
 </style>
