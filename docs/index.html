@@ -175,7 +175,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = 'd93bf63ddda7';
+  var V0 = 'a8cff294f924';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -937,11 +937,57 @@ function VR_pie() {
   var p = $('pie');
   if (VV.partida.finalizada) { p.style.display = 'none'; return; }
   p.style.display = 'flex';
-  var errs = VREV ? VREV.errores : [];
+  var errs = VREV ? VREV.errores : []; VR_ERRS = errs || [];
   var est = VV.borrador && VV.borrador._estado === 'enviado' ? 'Decisiones enviadas (pueden corregir y volver a enviar hasta que el docente cierre).' : (VV.borrador ? 'Borrador guardado.' : 'Sin guardar.');
   p.innerHTML = '<div style="flex:1;min-width:240px"><b>' + esc(est) + '</b>' +
-    (errs.length ? '<div class="muted" style="color:#b42318">Para enviar falta corregir ' + errs.length + ' punto(s): ' + esc(errs.slice(0, 3).join(' · ')) + (errs.length > 3 ? '…' : '') + '</div>' : '<div class="muted">Sin errores: pueden enviar.</div>') + '</div>' +
+    (errs.length ? '<div class="muted" style="color:#b42318">Para enviar falta corregir ' + errs.length + ' punto(s). Toquen cada uno para ir al lugar donde se corrige:</div><div class="vr-pie-errs">' + errs.slice(0, 4).map(function (x, n) { return '<button class="vr-ir" onclick="VR_irError(' + n + ')">' + esc(x) + ' →</button>'; }).join('') + (errs.length > 4 ? '<span class="muted"> y ' + (errs.length - 4) + ' más (aparecen en cada sección).</span>' : '') + '</div>' : '<div class="muted">Sin errores: pueden enviar.</div>') + '</div>' +
     (VR_puedeEditar() ? '<button class="btn sec" onclick="VR_guardar(false)">Guardar borrador</button><button class="btn" onclick="VR_guardar(true)">Enviar decisiones</button>' : '<span class="muted">El trimestre está cerrado.</span>');
+  VR_pintarErrores();
+}
+// ---------- cada aviso, en el lugar donde se corrige ----------
+var VR_ERRS = [];
+function VR_errBox(l, pid) { return '<div class="vr-errs" data-l="' + l + '"' + (pid ? ' data-p="' + pid + '"' : '') + '></div>'; }
+function VR_lugarError(t) {
+  t = String(t || '');
+  var low = t.toLowerCase(), cur = VPROY || (DD.proyectos[0] && DD.proyectos[0].id) || null;
+  if (/^el comit|^integrante \d+:/.test(low) || /^el plan del año gasta/.test(low)) return { tab: 'comite', l: 'comite' };
+  if (/queda sobreasignado/.test(low)) return { tab: 'proyectos', p: cur, l: 'gantt' };
+  if (/^solo se puede comprar un estudio de consumidor/.test(low)) { var ids = t.match(/\bP\d+\b/g); return { tab: 'proyectos', p: ids ? ids[ids.length - 1] : cur, l: 'idea' }; }
+  var pr = null; DD.proyectos.forEach(function (x) { var n = x.nombre || ''; if (n && (t.indexOf(n + ':') === 0 || t.indexOf(n + ' · ') === 0) && (!pr || n.length > pr.nombre.length)) pr = x; });
+  if (pr) {
+    var rest = t.slice(pr.nombre.length), et = rest.indexOf(' · ') === 0 ? rest.slice(3, rest.indexOf(':') > 0 ? rest.indexOf(':') : undefined).toLowerCase() : '';
+    var l = 'idea';
+    if (et) {
+      if (/azúcar|grasa|proteína|tamaño|endulzante|conservación/.test(et)) l = 'producto';
+      else if (/^fila/.test(et)) l = 'hoja';
+      else if (/precio a la empresa|canales|publicidad|producción semanal/.test(et)) l = 'plan';
+      else l = 'gantt';
+    } else if (/compuerta|estudio del consumidor|prueba|desarrollo|lanzamiento|registro sanitario|actividad/.test(low)) l = 'gantt';
+    else if (/muestra/.test(low)) l = 'producto';
+    return { tab: 'proyectos', p: pr.id, l: l };
+  }
+  var pd = null; VV.empresa.productos.forEach(function (x) { var n = x.nombre || x.id; if (t.indexOf(n + ' · ') === 0 || t.indexOf(n + ':') === 0) pd = x; });
+  if (pd) return { tab: 'productos', l: 'prod-' + pd.id };
+  return { tab: VTAB, l: '' };
+}
+function VR_pintarErrores() {
+  var cajas = document.querySelectorAll('.vr-errs'); if (!cajas.length) return;
+  var errs = VREV ? VREV.errores || [] : [];
+  Array.prototype.forEach.call(cajas, function (c) {
+    var l = c.getAttribute('data-l'), pid = c.getAttribute('data-p');
+    var mios = errs.filter(function (e) { var u = VR_lugarError(e); return u.l === l && (!pid || u.p === pid); });
+    c.innerHTML = mios.length ? '<div class="msg err"><b>Corrijan aquí:</b><br>' + mios.map(esc).join('<br>') + '</div>' : '';
+  });
+}
+function VR_irError(n) {
+  var e = VR_ERRS[n]; if (e === undefined) return;
+  var u = VR_lugarError(e);
+  if (u.p) VPROY = u.p;
+  var m = VR_menuDe(u.tab); VTAB = u.tab; VR_ULT[m[0]] = u.tab; VR_render();
+  var sel = '.vr-errs[data-l="' + u.l + '"]' + (u.p && u.l !== 'comite' ? '[data-p="' + u.p + '"]' : '');
+  var box = u.l ? document.querySelector(sel) : null, card = box ? (box.closest('.card') || box) : null;
+  if (card) { var nv = $('nav'), alto = nv ? nv.offsetHeight : 0; window.scrollTo({ top: card.getBoundingClientRect().top + window.pageYOffset - alto - 12, behavior: 'smooth' }); card.classList.add('sn-flash'); setTimeout(function () { card.classList.remove('sn-flash'); }, 2500); }
+  else window.scrollTo(0, 0);
 }
 function VR_decision() {
   var d = JSON.parse(JSON.stringify(DD));
@@ -959,7 +1005,11 @@ function VR_guardar(enviar) {
     VREV = r; VV.borrador = VV.borrador || {}; VV.borrador._estado = r.estado;
     aviso(enviar ? 'Decisiones enviadas. Pueden corregirlas y volver a enviar hasta que el docente cierre el trimestre.' : 'Borrador guardado.');
     VR_pie();
-  }).catch(function (e) { aviso(e, 'err'); });
+  }).catch(function (e) {
+    var m = String(e && e.message || e);
+    if (m.indexOf('Para enviar') === 0) { aviso('Todavía no se puede enviar: hay puntos por corregir. Toquen cada punto en la barra de abajo para ir al lugar donde se corrige.', 'err'); VR_revisar(); }
+    else aviso(e, 'err');
+  });
 }
 function VR_set(path, v, numero, rerender) {
   if (numero) v = v === '' ? '' : Number(v);
@@ -1054,7 +1104,7 @@ function VR_nomMercado(id) {
 // ---------- Comité ----------
 function VR_comite() {
   var ed = VR_puedeEditar(), S = VV.cat.sueldos;
-  var h = '<div class="card"><h2>Integrantes del comité (sección 0)</h2><p>Entre 1 y 5 personas. No trabajan solo en innovación: fijen qué porcentaje de su tiempo dedican al comité. Ese porcentaje de su sueldo se carga cada semana al presupuesto de innovación, y limita cuánta carga pueden tomar en el Gantt.</p>' +
+  var h = '<div class="card"><h2>Integrantes del comité (sección 0)</h2>' + VR_errBox('comite') + '<p>Entre 1 y 5 personas. No trabajan solo en innovación: fijen qué porcentaje de su tiempo dedican al comité. Ese porcentaje de su sueldo se carga cada semana al presupuesto de innovación, y limita cuánta carga pueden tomar en el Gantt.</p>' +
     '<p class="muted">Sueldos de referencia (INE, 2020): jefe o gerente ' + vrBs(S.jefe) + ' al mes; profesional ' + vrBs(S.profesional) + ' al mes.</p><div class="scroll"><table><tr><th>#</th><th>Nombre o rol</th><th>Cargo</th><th class="n">Dedicación (%)</th><th class="n">Costo trimestral</th><th></th></tr>';
   DD.comite.forEach(function (m, i) {
     var costo = S[m.cargo] * m.dedicacion * 12 / 52 * 13;
@@ -1075,7 +1125,7 @@ function VR_nuevoProyecto() {
   var s0 = VV.cat.semanaInicio, act = VV.empresa.productos[0];
   DD.proyectos.push({ id: 'P' + n, nombre: 'Proyecto ' + n, clase: '', justificacionClase: '', idea: { problema: '', paraQuien: '', propuesta: '' }, segmentoObjetivo: '', muestra: 400, reemplazaProductoActual: false,
     producto: { endulzante: (act.endulzante || ['azucar_cana']).slice(), azucarAnadida100ml: act.azucarAnadida100ml, grasa100ml: act.grasa100ml, proteina100ml: act.proteina100ml, tamanoMl: act.tamanoMl, conservacion: 'uht' },
-    hoja: [{ descripcion: 'Leche cruda', categoria: 'contenido', tipo: 'variable', rubro: 'leche_cruda', cantidad: 1 }, { descripcion: 'Envase e insumos', categoria: 'envase', tipo: 'variable', rubro: 'insumos_envase_actual', cantidad: 1 }, { descripcion: 'Planta actual', categoria: 'mano_de_obra', tipo: 'variable', rubro: 'mano_obra_planta_actual', cantidad: 1 }],
+    hoja: [{ descripcion: 'Leche cruda', categoria: 'contenido', tipo: 'variable', rubro: 'leche_cruda', cantidad: 1 }, { descripcion: 'Azúcar (como el producto actual)', categoria: 'contenido', tipo: 'variable', rubro: 'azucar', cantidad: Math.round((act.azucarAnadida100ml || 0) * 10) / 1000 }, { descripcion: 'Cacao (como el producto actual)', categoria: 'contenido', tipo: 'variable', rubro: 'cacao', cantidad: 0.010 }, { descripcion: 'Envase e insumos', categoria: 'envase', tipo: 'variable', rubro: 'insumos_envase_actual', cantidad: 1 }, { descripcion: 'Planta actual', categoria: 'mano_de_obra', tipo: 'variable', rubro: 'mano_obra_planta_actual', cantidad: 1 }],
     plan: { precioEmpresa: vrR(act.precioEmpresa), mezcla: { supermercado: 1, tienda: 0, mercado: 0 }, publicidad: Math.round(act.publicidadRef), produccionSemanal: 0 },
     gantt: [{ nombre: 'Estudio del consumidor', tipo: 'estudio_consumidor', inicio: s0, duracion: 5, responsable: 0, carga: 0.1 }, { nombre: 'Prueba de concepto', tipo: 'prueba_concepto', inicio: s0 + 5, duracion: 5, responsable: 0, carga: 0.1 }],
     compuerta1: { semana: s0 + 10, continuar: true }, compuerta2: { semana: 0, continuar: true } });
@@ -1090,7 +1140,7 @@ function VR_proyectos() {
   var i = VR_proyIdx(), base = 'proyectos.' + i + '.', cerrado = p.estado === 'detenido' || p.estado === 'lanzado', e = ed && !cerrado, eIdea = e && !p.c1Aprobada;
   function txt(path, val, ph, eds) { return '<textarea rows="2"' + (eds ? '' : ' disabled') + ' placeholder="' + esc(ph) + '" onchange="VR_set(\'' + base + path + '\', this.value)">' + esc(val || '') + '</textarea>'; }
   function num(path, val, step, eds, rer) { return '<input type="number" step="' + (step || 'any') + '" value="' + (val === null || val === undefined ? '' : val) + '"' + (eds ? '' : ' disabled') + ' onchange="VR_set(\'' + base + path + '\', this.value, true' + (rer ? ', true' : '') + ')">'; }
-  h += '<div class="card"><h2>' + esc(p.nombre) + ' <span class="tag">' + esc(VR_EST[p.estado || 'exploracion'] || '') + '</span></h2>' +
+  h += '<div class="card"><h2>' + esc(p.nombre) + ' <span class="tag">' + esc(VR_EST[p.estado || 'exploracion'] || '') + '</span></h2>' + VR_errBox('idea', p.id) +
     '<div class="grid g2"><div><label>Nombre del proyecto</label><input type="text" value="' + esc(p.nombre) + '"' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'nombre\', this.value, false, true)"></div>' +
     '<div><label>Segmento objetivo</label><select' + (eIdea ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'segmentoObjetivo\', this.value)"><option value="">Elegir…</option>' + Object.keys(VR_SEG).map(function (s) { return '<option value="' + s + '"' + (p.segmentoObjetivo === s ? ' selected' : '') + '>' + VR_SEG[s] + '</option>'; }).join('') + '</select></div></div>' +
     '<div class="grid g3"><div><label>¿Qué problema resuelve?</label>' + txt('idea.problema', p.idea.problema, 'Problema del cliente', eIdea) + '</div><div><label>¿Para quién?</label>' + txt('idea.paraQuien', p.idea.paraQuien, 'Cliente o usuario', eIdea) + '</div><div><label>¿Qué proponen?</label>' + txt('idea.propuesta', p.idea.propuesta, 'Propuesta (producto, forma de venta, canal o modelo de negocio)', eIdea) + '</div></div>' +
@@ -1099,14 +1149,14 @@ function VR_proyectos() {
     (e ? '<div style="margin-top:8px"><button class="btn peligro" onclick="if(confirm(\'¿Detener este proyecto? No se puede deshacer.\')){VR_set(\'' + base + 'detener\', true, false, true)}">' + (p.detener ? 'Se detendrá al enviar' : 'Detener el proyecto') + '</button></div>' : '') + '</div>';
   // producto
   var pr = p.producto;
-  h += '<div class="card"><h2>Producto propuesto</h2><p class="muted">Atributos por 100 ml, como en la etiqueta. El mercado los valora con las preferencias de cada segmento (Brodock et al., 2021); la porción de referencia es de 240 ml.</p><label>Endulzante (uno o varios)</label><div class="inline">' +
+  h += '<div class="card"><h2>Producto propuesto</h2>' + VR_errBox('producto', p.id) + '<p class="muted">Atributos por 100 ml, como en la etiqueta. El mercado los valora con las preferencias de cada segmento (Brodock et al., 2021); la porción de referencia es de 240 ml.</p><label>Endulzante (uno o varios)</label><div class="inline">' +
     Object.keys(VR_END).map(function (k) { var on = pr.endulzante.indexOf(k) >= 0; return '<label class="chk"><input type="checkbox"' + (on ? ' checked' : '') + (e ? '' : ' disabled') + ' onchange="VR_endulzante(' + i + ',\'' + k + '\', this.checked)"> ' + VR_END[k] + '</label>'; }).join('') + '</div>' +
     '<div class="grid g4"><div><label>Azúcar añadida (g/100 ml)</label>' + num('producto.azucarAnadida100ml', pr.azucarAnadida100ml, 0.1, e) + '</div><div><label>Grasa (%)</label>' + num('producto.grasa100ml', pr.grasa100ml, 0.1, e) + '</div><div><label>Proteína (g/100 ml)</label>' + num('producto.proteina100ml', pr.proteina100ml, 0.1, e) + '</div><div><label>Tamaño (ml)</label>' + num('producto.tamanoMl', pr.tamanoMl, 10, e) + '</div></div>' +
     VR_mensajeYAtributos(p, base, e) +
     '<div class="grid g2"><div><label>Conservación</label><select' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'producto.conservacion\', this.value)"><option value="uht"' + (pr.conservacion !== 'pasteurizado' ? ' selected' : '') + '>UHT (16 semanas de vida útil)</option><option value="pasteurizado"' + (pr.conservacion === 'pasteurizado' ? ' selected' : '') + '>Pasteurizado (1 semana)</option></select></div><div><label>Muestra de las pruebas de concepto y de producto</label><select' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'muestra\', Number(this.value), false, true)"><option value="400"' + (p.muestra !== 1600 ? ' selected' : '') + '>400 personas (margen ±4,9 %; ' + vrBs(VV.cat.estudios.prueba[400]) + ')</option><option value="1600"' + (p.muestra === 1600 ? ' selected' : '') + '>1.600 personas (margen ±2,5 %; ' + vrBs(VV.cat.estudios.prueba[1600]) + ')</option></select></div></div></div>';
   // hoja de costos
   var opR = VR_rubros();
-  h += '<div class="card"><h2>Hoja de costos</h2><p class="muted">Escriban cada cosa que su idea necesita y elijan el rubro del banco de referencias (todos con fuente). Variable: cantidad por litro de producto. Inversión, fijo por trimestre y desarrollo: cantidad en la unidad del rubro. Filas mínimas: contenido, envase y mano de obra. El costo de distribución (5,4 % de las ventas) lo agrega el simulador.</p><div class="scroll"><table><tr><th>Descripción</th><th>Categoría</th><th>Tipo de costo</th><th>Rubro del banco</th><th class="n">Cantidad</th><th class="n">Precio</th><th class="n">Monto</th><th></th></tr>';
+  h += '<div class="card"><h2>Hoja de costos</h2>' + VR_errBox('hoja', p.id) + '<p class="muted">Escriban cada cosa que su idea necesita y elijan el rubro del banco de referencias (todos con fuente). Variable: cantidad por litro de producto. Inversión, fijo por trimestre y desarrollo: cantidad en la unidad del rubro. Filas mínimas: contenido, envase y mano de obra. El costo de distribución (5,4 % de las ventas) lo agrega el simulador.</p><div class="scroll"><table><tr><th>Descripción</th><th>Categoría</th><th>Tipo de costo</th><th>Rubro del banco</th><th class="n">Cantidad</th><th class="n">Precio</th><th class="n">Monto</th><th></th></tr>';
   p.hoja.forEach(function (f, j) {
     var b = 'hoja.' + j + '.', ref = VR_rubro(f.rubro);
     h += '<tr><td><input type="text" value="' + esc(f.descripcion) + '"' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + b + 'descripcion\', this.value)"></td>' +
@@ -1121,7 +1171,7 @@ function VR_proyectos() {
     '<div id="vr-hoja" style="margin-top:10px">' + VR_hojaResumen(p) + '</div></div>';
   // plan de lanzamiento
   var pl = p.plan;
-  h += '<div class="card"><h2>Plan de lanzamiento (compuerta 2)</h2><div class="grid g4"><div><label>Precio a la empresa (Bs por unidad)</label>' + num('plan.precioEmpresa', pl.precioEmpresa, 0.01, e, true) + '</div><div><label>Publicidad del primer trimestre (Bs)</label>' + num('plan.publicidad', pl.publicidad, 1000, e) + '</div><div><label>Producción semanal (unidades)</label>' + num('plan.produccionSemanal', pl.produccionSemanal, 100, e) + '</div><div><label>Precio al consumidor</label><div class="calc">' + Object.keys(VR_CAN).filter(function (c) { return pl.mezcla[c] > 0; }).map(function (c) { return VR_CAN[c] + ': ' + vrBs(pl.precioEmpresa / (1 - VV.informes.industria.canales[c].margen), 2); }).join('<br>') + '</div></div></div>' +
+  h += '<div class="card"><h2>Plan de lanzamiento (compuerta 2)</h2>' + VR_errBox('plan', p.id) + '<div class="grid g4"><div><label>Precio a la empresa (Bs por unidad)</label>' + num('plan.precioEmpresa', pl.precioEmpresa, 0.01, e, true) + '</div><div><label>Publicidad del primer trimestre (Bs)</label>' + num('plan.publicidad', pl.publicidad, 1000, e) + '</div><div><label>Producción semanal (unidades)</label>' + num('plan.produccionSemanal', pl.produccionSemanal, 100, e) + '</div><div><label>Precio al consumidor</label><div class="calc">' + Object.keys(VR_CAN).filter(function (c) { return pl.mezcla[c] > 0; }).map(function (c) { return VR_CAN[c] + ': ' + vrBs(pl.precioEmpresa / (1 - VV.informes.industria.canales[c].margen), 2); }).join('<br>') + '</div></div></div>' +
     '<label>Canales (% de las ventas)</label><div class="grid g3">' + Object.keys(VR_CAN).map(function (c) { return '<div><label class="muted">' + VR_CAN[c] + '</label><input type="number" min="0" max="100" value="' + Math.round((pl.mezcla[c] || 0) * 100) + '"' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'plan.mezcla.' + c + '\', Number(this.value) / 100, false, true)"></div>'; }).join('') + '</div></div>';
   // Gantt
   h += VR_gantt(p, i, e);
@@ -1170,7 +1220,7 @@ function VR_hojaResumen(p) {
     (r.errores.length ? '<div class="msg err">' + r.errores.map(esc).join('<br>') + '</div>' : '<p class="muted">Hoja válida.</p>');
 }
 function VR_gantt(p, i, e) {
-  var base = 'proyectos.' + i + '.', s0 = VV.cat.semanaInicio, h = '<div class="card"><h2>Gantt del proyecto (semanas de la partida)</h2><p class="muted">El trimestre actual va de la semana ' + s0 + ' a la ' + VV.cat.semanaFin + '. Las actividades externas tienen duración fija. El desarrollo y la prueba de producto empiezan después de la compuerta 1; el lanzamiento, después de la compuerta 2 y del registro sanitario. La carga de cada responsable no puede superar su dedicación. Lo que ya empezó no se puede cambiar.</p><div class="scroll"><table><tr><th>Actividad</th><th>Tipo</th><th class="n">Inicio</th><th class="n">Duración</th><th class="n">Fin</th><th>Responsable</th><th class="n">Carga (%)</th><th></th></tr>';
+  var base = 'proyectos.' + i + '.', s0 = VV.cat.semanaInicio, h = '<div class="card"><h2>Gantt del proyecto (semanas de la partida)</h2>' + VR_errBox('gantt', p.id) + '<p class="muted">El trimestre actual va de la semana ' + s0 + ' a la ' + VV.cat.semanaFin + '. Las actividades externas tienen duración fija. El desarrollo y la prueba de producto empiezan después de la compuerta 1; el lanzamiento, después de la compuerta 2 y del registro sanitario. La carga de cada responsable no puede superar su dedicación. Lo que ya empezó no se puede cambiar.</p><div class="scroll"><table><tr><th>Actividad</th><th>Tipo</th><th class="n">Inicio</th><th class="n">Duración</th><th class="n">Fin</th><th>Responsable</th><th class="n">Carga (%)</th><th></th></tr>';
   p.gantt.forEach(function (a, j) {
     var b = 'gantt.' + j + '.', lock = !e || a.inicio < s0, ext = ['estudio_consumidor', 'prueba_concepto', 'prueba_producto', 'registro_sanitario'].indexOf(a.tipo) >= 0;
     h += '<tr><td><input type="text" value="' + esc(a.nombre) + '"' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'nombre\', this.value)"></td>' +
@@ -1265,7 +1315,7 @@ function VR_productos() {
   VV.empresa.productos.forEach(function (p) {
     if (!p.activo) return;
     var d = DD.comercial[p.id], base = 'comercial.' + p.id + '.';
-    h += '<div class="card"><h2>' + esc(p.nombre) + '</h2><p class="muted">Inventario: ' + vrN(p.inventarioLitros) + ' unidades · costo variable ' + vrBs(p.costoVariable, 2) + ' por unidad · publicidad de referencia ' + vrBs(p.publicidadRef) + ' por trimestre.</p>' +
+    h += '<div class="card"><h2>' + esc(p.nombre) + '</h2>' + VR_errBox('prod-' + p.id) + '<p class="muted">Inventario: ' + vrN(p.inventarioLitros) + ' unidades · costo variable ' + vrBs(p.costoVariable, 2) + ' por unidad · publicidad de referencia ' + vrBs(p.publicidadRef) + ' por trimestre.</p>' +
       '<div class="grid g4"><div><label>Precio a la empresa (Bs)</label><input type="number" step="0.01" value="' + d.precioEmpresa + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'precioEmpresa\', this.value, true, true)"></div>' +
       '<div><label>Publicidad del trimestre (Bs)</label><input type="number" step="1000" value="' + d.publicidad + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'publicidad\', this.value, true)"></div>' +
       '<div><label>Producción semanal (vacío = lo que se espera vender)</label><input type="number" step="100" value="' + (d.produccionSemanal === null || d.produccionSemanal === undefined ? '' : d.produccionSemanal) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'produccionSemanal\', this.value === \'\' ? null : Number(this.value))"></div>' +
@@ -1501,6 +1551,11 @@ body.ax-est .leyenda-dec{color:#C9CBCC}
 :is(body.ax-doc,body.ax-est) .card h2{font-family:'Sora',Arial,sans-serif;letter-spacing:0;color:#9BE38C;font-size:17px}
 :is(body.ax-doc,body.ax-est) .card h3{color:#F2F3F3}
 :is(body.ax-doc,body.ax-est) main .msg{top:70px}
+body.ax-est .vr-pie-errs{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+body.ax-est .vr-ir{all:unset;cursor:pointer;color:#FFB08A;font-size:13px;text-decoration:underline;text-underline-offset:2px;line-height:1.35}
+body.ax-est .vr-ir:hover,body.ax-est .vr-ir:focus-visible{color:#FFCE00}
+body.ax-est .card.sn-flash{outline:3px solid #FF4C00;outline-offset:2px;transition:outline-color .3s}
+body.ax-est .vr-errs:empty{display:none}
 body.ax-est main * .msg{position:static;top:auto;right:auto;max-width:none;box-shadow:none;margin:10px 0 0;z-index:auto}
 body.ax-est footer .muted[style*="b42318"]{color:#FF8A5C!important}
 body.ax-est footer .muted{color:#C9CBCC}
