@@ -31,18 +31,19 @@ try {
     const ins = await pg.$$('#axFilas .ax-fila:nth-child(1) input'); const f = ['QUISPE', 'MAMANI', 'Ana ' + n, reg, '71234567']; for (let j = 0; j < 5; j++) await ins[j].fill(f[j]);
     await pg.click('text=✓ Registrar Equipo'); await pg.waitForTimeout(1500);
     if (n === 'Halcones') {
-      R.resumen = await pg.isVisible('nav >> text=Estados financieros');
+      R.resumen = await pg.isVisible('nav >> text=Resultados');
       await foto('1_resumen');
-      await pg.click('nav >> text=Informes'); await pg.waitForTimeout(300); await foto('2_informes');
+      await pg.click('nav >> text=Situación'); await pg.click('.subnav >> text=Entorno'); await pg.waitForTimeout(300); await foto('2_informes');
+      await pg.click('nav >> text=Decisión'); await pg.click('.subnav >> text=Estudio de mercado'); await pg.waitForTimeout(300); await foto('2b_compra_estudio');
       await pg.check('text=Comprar el estudio de mercado este trimestre');
-      await pg.click('nav >> text=Comité'); await pg.waitForTimeout(300);
+      await pg.click('nav >> text=Decisión'); await pg.click('.subnav >> text=Comité'); await pg.waitForTimeout(300);
       await pg.click('text=Agregar integrante'); await pg.waitForTimeout(200); await foto('3_comite');
-      await pg.click('nav >> text=Proyectos'); await pg.waitForTimeout(300);
+      await pg.click('.subnav >> text=Proyectos'); await pg.waitForTimeout(300);
       await pg.click('text=+ Nuevo proyecto'); await pg.waitForTimeout(800);
       await pg.fill('textarea[placeholder="Problema del cliente"]', 'El producto actual tiene mucha azúcar'); await pg.dispatchEvent('textarea[placeholder="Problema del cliente"]', 'change');
       await pg.waitForTimeout(1000); await foto('4_proyecto');
-      await pg.click('nav >> text=Productos'); await pg.waitForTimeout(300); await foto('5_productos');
-      await pg.click('nav >> text=Estados financieros'); await pg.waitForTimeout(300); await foto('6_estados');
+      await pg.click('.subnav >> text=Productos'); await pg.waitForTimeout(300); await foto('5_productos');
+      await pg.click('nav >> text=Resultados'); await pg.click('.subnav >> text=Estados financieros'); await pg.waitForTimeout(300); await foto('6_estados');
       await pg.click('text=Guardar borrador'); await pg.waitForTimeout(1000);
       R.borrador = (s.mem.tablas.decisiones || []).length > 0;
       await pg.click('text=Salir'); await pg.waitForTimeout(400);
@@ -62,10 +63,12 @@ try {
   await pg.goto(U); await ingresar('halcones', 'vuelo1', codigo.toLowerCase());
   await pg.waitForTimeout(800);
   const sel = await pg.$('text=ANA HALCONES QUISPE MAMANI'); if (sel) { await sel.click(); await pg.waitForTimeout(1200); }
-  await pg.click('nav >> text=Estados financieros'); await pg.waitForTimeout(400); await foto('9_estados_T1');
+  await pg.click('nav >> text=Resultados'); await pg.click('.subnav >> text=Estados financieros'); await pg.waitForTimeout(400); await foto('9_estados_T1');
   R.t1 = await pg.isVisible('th:has-text("T1")');
-  await pg.click('nav >> text=Informes'); await pg.waitForTimeout(300); await foto('10_estudio_mercado');
+  await pg.click('.subnav >> text=Estudio de mercado'); await pg.waitForTimeout(300); await foto('10_estudio_mercado');
   R.estudio = await pg.isVisible('text=Estudio del trimestre 1');
+  await pg.click('nav >> text=Aprender'); await pg.click('summary >> text=3. El cliente'); await pg.waitForTimeout(300); await foto('11_aprender');
+  await pg.click('nav >> text=Situación'); await pg.waitForTimeout(300); await foto('12_situacion');
   console.log(JSON.stringify(R));
   console.log('Errores de página:', errs.length ? errs : 'ninguno');
   ok = R.tabVida && R.resumen && R.borrador && R.panel && R.ranking && R.t1 && R.estudio && !errs.length;

@@ -44,7 +44,7 @@ try {
   await fila('Grupo Mañana').locator('button:has-text("Activar")').click(); await pg.waitForTimeout(900);
   await pg.click('text=Salir'); await pg.goto(U); await ingresar('Halcones', 'vuelo1', sims[0].codigo);
   await pg.waitForTimeout(800); if (await pg.isVisible('text=¿Quién eres?')) { await pg.click('.ax-quien button >> nth=0').catch(() => {}); await pg.waitForTimeout(800); }
-  R.equipoEntra = await pg.isVisible('nav >> text=Estados financieros');
+  R.equipoEntra = await pg.isVisible('nav >> text=Resultados');
   await pg.click('text=Salir'); await pg.waitForTimeout(400);
   // 📦 Archivar y desarchivar
   await pg.goto(U + '?vista=docente'); await ingresar(s.sa.email, 'Clave#2026'); await pg.click('nav >> text=Simulaciones'); await pg.waitForTimeout(500);

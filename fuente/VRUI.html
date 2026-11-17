@@ -41,13 +41,25 @@ function VR_iniciar(v) {
   if (v.partida.estado !== 'abierto' && !v.partida.finalizada && typeof vigilarApertura === 'function') vigilarApertura(true);
 }
 function vrR(x) { return Math.round(Number(x) * 100) / 100; }
-function VR_tabs() { return [['inicio', 'Resumen'], ['informes', 'Informes'], ['comite', 'Comité'], ['proyectos', 'Proyectos'], ['productos', 'Productos'], ['estados', 'Estados financieros'], ['equipo', 'Mi equipo']]; }
-function VR_ir(t) { VTAB = t; VR_render(); }
+// Menú del estudiante: Situación, Decisión, Resultados y Aprender (cada uno con sus secciones).
+var VR_MENU = [
+  ['sit', 'Situación', [['inicio', 'La empresa'], ['informes', 'Entorno'], ['equipo', 'Mi equipo']]],
+  ['dec', 'Decisión', [['comite', 'Comité'], ['proyectos', 'Proyectos'], ['productos', 'Productos'], ['compraEstudio', 'Estudio de mercado']]],
+  ['res', 'Resultados', [['trimestre', 'Trimestre'], ['estados', 'Estados financieros'], ['resMercado', 'Estudio de mercado']]],
+  ['apr', 'Aprender', [['aprender', 'Unidades de aprendizaje']]]
+];
+var VR_ULT = {};
+function VR_tabs() { return VR_MENU.map(function (m) { return [m[0], m[1]]; }); }
+function VR_menuDe(t) { var r = VR_MENU[0]; VR_MENU.forEach(function (m) { if (m[0] === t || m[2].some(function (x) { return x[0] === t; })) r = m; }); return r; }
+function VR_ir(t) { var m = VR_menuDe(t); VTAB = m[0] === t ? (VR_ULT[t] || m[2][0][0]) : t; VR_ULT[m[0]] = VTAB; VR_render(); window.scrollTo(0, 0); }
 function VR_render() {
+  var m = VR_menuDe(VTAB);
   $('nav').style.display = 'flex';
-  $('nav').innerHTML = VR_tabs().map(function (t) { return '<button class="' + (VTAB === t[0] ? 'on' : '') + '" onclick="VR_ir(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
-  var f = { inicio: VR_inicio, informes: VR_informes, comite: VR_comite, proyectos: VR_proyectos, productos: VR_productos, estados: VR_estados, equipo: AX_vEquipo }[VTAB] || VR_inicio;
-  $('app').innerHTML = f();
+  $('nav').innerHTML = VR_tabs().map(function (t) { return '<button class="' + (m[0] === t[0] ? 'on' : '') + '" onclick="VR_ir(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
+  var f = { inicio: VR_inicio, informes: VR_informes, equipo: AX_vEquipo, comite: VR_comite, proyectos: VR_proyectos, productos: VR_productos, compraEstudio: VR_compraEstudio,
+    trimestre: VR_resTrimestre, estados: VR_estados, resMercado: VR_resMercado, aprender: VR_aprender }[VTAB] || VR_inicio;
+  var sub = m[2].length > 1 ? '<div class="subnav">' + m[2].map(function (x) { return '<button class="' + (VTAB === x[0] ? 'on' : '') + '" onclick="VR_ir(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div>' : '';
+  $('app').innerHTML = sub + f();
   if (VTAB === 'equipo') AX_cargarMiEquipo();
   VR_pie();
 }
@@ -92,13 +104,19 @@ function VR_ultimo() { var h = VV.empresa.historial; return h.length ? h[h.lengt
 function VR_inicio() {
   var u = VR_ultimo(), b = u ? u.balance : VV.empresa.balanceInicial, h = '';
   h += '<div class="card"><h2>Tu comité de innovación</h2><p>Son el comité de innovación de <b>' + esc(VV.empresa.nombre) + '</b>, una láctea de Santa Cruz que hoy vende una leche chocolatada UHT de 1 litro a Bs 17,00 en supermercados. Compiten con los demás equipos y con dos marcas fijas: <b>Cupesí</b> (diferenciador, chocolatada sin lactosa con edulcorantes) y <b>Motacú</b> (líder en costos). Cada trimestre deciden su comité, sus proyectos (con Gantt y dos compuertas) y la gestión comercial de sus productos.</p>' +
-    '<p class="muted">Todos los datos del simulador tienen fuente: precios de góndola de Santa Cruz, costos de Leche Gloria, preferencias de Brodock et al. (2021), elasticidades publicadas. Consulten el informe del macroentorno.</p></div>';
+    '<p class="muted">Todos los datos del simulador tienen fuente: precios de góndola de Santa Cruz, costos de Leche Gloria, preferencias de Brodock et al. (2021), elasticidades publicadas. Consulten Situación → Entorno.</p></div>';
   h += '<div class="grid g4">' +
     '<div class="kpi"><div class="v">' + (u ? vrBs(u.resultados.ventas) : '—') + '</div><div class="l">Ventas del último trimestre</div></div>' +
     '<div class="kpi"><div class="v">' + (u ? vrBs(u.resultados.utilidadNeta) : '—') + '</div><div class="l">Utilidad neta del último trimestre</div></div>' +
     '<div class="kpi"><div class="v">' + vrBs(b.caja) + '</div><div class="l">Caja</div></div>' +
     '<div class="kpi"><div class="v">' + (u ? vrBs(u.cajaDisponibleLanzamiento) : '—') + '</div><div class="l">Caja disponible para lanzar (sobre el saldo mínimo)</div></div></div>';
   h += '<div class="card"><h2>Presupuesto de innovación del año</h2><p>' + vrBs(VV.empresa.presupuestoAnual) + ' (0,8 % de las ventas del año anterior). Paga los sueldos del comité según su dedicación, el desarrollo y el registro sanitario. Los estudios de mercado se pagan aparte, como gasto de ventas.</p><div id="vr-costos">' + VR_costosHtml() + '</div></div>';
+  h += '<div class="card"><h2>Cómo se juega</h2><ol><li><b>Situación:</b> conozcan su empresa (sus estados del Año 0 están en Resultados → Estados financieros), el entorno y su equipo.</li><li><b>Decisión:</b> armen el comité, sus proyectos de innovación y las decisiones de sus productos; luego presionen «Enviar decisiones».</li><li><b>Resultados:</b> cuando el docente procesa el trimestre, el simulador reparte los compradores de cada segmento entre todos los productos según lo que les gusta, el precio y la publicidad, y aquí ven sus ventas, estados financieros y estudios.</li><li><b>Aprender:</b> los conceptos de innovación que usa el simulador, con su fuente.</li></ol></div>';
+  return h;
+}
+function VR_resTrimestre() {
+  var u = VR_ultimo(), h = '';
+  if (!u) h += '<div class="card"><p>Todavía no hay resultados. Aparecen aquí cuando el docente procese el trimestre 1. Mientras tanto, en <b>Estados financieros</b> están los del Año 0.</p></div>';
   if (u) {
     var porP = u.operacion.porProducto;
     h += '<div class="card"><h2>Trimestre ' + u.t + ': operación por producto</h2><div class="scroll"><table><tr><th>Producto</th><th class="n">Demanda (L)</th><th class="n">Producción (L)</th><th class="n">Ventas (L)</th><th class="n">Ventas perdidas (L)</th><th class="n">Vencido (L)</th><th class="n">Ventas (Bs)</th></tr>' +
@@ -131,13 +149,18 @@ function VR_informes() {
     '<h3>Góndola: productos visibles y precio al consumidor</h3><div class="scroll"><table><tr><th>Empresa</th><th>Producto</th><th class="n">Precio (Bs/L)</th><th>Endulzante</th><th class="n">Azúcar añadida (g/100 ml)</th><th class="n">Grasa (%)</th><th class="n">Proteína (g/100 ml)</th><th class="n">Tamaño (ml)</th></tr>' +
     I.industria.gondola.map(function (g) { return '<tr><td>' + esc(g.empresa) + '</td><td>' + esc(g.producto) + '</td><td class="n">' + vrN(g.precioConsumidor * 1000 / (g.tamanoMl || 1000), 2) + '</td><td>' + esc((g.endulzante || []).map(function (e) { return VR_END[e] || e; }).join(' + ')) + '</td><td class="n">' + vrN(g.azucarAnadida100ml, 1) + '</td><td class="n">' + vrN(g.grasa100ml, 1) + '</td><td class="n">' + vrN(g.proteina100ml, 1) + '</td><td class="n">' + vrN(g.tamanoMl) + '</td></tr>'; }).join('') + '</table></div>' +
     '<h3>Canales</h3><div class="scroll"><table><tr><th>Canal</th><th class="n">Margen del comerciante</th><th class="n">Cobro a la empresa</th></tr>' + Object.keys(I.industria.canales).map(function (k) { var c = I.industria.canales[k]; return '<tr><td>' + VR_CAN[k] + '</td><td class="n">' + vrP(c.margen) + '</td><td class="n">' + (c.diasCobro ? c.diasCobro + ' días' : 'al contado') + '</td></tr>'; }).join('') + '</table></div><p class="muted">Costo de distribución: ' + vrP(I.industria.costoDistribucionPct) + ' de las ventas de la empresa en los tres canales.</p></div>';
+  return h;
+}
+function VR_compraEstudio() {
+  var h = '';
   h += '<div class="card"><h2>Estudio de mercado y competencia (de pago)</h2><p>Una consultora mide lo que pasó en el mercado durante el trimestre. Cuesta <b>' + vrBs(VV.cat.estudios.mercado) + '</b> (gasto de ventas, no sale del presupuesto de innovación). Si lo marcan, lo reciben <b>en esta misma sección, cuando el docente procese el trimestre</b>, con estos datos de cada producto del mercado (los de todos los equipos, Cupesí y Motacú):</p><ul>' +
     '<li>Litros vendidos y participación de mercado.</li><li>Litros vendidos en cada segmento (lo natural, cuidan calorías, promedio) y tamaño de cada segmento.</li>' +
     '<li>Precio al consumidor en supermercado, tienda de barrio y mercado.</li><li>Publicidad del trimestre (la de Cupesí y Motacú, estimada por la consultora).</li><li>Mensaje del frente del envase.</li></ul>' +
     '<p class="muted">Sin el estudio solo ven el rango aproximado del mercado y la góndola (arriba). Los otros estudios de pago (del consumidor, prueba de concepto y prueba de producto) se compran dentro de cada proyecto, en su Gantt.</p>' +
-    (VR_puedeEditar() ? '<label class="chk"><input type="checkbox"' + (DD.estudioMercado ? ' checked' : '') + ' onchange="VR_set(\'estudioMercado\', this.checked)"> Comprar el estudio de mercado este trimestre</label>' : '') + VR_estudiosMercado() + '</div>';
+    (VR_puedeEditar() ? '<label class="chk"><input type="checkbox"' + (DD.estudioMercado ? ' checked' : '') + ' onchange="VR_set(\'estudioMercado\', this.checked)"> Comprar el estudio de mercado este trimestre</label>' : '<p class="muted">El trimestre está cerrado: no se puede comprar ahora.</p>') + '<p class="muted">Los estudios ya entregados están en Resultados → Estudio de mercado.</p></div>';
   return h;
 }
+function VR_resMercado() { return '<div class="card"><h2>Estudios de mercado recibidos</h2>' + VR_estudiosMercado() + '</div>'; }
 function VR_estudiosMercado() {
   var E = VV.informes.estudiosMercado || {}, ks = Object.keys(E).sort(function (a, b) { return Number(b.slice(1)) - Number(a.slice(1)); });
   if (!ks.length) return '<p class="muted">Todavía no compraron estudios de mercado.</p>';
@@ -462,4 +485,54 @@ function VR_htmlRanking(r) {
   return '<p>Indicadores al cierre de T' + r.t + '. Puntaje (decisión del docente): resultado comercial 35 %, retorno 35 %, calidad del proceso 30 %, normalizados en la clase.</p><div class="scroll"><table><tr><th>#</th><th>Equipo</th><th class="n">Puntaje</th><th class="n">Ventas de productos nuevos (último año)</th><th class="n">Retorno de la innovación</th><th class="n">Proceso</th><th class="n">Utilidad acumulada</th><th class="n">Caja</th></tr>' +
     r.filas.map(function (d, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(d.nombre) + '</td><td class="n"><b>' + d.puntaje + '</b></td><td class="n">' + vrN(d.vitalidad, 1) + ' %</td><td class="n">' + vrN(d.retorno, 2) + '</td><td class="n">' + vrN(d.proceso, 1) + ' %</td><td class="n">' + vrN(d.utilidadAcum) + '</td><td class="n">' + vrN(d.caja) + '</td></tr>'; }).join('') + '</table></div>';
 }
+// ---------- Aprender: unidades de aprendizaje que toca el simulador ----------
+var VR_UNIDADES = [
+  { t: '1. Innovación: qué es y de qué tipo', idea: 'Innovar es convertir una idea en algo que crea valor y se usa. Tidd y Bessant (2021) distinguen cuatro direcciones (las 4P): producto, proceso, posición (cómo y a quién se presenta) y paradigma (el modelo de negocio); y dos grados: incremental («hacer mejor lo que hacemos») y radical («hacer algo diferente»). Christensen (1997) muestra que las empresas líderes suelen fracasar ante innovaciones disruptivas porque escuchan solo a sus mejores clientes actuales.',
+    sim: 'Cada proyecto se declara incremental o radical. El incremental solo usa costos del banco de referencias; el radical puede pedir rubros y atributos nuevos, pero tiene más incertidumbre: su venta real puede alejarse más de lo que mostraron las pruebas.',
+    preg: ['¿Qué P de la innovación toca cada uno de sus proyectos?', '¿Su cartera equilibra proyectos incrementales y radicales?'],
+    ref: ['Tidd, J., & Bessant, J. (2021). Managing innovation (7.ª ed.). Wiley.', 'Christensen, C. M. (1997). The innovator’s dilemma. Harvard Business School Press.'] },
+  { t: '2. Creatividad y Design Thinking', idea: 'Amabile propone que la creatividad nace de tres componentes: conocimiento del campo, habilidades de pensamiento creativo y motivación intrínseca, influidos por el entorno social. Brown describe el Design Thinking como tres espacios que se recorren varias veces: inspiración (entender el problema de las personas), ideación (generar y probar ideas) e implementación. Kelley y Kelley llaman confianza creativa a perder el miedo a equivocarse para experimentar.',
+    sim: 'La idea de cada proyecto es libre: el equipo escribe el problema del cliente, para quién y qué propone. No hay listas de opciones. Las pruebas de concepto y de producto son la forma de experimentar barato antes de invertir.',
+    preg: ['¿Qué problema real del cliente resuelve su idea?', '¿Qué aprendieron de la última prueba y qué cambiarán?'],
+    ref: ['Amabile, T. M. (2019). Creativity in context (actualización). Routledge.', 'Brown, T. (2019). Change by design (ed. revisada). Harper Business.', 'Kelley, T., & Kelley, D. (2013). Creative confidence. Crown Business.'] },
+  { t: '3. El cliente: segmentos y atributos', idea: 'Los consumidores no valoran igual las características de un producto. El análisis conjunto mide cuánto pesa cada atributo (utilidad) para cada grupo de clientes (segmento). Brodock et al. (2021) encontraron tres segmentos en la leche chocolatada: los que prefieren lo natural (36 %), los que cuidan las calorías (38 %) y los consumidores promedio (26 %). Los atributos que más pesan son el endulzante, la grasa, el azúcar añadida y el mensaje del envase.',
+    sim: 'El mercado reparte a los compradores de cada segmento entre todos los productos según la utilidad de sus atributos, el precio y la publicidad (modelo logit). Un producto pensado para un segmento le quita ventas a quien mejor lo atendía. El estudio del consumidor muestra estas utilidades.',
+    preg: ['¿A qué segmento apunta su producto y qué atributos valora ese segmento?', '¿Qué competidor pierde ventas si ustedes ganan?'],
+    ref: ['Brodock, J. L., Hayes, J. E., Masterson, T. D., & Hopfer, H. (2021). Differences in preferred fat level, sweetener type, and amount of added sugar in chocolate milk in a choice task relate to physical activity and orthorexia. Appetite, 163, 105214.'] },
+  { t: '4. Investigación de mercados y pruebas', idea: 'Las pruebas de concepto y de producto estiman la demanda con una muestra. Toda muestra tiene margen de error: con 400 personas, cerca de ±4,9 puntos (95 % de confianza, proporción 50 %); para reducirlo a la mitad hay que cuadruplicar la muestra. Además, lo que la gente dice que comprará no es lo que compra: la intención predice peor en productos nuevos y de compra frecuente (Morwitz et al., 2007). Las empresas reportan que sus pronósticos de productos nuevos aciertan entre 40 % y 65 % según lo novedoso del producto (Kahn, 2002).',
+    sim: 'Hay tres estudios de pago: mercado y competencia, consumidor y pruebas (400 o 1.600 personas). Se pagan como gasto de ventas, porque el Manual de Frascati no cuenta la investigación de mercados como I+D. Al lanzar, la venta real difiere de la prueba: más en lo radical.',
+    preg: ['¿Vale la pena pagar la prueba grande para reducir el margen de error?', '¿Cuánto se alejó la venta real de lo que mostró su prueba?'],
+    ref: ['Morwitz, V. G., Steckel, J. H., & Gupta, A. (2007). When do purchase intentions predict sales? International Journal of Forecasting, 23(3), 347–364.', 'Kahn, K. B. (2002). An exploratory investigation of new product forecasting practices. Journal of Product Innovation Management, 19(2), 133–143.', 'OECD. (2015). Frascati Manual 2015. OECD Publishing.'] },
+  { t: '5. El proceso Stage-Gate', idea: 'Cooper propone dividir el desarrollo en etapas separadas por compuertas. En cada compuerta se decide seguir o detener el proyecto con criterios conocidos de antemano. Así se invierte poco mientras la incertidumbre es alta y mucho cuando ya hay evidencia. Detener a tiempo un mal proyecto también es un buen resultado.',
+    sim: 'Dos compuertas. La 1 pide la idea completa, el estudio del consumidor, una hoja de costos válida y una prueba de concepto que supere al producto actual. La 2 pide el plan de lanzamiento, la prueba de producto y que el volumen mínimo estimado supere el punto de equilibrio.',
+    preg: ['¿Qué evidencia les falta para pasar la siguiente compuerta?', '¿Hay algún proyecto que convenga detener?'],
+    ref: ['Cooper, R. G. (2008). Perspective: The Stage-Gate idea-to-launch process—update, what’s new, and NexGen systems. Journal of Product Innovation Management, 25(3), 213–232.'] },
+  { t: '6. Planificar el proyecto: Gantt y recursos', idea: 'Un diagrama de Gantt ordena las actividades en el tiempo, con sus dependencias y responsables. Si la carga de una persona supera su tiempo disponible, el plan está sobreasignado y hay que nivelar recursos: mover actividades, reasignarlas o dar más dedicación (PMI, 2017). En la práctica, un producto incremental tarda unas 33 semanas desde el concepto hasta el mercado y uno radical, unas 82 (Markham y Lee, 2013).',
+    sim: 'Cada proyecto tiene su Gantt en semanas. Las actividades externas (estudios, registro sanitario del SENASAG) tienen duración fija; las internas las planifica el equipo. El simulador no deja guardar un plan sobreasignado. Cada semana se pagan los sueldos del comité según su dedicación.',
+    preg: ['¿Cuál es la ruta más larga de su proyecto?', '¿Quién del comité está más cargado?'],
+    ref: ['Project Management Institute. (2017). A guide to the project management body of knowledge (PMBOK guide) (6.ª ed.).', 'Markham, S. K., & Lee, H. (2013). Product Development and Management Association’s 2012 comparative performance assessment study. Journal of Product Innovation Management, 30(3), 408–429.'] },
+  { t: '7. Costos y finanzas de la innovación', idea: 'Un costo puede ser variable por unidad, fijo por período, inversión (se deprecia) o gasto de desarrollo. Con ellos se calcula el margen por unidad y el punto de equilibrio. Los estados oficiales usan costeo por absorción (NIC 2): parte de los costos fijos de fábrica queda en el inventario. El informe interno usa costeo variable (margen de contribución), y la diferencia entre ambas utilidades se concilia (Datar y Rajan, 2021).',
+    sim: 'La hoja de costos de cada proyecto clasifica cada fila y calcula el punto de equilibrio. El presupuesto de innovación es el 0,8 % de las ventas del año anterior (intensidad de I+D de la industria de alimentos). Al lanzar, cada fila pasa al balance, al estado de resultados y al flujo de efectivo.',
+    preg: ['¿Cuántos litros deben vender para no perder?', '¿Por qué la utilidad con absorción difiere de la de costeo variable?'],
+    ref: ['Datar, S. M., & Rajan, M. V. (2021). Horngren’s cost accounting (17.ª ed.). Pearson.', 'IASB. (2003). NIC 2 Inventarios.', 'NCSES. (2024). Business enterprise research and development: 2022 (NSF 24-335).'] },
+  { t: '8. Precio, publicidad y canales', idea: 'La elasticidad mide cuánto cambian las ventas ante un cambio. Para la leche chocolatada, la elasticidad precio es −2,05: subir el precio 10 % baja las ventas cerca de 20 % (Hu et al., 2016). La publicidad tiene una elasticidad promedio de 0,12 a corto plazo: duplicarla sube las ventas cerca de 9 % (Sethuraman et al., 2011). Cada canal se queda con un margen del precio al consumidor.',
+    sim: 'Ustedes fijan el precio a la empresa; el precio al consumidor depende del margen del canal (supermercado 18,5 %, tienda y mercado 15 %). Si dejan de hacer publicidad, las ventas caen poco a poco.',
+    preg: ['¿Les conviene bajar el precio o invertir en publicidad?', '¿Qué canal deja más margen a la empresa?'],
+    ref: ['Hu, Y., Dharmasena, S., Capps, O., Jr., & Janakiraman, R. (2016). U.S. demand for chocolate milk as an alternative to energy/sports drinks. SAEA Annual Meeting.', 'Sethuraman, R., Tellis, G. J., & Briesch, R. A. (2011). How well does advertising work? Journal of Marketing Research, 48(3), 457–471.'] },
+  { t: '9. Competencia y ecosistema', idea: 'Porter (1980) describe dos estrategias genéricas: diferenciarse o ser líder en costos. Los competidores no siempre reaccionan: ante un aumento de publicidad, los que anuncian regularmente responden con más publicidad en cerca del 37 % de los casos y casi nunca a largo plazo (Steenkamp et al., 2005). Una innovación depende además de otros actores (proveedores, canales, reguladores): su ecosistema (Adner, 2006).',
+    sim: 'Cupesí (diferenciador) y Motacú (líder en costos) mantienen su producto y precio; Cupesí puede responder a su publicidad. Hay eventos reales del entorno, como la subida de la leche cruda en el trimestre 7, que afectan a todas las empresas.',
+    preg: ['¿A quién le quitan ventas sus lanzamientos?', '¿De qué actores del ecosistema depende su proyecto?'],
+    ref: ['Porter, M. E. (1980). Competitive strategy. Free Press.', 'Steenkamp, J.-B. E. M., Nijs, V. R., Hanssens, D. M., & Dekimpe, M. G. (2005). Competitive reactions to advertising and promotion attacks. Marketing Science, 24(1), 35–54.', 'Adner, R. (2006). Match your innovation strategy to your innovation ecosystem. Harvard Business Review, 84(4), 98–107.'] },
+  { t: '10. Medir la innovación', idea: 'Las empresas miden la innovación con resultados (porcentaje de ventas de productos nuevos, utilidad que generan) y con la calidad del proceso. Markham y Lee (2013) informan que la utilidad de los productos nuevos y su porcentaje de las ventas son los dos indicadores más usados.',
+    sim: 'El ranking combina: resultado comercial (ventas de productos nuevos, incluida la mejora del actual) 35 %, retorno de lo invertido 35 % y calidad del proceso (compuertas, proyectos detenidos a tiempo, cumplimiento del Gantt) 30 %.',
+    preg: ['¿Qué parte del ranking pueden mejorar más rápido?', '¿Cuánto de sus ventas viene de productos nuevos?'],
+    ref: ['Markham, S. K., & Lee, H. (2013). Journal of Product Innovation Management, 30(3), 408–429.', 'Adams, R., Bessant, J., & Phelps, R. (2006). Innovation management measurement: A review. International Journal of Management Reviews, 8(1), 21–47.'] }
+];
+function VR_aprender() {
+  return '<div class="card"><h2>Unidades de aprendizaje</h2><p>Los conceptos de innovación que usa el simulador, con su fuente. Toquen una unidad para abrirla.</p></div>' +
+    VR_UNIDADES.map(function (u) {
+      return '<details class="card"><summary><b>' + esc(u.t) + '</b></summary><p>' + esc(u.idea) + '</p><h3>En el simulador</h3><p>' + esc(u.sim) + '</p><h3>Para pensar en equipo</h3><ul>' + u.preg.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ul><h3>Referencias</h3><ul class="muted">' + u.ref.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></details>';
+    }).join('');
+}
+
 </script>
