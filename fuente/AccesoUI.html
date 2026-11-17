@@ -124,7 +124,7 @@ function AX_inicio() {
 }
 function AX_cab() {
   var lg = [0, 1, 2].map(function (i) { var s = AXS.logos[i]; var alt = ['UAGRM', 'Ciencias Económicas', 'Ingeniería Comercial'][i]; return '<div class="ax-logo">' + (s ? '<img src="' + s + '" alt="Logo ' + alt + '">' : '<span>' + alt + '</span>') + '</div>'; }).join('');
-  return '<div class="ax-logos">' + lg + '</div><div class="ax-title">Simulador de Innovación</div><div class="ax-sub">Innovación</div><div class="ax-sub2">Empresas que compiten en un mismo mercado · 20 trimestres de decisiones</div>';
+  return '<div class="ax-logos">' + lg + '</div><div class="ax-title">Simulador de Innovación</div><div class="ax-sub">Innovación</div><div class="ax-sub2">Empresas que compiten en un mismo mercado · 12 trimestres de decisiones</div>';
 }
 function AX_marco(cuerpo, ancho) {
   return '<div class="ax-wrap"><div class="ax-card' + (ancho ? ' ax-wide' : '') + '">' + AX_cab() + cuerpo + '</div><div class="ax-foot">' + esc(AX_PIE) + '</div></div>';

@@ -19,6 +19,7 @@ function vrCargar_(pa, t) {
     var eqs = vrEquiposOrdenados_(pa.simId);
     if (!eqs.length) return null;
     var E = vrCrearPartida(D, eqs.length), mapa = {}, innov = {};
+    E.semilla = String(pa.simId); // azar reproducible por partida (reacción de la competencia, error de pronóstico)
     E.equipos.forEach(function (e, i) { mapa[e.id] = eqs[i].equipoId; e.nombre = eqs[i].nombre; innov[e.id] = { comite: [], proyectos: [], rubrosAprobados: {}, solicitudes: [], informes: {} }; });
     return { E: E, mapa: mapa, innov: innov };
   }
@@ -264,9 +265,10 @@ function vrApiEstado_(ses, pa, eqRow) {
     },
     innov: st,
     informes: {
-      macro: vrInformeMacro_(D),
+      macro: vrInformeMacro_(D, P.E),
       industria: { mercadoAproxLitrosTrim: [Math.round(M * 0.9 / 1000) * 1000, Math.round(M * 1.1 / 1000) * 1000], gondola: gondola,
-        canales: D.canales, costoDistribucionPct: D.costoDistribucionPctVentas, leche: 5.50 },
+        canales: D.canales, costoDistribucionPct: D.costoDistribucionPctVentas, leche: P.E.precioLeche || D.precioLecheBase },
+      noticias: P.E.eventos || [],
       estudiosMercado: st.informes || {}
     },
     cat: {
@@ -284,13 +286,14 @@ function vrBalanceActual_(eq) {
   return { caja: eq.caja, cxc: eq.cxc, inventario: inv, activoFijo: eq.activoFijo, activo: eq.caja + eq.cxc + inv + eq.activoFijo, cxp: eq.cxp, deuda: eq.deuda, patrimonio: eq.capital + eq.resultadosAcumulados };
 }
 /** Informe del macroentorno: datos públicos del banco de datos, con su fuente. */
-function vrInformeMacro_(D) {
+function vrInformeMacro_(D, E) {
+  var leche = (E && E.precioLeche) ? 'Leche cruda: Bs ' + (Math.round(E.precioLeche * 100) / 100).toFixed(2).replace('.', ',') + ' por litro (Bs 5,50 de abril de 2026 más el aumento de 11,7 % por el retiro de la subvención al diésel; La Razón, 15-oct-2026).' : 'Leche cruda: Bs 5,50 por litro más bonos por calidad desde abril de 2026.';
   return [
     { ambito: 'Económico', texto: 'Tipo de cambio oficial: Bs 11,84 por dólar (BCB, 23-oct-2026). Tasa máxima del crédito productivo para mediana empresa: 8 % anual (DS 5403).' },
     { ambito: 'Político-legal', texto: 'El precio de la leche cruda se desreguló en abril de 2026 (se anuló la Resolución Bi-Ministerial 003/2025). Impuesto a las utilidades de las empresas: 25 %. Registro sanitario del SENASAG obligatorio para cada producto nuevo: unas 9 semanas.' },
     { ambito: 'Social-demográfico', texto: 'Santa Cruz tiene 3.115.386 habitantes (Censo 2024), el 27,5 % del país, y es el departamento que más creció.' },
     { ambito: 'Tecnológico', texto: 'La leche UHT sin abrir dura unas 16 semanas en clima cálido; la pasteurizada, cerca de 1 semana refrigerada.' },
-    { ambito: 'Ecológico y de insumos', texto: 'Leche cruda: Bs 5,50 por litro más bonos por calidad desde abril de 2026. Azúcar: Bs 6,42 por kg. Cacao en polvo: Bs 121 por kg (precios al consumidor).' }
+    { ambito: 'Ecológico y de insumos', texto: leche + ' Azúcar: Bs 6,42 por kg. Cacao en polvo: Bs 121 por kg (precios al consumidor).' }
   ];
 }
 
@@ -462,7 +465,9 @@ function vrApiAdmin_(ses, pa, accion, datos) {
           proyectos: (st.proyectos || []).map(function (p) { return { id: p.id, nombre: p.nombre, clase: p.clase, estado: p.estado || 'exploracion', c1: p.resultados && p.resultados.compuerta1 ? p.resultados.compuerta1.aprobada : null, c2: p.resultados && p.resultados.compuerta2 ? p.resultados.compuerta2.aprobada : null }; }),
           solicitudes: st.solicitudes || [], rubrosAprobados: st.rubrosAprobados || {} };
       }),
-      atributosAprobados: P.E.atributosAprobados || {}
+      atributosAprobados: P.E.atributosAprobados || {},
+      eventos: P.E.eventos || [], reacciones: P.E.reacciones || [], precioLeche: P.E.precioLeche || D.precioLecheBase,
+      factores: P.E.equipos.map(function (e) { return { nombre: e.nombre, productos: e.productos.filter(function (p) { return p.factorReal; }).map(function (p) { return { nombre: p.nombre, factorReal: p.factorReal }; }) }; }).filter(function (x) { return x.productos.length; })
     };
   }
   if (accion === 'vrRubro') {

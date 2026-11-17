@@ -69,6 +69,26 @@ console.log('   equipo 2, litros por trimestre (actual + nuevo):', h2.map((h) =>
 console.log('   equipo 2, utilidad neta por trimestre:', h2.map((h) => fmt(h.resultados.utilidadNeta)).join(' | '));
 ok(E.equipos.every((eq) => eq.historial.every((h) => Math.abs(h.balance.cuadre) < 1e-4)), 'todos los balances cuadran');
 
+// ---- auditoría, puntos 2 y 5 (aprobados 17-nov) ----
+{
+  const delta = 5.50 * (0.60 / 5.15);
+  ok(E.eventos && E.eventos.some((x) => x.trimestre === 7) && Math.abs(E.precioLeche - 5.50 - delta) < 1e-9, 'la leche cruda sube 11,7 % en el trimestre 7');
+  ok(Math.abs(E.equipos[2].productos[0].costoVariable - E.anio0.costoVariable - delta) < 1e-9, 'el costo variable del producto actual sube lo mismo que la leche');
+  ok(Math.abs(ctx.vrBanco(D, E).leche_cruda.precio - Math.round((5.50 + delta) * 100) / 100) < 1e-9, 'el banco de referencias usa el precio nuevo de la leche');
+  const lanz = E.equipos[1].productos.find((x) => x.id === 'E2-P1');
+  ok(lanz && lanz.factorReal > 0 && lanz.factorReal !== 1 && lanz.lecheL === 1, 'el producto lanzado tiene su factor de venta real (' + (lanz && lanz.factorReal.toFixed(2)) + ') y su leche por litro');
+  // reacción de Cupesí: frecuencia cercana al 37 % en 400 partidas
+  let n = 0;
+  for (let k = 0; k < 400; k++) {
+    const P0 = ctx.vrCrearPartida(D, 3); P0.semilla = 'S' + k;
+    const d = ctx.vrDecisionesNeutras(P0); d.E1.productos['E1-actual'].publicidad *= 2;
+    const P1 = ctx.vrSimularTrimestre(D, P0, d);
+    if ((P1.reacciones || []).length) n++;
+  }
+  ok(n / 400 > 0.30 && n / 400 < 0.44, 'Cupesí responde a un aumento de publicidad en ' + (n / 4).toFixed(1) + ' % de las partidas (esperado 37 %)');
+  const P0 = ctx.vrCrearPartida(D, 3); const P1 = ctx.vrSimularTrimestre(D, P0, ctx.vrDecisionesNeutras(P0));
+  ok(!(P1.reacciones || []).length, 'sin aumento de publicidad no hay reacción');
+}
 // ---- puntos aprobados el 17-nov ----
 // (b1) mensaje frontal: 'premium' sube la utilidad; 'polifenoles' la baja (Brodock et al., 2021, tabla 3)
 {

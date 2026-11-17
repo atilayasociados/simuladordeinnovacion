@@ -73,7 +73,7 @@ function vrCaidaSinPublicidad_(D, q) {
  * durante los mismos trimestres seguidos con publicidad por debajo de la referencia (Ehrenberg-Bass, 2018).
  */
 function vrFactorPublicidad_(D, prod) {
-  if (!prod.publicidadRef) return 1; // competidores fijos
+  if (!prod.publicidadRef) return Math.pow(prod.multiplicadorPublicidad || 1, D.elasticidadPublicidad); // competidores: fijos salvo reacción (punto 5)
   var piso = 1 - vrCaidaSinPublicidad_(D, prod.trimestresPublicidadBaja || 0);
   if (prod.publicidad <= 0) return piso;
   return Math.max(piso, Math.pow(prod.publicidad / prod.publicidadRef, D.elasticidadPublicidad));
@@ -94,7 +94,8 @@ function vrDemanda_(D, productos, nEquipos) {
       var p = productos[i];
       var w = p.esEquipo ? 1 / nEquipos : 1;
       var cm = (D.constanteMarca && D.constanteMarca[p.clave]) || 1; // constante de marca de los competidores (banco §9)
-      var a = w * cm * Math.exp(D.escalaLogit * vrUtilidad_(D, p, seg.id)) *
+      // factorReal: diferencia entre lo que mostró la prueba y lo que compra el mercado (auditoría, punto 2; Kahn, 2002)
+      var a = w * cm * (p.factorReal || 1) * Math.exp(D.escalaLogit * vrUtilidad_(D, p, seg.id)) *
         Math.pow(vrPrecioConsumidor_(D, p) / D.precioReferencia, D.elasticidadPrecio) * vrFactorPublicidad_(D, p);
       atr.push(a); tot += a;
     }
@@ -164,6 +165,7 @@ function vrCrearPartida(D, nEquipos) {
     prod.publicidad = publicidadTrim;
     prod.publicidadRef = publicidadTrim;
     prod.costoVariable = varUnit;
+    prod.lecheL = 1;
     prod.vidaUtilSemanas = D.vidaUtilSemanas.uht;
     // Inventario inicial: días de producto terminado de Gloria; lotes de una semana, el más viejo incompleto.
     var semanal = V / 52, semInv = B.diasInventarioPT / 7, lotes = [], edad = 0, resto = semInv;
@@ -208,6 +210,55 @@ function vrCrearPartida(D, nEquipos) {
   };
 }
 
+/** Eventos del calendario con fuente (auditoría, punto 5). Hoy: precio de la leche cruda. */
+function vrAplicarEventos_(D, E) {
+  (D.eventos || []).forEach(function (ev) {
+    if (ev.trimestre !== E.t) return;
+    E.eventos = E.eventos || [];
+    if (E.eventos.some(function (x) { return x.trimestre === ev.trimestre && x.titulo === ev.titulo; })) return;
+    if (ev.tipo === 'leche') {
+      var antes = E.precioLeche || D.precioLecheBase, despues = antes * (1 + ev.variacion), delta = despues - antes;
+      E.precioLeche = despues;
+      E.equipos.forEach(function (eq) {
+        eq.productos.forEach(function (p) {
+          var l = p.lecheL != null ? p.lecheL : (/-actual$/.test(p.id) ? 1 : 0); // el producto actual usa 1 L de leche por litro (banco §7)
+          p.costoVariable += l * delta;
+        });
+      });
+    }
+    E.eventos.push({ trimestre: ev.trimestre, titulo: ev.titulo, texto: ev.texto, fuente: ev.fuente });
+  });
+}
+
+/**
+ * Reacción de la competencia (Steenkamp et al., 2005): si algún equipo sube su publicidad, Cupesí responde
+ * en el mismo trimestre con probabilidad 37,03 %, con el mismo porcentaje de aumento (supuesto declarado), y vuelve a lo normal al siguiente.
+ */
+function vrReaccionCompetidor_(D, E, pubAntes) {
+  var R = D.reaccionCompetidor; if (!R) return;
+  E.competidores.forEach(function (c) { c.multiplicadorPublicidad = 1; });
+  var maxAum = 0, quien = null;
+  E.equipos.forEach(function (eq) {
+    var antes = pubAntes[eq.id] || 0, ahora = vrSum_(eq.productos.filter(function (p) { return p.activo; }).map(function (p) { return p.publicidad || 0; }));
+    if (antes > 0 && ahora / antes - 1 > maxAum + 1e-9) { maxAum = ahora / antes - 1; quien = eq.id; }
+  });
+  if (!(maxAum > 1e-6)) return;
+  var u = vrRngMotor_((E.semilla || '') + '|reaccion|' + E.t)();
+  if (u >= R.probabilidad) return;
+  E.competidores.forEach(function (c) {
+    if (c.clave !== R.competidor) return;
+    c.multiplicadorPublicidad = 1 + maxAum;
+    E.reacciones = E.reacciones || [];
+    E.reacciones.push({ trimestre: E.t, competidor: c.clave, aumento: maxAum, ante: quien });
+  });
+}
+function vrRngMotor_(semilla) {
+  var s = String(semilla), h = 1779033703 ^ s.length;
+  for (var i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  var a = h >>> 0;
+  return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+
 /** Decisiones que repiten el Año 0 (útil para pruebas y como valor por defecto). */
 function vrDecisionesNeutras(estado) {
   var dec = {};
@@ -237,6 +288,11 @@ function vrSimularTrimestre(D, estado0, decisiones) {
   E.t += 1;
   var esInicioAnio = (E.t - 1) % D.trimestresPorAnio === 0;
 
+  // 0) eventos del calendario (auditoría, punto 5)
+  vrAplicarEventos_(D, E);
+  var pubAntes = {};
+  E.equipos.forEach(function (eq) { pubAntes[eq.id] = vrSum_(eq.productos.filter(function (p) { return p.activo; }).map(function (p) { return p.publicidad || 0; })); });
+
   // 1) aplicar decisiones comerciales
   E.equipos.forEach(function (eq) {
     var d = decisiones[eq.id] || {};
@@ -253,6 +309,9 @@ function vrSimularTrimestre(D, estado0, decisiones) {
       p.trimestresPublicidadBaja = p.publicidad < p.publicidadRef * (1 - 1e-9) ? (p.trimestresPublicidadBaja || 0) + 1 : 0;
     });
   });
+
+  // 1b) reacción de la competencia a un aumento de publicidad de algún equipo (auditoría, punto 5)
+  vrReaccionCompetidor_(D, E, pubAntes);
 
   // 2) mercado del trimestre (decisiones constantes dentro del trimestre)
   var todos = [];

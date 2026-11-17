@@ -173,7 +173,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = 'ee029c6b72fd';
+  var V0 = '29aa95eb18ee';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -516,7 +516,7 @@ function AX_inicio() {
 }
 function AX_cab() {
   var lg = [0, 1, 2].map(function (i) { var s = AXS.logos[i]; var alt = ['UAGRM', 'Ciencias Económicas', 'Ingeniería Comercial'][i]; return '<div class="ax-logo">' + (s ? '<img src="' + s + '" alt="Logo ' + alt + '">' : '<span>' + alt + '</span>') + '</div>'; }).join('');
-  return '<div class="ax-logos">' + lg + '</div><div class="ax-title">Simulador de Innovación</div><div class="ax-sub">Innovación</div><div class="ax-sub2">Empresas que compiten en un mismo mercado · 20 trimestres de decisiones</div>';
+  return '<div class="ax-logos">' + lg + '</div><div class="ax-title">Simulador de Innovación</div><div class="ax-sub">Innovación</div><div class="ax-sub2">Empresas que compiten en un mismo mercado · 12 trimestres de decisiones</div>';
 }
 function AX_marco(cuerpo, ancho) {
   return '<div class="ax-wrap"><div class="ax-card' + (ancho ? ' ax-wide' : '') + '">' + AX_cab() + cuerpo + '</div><div class="ax-foot">' + esc(AX_PIE) + '</div></div>';
@@ -990,6 +990,7 @@ function VR_nomProd(id) { var n = id; VV.empresa.productos.forEach(function (p) 
 // ---------- Informes ----------
 function VR_informes() {
   var I = VV.informes, h = '';
+  if ((I.noticias || []).length) h += '<div class="card"><h2>Noticias que afectan a todas las empresas</h2>' + I.noticias.map(function (n) { return '<p><b>Trimestre ' + n.trimestre + ': ' + esc(n.titulo) + '.</b> ' + esc(n.texto) + ' <span class="muted">Fuente: ' + esc(n.fuente) + '</span></p>'; }).join('') + '</div>';
   h += '<div class="card"><h2>Informe del macroentorno (gratis)</h2><div class="scroll"><table>' + I.macro.map(function (m) { return '<tr><th>' + esc(m.ambito) + '</th><td>' + esc(m.texto) + '</td></tr>'; }).join('') + '</table></div></div>';
   h += '<div class="card"><h2>Informe de la industria (gratis)</h2><p>Mercado de leche saborizada de Santa Cruz: entre ' + vrN(I.industria.mercadoAproxLitrosTrim[0]) + ' y ' + vrN(I.industria.mercadoAproxLitrosTrim[1]) + ' litros por trimestre (aproximado). La cifra exacta por segmento y la participación por marca están en el estudio de mercado.</p>' +
     '<h3>Góndola: productos visibles y precio al consumidor</h3><div class="scroll"><table><tr><th>Empresa</th><th>Producto</th><th class="n">Precio (Bs/L)</th><th>Endulzante</th><th class="n">Azúcar añadida (g/100 ml)</th><th class="n">Grasa (%)</th><th class="n">Proteína (g/100 ml)</th><th class="n">Tamaño (ml)</th></tr>' +
@@ -1287,6 +1288,10 @@ function VR_htmlPanel(r) {
       return '<tr><td>' + esc(e.nombre) + '</td><td class="n">' + (e.ventas === null ? '—' : vrN(e.ventas)) + '</td><td class="n">' + (e.utilidadNeta === null ? '—' : vrN(e.utilidadNeta)) + '</td><td class="n">' + vrN(e.caja) + '</td><td class="n">' + (e.indicadores ? vrP(i.vitalidad) : '—') + '</td><td class="n">' + (e.indicadores ? vrN(i.retorno, 2) : '—') + '</td><td class="n">' + (e.indicadores ? vrP(i.proceso) : '—') + '</td><td>' + esc(e.productos.join(', ')) + '</td><td>' +
         e.proyectos.map(function (p) { return esc(p.nombre) + ' (' + esc(p.clase || 'sin clase') + ', ' + esc(VR_EST[p.estado] || p.estado) + (p.c1 !== null ? ', C1 ' + (p.c1 ? '✅' : '❌') : '') + (p.c2 !== null ? ', C2 ' + (p.c2 ? '✅' : '❌') : '') + ')'; }).join('<br>') + '</td></tr>';
     }).join('') + '</table></div></div>';
+  h += '<div class="card"><h2>Entorno y azar de la partida (solo docente)</h2><p>Leche cruda: Bs ' + vrN(r.precioLeche, 2) + ' por litro.</p>' +
+    ((r.eventos || []).length ? '<p>Eventos ocurridos: ' + r.eventos.map(function (e) { return 'T' + e.trimestre + ' ' + esc(e.titulo); }).join('; ') + '.</p>' : '<p class="muted">Todavía no ocurrió ningún evento del calendario (la leche sube en el trimestre 7).</p>') +
+    ((r.reacciones || []).length ? '<p>Cupesí respondió con más publicidad en: ' + r.reacciones.map(function (x) { return 'T' + x.trimestre + ' (+' + vrP(x.aumento) + ')'; }).join(', ') + '.</p>' : '<p class="muted">Cupesí todavía no respondió a ningún aumento de publicidad (lo hace con probabilidad 37 %; Steenkamp et al., 2005).</p>') +
+    ((r.factores || []).length ? '<p>Productos lanzados: venta real frente a lo que mostró la prueba (1 = igual; Kahn, 2002): ' + r.factores.map(function (f) { return esc(f.nombre) + ': ' + f.productos.map(function (p) { return esc(p.nombre) + ' ×' + vrN(p.factorReal, 2); }).join(', '); }).join(' · ') + '.</p>' : '') + '</div>';
   var sol = [];
   r.equipos.forEach(function (e) { (e.solicitudes || []).forEach(function (s) { sol.push({ e: e, s: s }); }); });
   h += '<div class="card"><h2>Solicitudes de rubros y atributos nuevos (proyectos radicales)</h2>' + (sol.length ? '<div class="scroll"><table><tr><th>Equipo</th><th>Tipo</th><th>Nombre</th><th>Unidad</th><th>Para qué</th><th>Estado</th></tr>' + sol.map(function (x) { return '<tr><td>' + esc(x.e.nombre) + '</td><td>' + (x.s.tipo === 'atributo' ? 'Atributo' : 'Rubro') + '</td><td>' + esc(x.s.nombre) + '</td><td>' + esc(x.s.unidad) + '</td><td>' + esc(x.s.justificacion) + '</td><td>' + esc(x.s.estado) + (x.s.estado === 'pendiente' ? ' <button class="btn sec" onclick="VR_rechazar(\'' + esc(x.e.equipoId) + '\',\'' + esc(String(x.s.nombre).replace(/'/g, '')) + '\',\'' + (x.s.tipo === 'atributo' ? 'vrAtributo' : 'vrRubro') + '\')">Rechazar</button>' : '') + '</td></tr>'; }).join('') + '</table></div>' : '<p class="muted">No hay solicitudes.</p>') +

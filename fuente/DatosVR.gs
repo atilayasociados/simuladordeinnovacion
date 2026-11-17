@@ -145,5 +145,23 @@ var VR_DATOS = {
   // 57 casos sin publicidad en medios masivos por un año o más): −16 % al año, −25 % a los 2 años, −36 % a los 3 años.
   // Regla: el efecto de la publicidad nunca es peor que dejar de anunciar durante los mismos trimestres seguidos con publicidad
   // por debajo de la referencia; entre los puntos se interpola por trimestre y después del año 3 se mantiene (aprobado, 12-nov-2026).
+  // Auditoría, punto 2 (aprobado 17-nov-2026): error de pronóstico de productos nuevos.
+  // Kahn, K. B. (2002). An exploratory investigation of new product forecasting practices. Journal of Product
+  // Innovation Management, 19(2), 133-143: precisión autodeclarada un año después del lanzamiento: mejora del producto 65 %,
+  // extensión de línea 63 %, nueva categoría para la empresa 47 %. Error medio absoluto = 1 − precisión (supuesto declarado).
+  errorPronostico: { mejora: 0.35, incremental: 0.37, radical: 0.53 },
+  // Auditoría, punto 5 (aprobado 17-nov-2026): reacción de la competencia a un aumento de publicidad.
+  // Steenkamp, Nijs, Hanssens y Dekimpe (2005), Marketing Science 24(1), 35-54, tabla 4A: ante un ataque publicitario,
+  // los competidores que anuncian regularmente responden con más publicidad en el 37,03 % de los casos (corto plazo);
+  // a largo plazo casi nunca hay reacción. Cupesí (diferenciador) reacciona; Motacú (líder en costos) no.
+  reaccionCompetidor: { competidor: 'cupesi', probabilidad: 0.3703 },
+  // Auditoría, punto 5: calendario de eventos con fuente. La Razón (15-oct-2026): tras el retiro de la subvención al
+  // diésel, el precio base de la leche cruda en Cochabamba sube de Bs 5,15 a Bs 5,75 (+11,65 %). Se aplica a mitad de la partida.
+  precioLecheBase: 5.50,
+  eventos: [
+    { trimestre: 7, tipo: 'leche', variacion: 0.60 / 5.15, titulo: 'Sube el precio de la leche cruda',
+      texto: 'Tras el retiro de la subvención al diésel, productores e industria acordaron subir el precio base de la leche cruda en 11,7 % (en Cochabamba, de Bs 5,15 a Bs 5,75 por litro). El aumento se aplica a todas las empresas desde este trimestre.',
+      fuente: 'La Razón (15-oct-2026). Productores elevan en Bs 0,60 el precio base por litro de leche cruda.' }
+  ],
   caidaSinPublicidad: [{ trimestres: 0, caida: 0 }, { trimestres: 4, caida: 0.16 }, { trimestres: 8, caida: 0.25 }, { trimestres: 12, caida: 0.36 }]
 };

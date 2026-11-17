@@ -32,7 +32,7 @@ function vrBanco(D, partida) {
   var a0 = partida.anio0;
   var resto = a0.costoVariable - (5.50 * 1 + 6.42 * 0.070 + 121 * 0.010); // insumos y envase del producto actual (derivado)
   return {
-    leche_cruda: { nombre: 'Leche cruda', unidad: 'L', precio: 5.50, fuente: 'Los Tiempos, 28-abr-2026 (banco §4)' },
+    leche_cruda: { nombre: 'Leche cruda', unidad: 'L', precio: vrR2_(partida.precioLeche || 5.50), fuente: partida.precioLeche ? 'Los Tiempos, 28-abr-2026, más el aumento de La Razón, 15-oct-2026 (eventos)' : 'Los Tiempos, 28-abr-2026 (banco §4)' },
     azucar: { nombre: 'Azúcar granulada', unidad: 'kg', precio: 6.42, fuente: 'Defensoría del Pueblo, dic-2025 (banco §4)' },
     cacao: { nombre: 'Cacao en polvo', unidad: 'kg', precio: 121, fuente: 'Hipermaxi, 11-nov-2026 (banco §4)' },
     insumos_envase_actual: { nombre: 'Otros insumos y envase cartón 1 L (como el producto actual)', unidad: 'L de producto', precio: vrR2_(resto),
@@ -160,7 +160,7 @@ function vrEstudioMercado(D, estado) {
     var p = prods[id] || {}, precios = {}, pub = null, estimada = false;
     if (p.precioConsumidorFijo) { // competidores: precio de góndola; publicidad estimada con la proporción de Leche Gloria 2024 (banco §10)
       for (var c in D.canales) precios[c] = p.precioConsumidorFijo;
-      pub = ult.demanda[id].litros * p.precioConsumidorFijo * (1 - D.canales.supermercado.margen) * D.publicidadPctVentas; estimada = true;
+      pub = ult.demanda[id].litros * p.precioConsumidorFijo * (1 - D.canales.supermercado.margen) * D.publicidadPctVentas * (p.multiplicadorPublicidad || 1); estimada = true;
     } else {
       for (var c2 in D.canales) if ((p.mezcla || {})[c2] > 0) precios[c2] = p.precioEmpresa / (1 - D.canales[c2].margen);
       pub = p.publicidad || 0;
@@ -397,7 +397,7 @@ function vrTrimestreInnovacion(D, estado0, innov0, banco) {
         }
       }
       // productos que entran al mercado este trimestre
-      if (p.lanzamientoPendiente && p.lanzamientoPendiente.entraEnTrimestre === t) vrIncorporarProducto_(D, eq, p, banco, st.rubrosAprobados, eventos, t);
+      if (p.lanzamientoPendiente && p.lanzamientoPendiente.entraEnTrimestre === t) vrIncorporarProducto_(D, eq, p, banco, st.rubrosAprobados, eventos, t, E.semilla);
     });
     extras[eq.id] = ex;
     I[eq.id] = st;
@@ -406,23 +406,28 @@ function vrTrimestreInnovacion(D, estado0, innov0, banco) {
   return { estado: E, innov: I, extras: extras, eventos: eventos };
 }
 
-function vrIncorporarProducto_(D, eq, p, banco, rubros, eventos, t) {
+function vrIncorporarProducto_(D, eq, p, banco, rubros, eventos, t, semilla) {
   var hoja = vrEvaluarHoja(D, banco, p, rubros);
   var prod = vrProductoDeProyecto_(D, eq, p);
   prod.costoVariable = hoja.costoVariableL;
+  prod.lecheL = vrSum_((p.hoja || []).filter(function (f) { return f.rubro === 'leche_cruda' && f.tipo === 'variable'; }).map(function (f) { return f.cantidad || 0; }));
+  // lo que compra el mercado difiere de lo que mostró la prueba (auditoría, punto 2; Kahn, 2002)
+  var tipoErr = p.reemplazaProductoActual ? 'mejora' : (p.clase === 'radical' ? 'radical' : 'incremental');
+  var mape = (D.errorPronostico || {})[tipoErr] || 0, sigma = mape * Math.sqrt(Math.PI / 2);
+  prod.factorReal = Math.max(0.05, 1 + sigma * vrRng_((semilla || '') + '|' + eq.id + '|' + p.id + '|real').normal());
   if (p.reemplazaProductoActual) {
     var act = eq.productos[0];
     ['endulzante', 'azucarAnadida100ml', 'grasa100ml', 'proteina100ml', 'tamanoMl'].forEach(function (k) { act[k] = prod[k]; });
     act.costoVariable = prod.costoVariable; act.precioEmpresa = prod.precioEmpresa; act.mezcla = prod.mezcla; act.publicidad = prod.publicidad;
     act.nombre = prod.nombre || act.nombre;
     act.mensaje = prod.mensaje; act.extras = prod.extras;
-    act.lanzadoEn = t; // la mejora del producto actual cuenta como producto nuevo para la vitalidad (auditoría, punto 6)
+    act.lanzadoEn = t; act.lecheL = prod.lecheL; act.factorReal = prod.factorReal; // la mejora del producto actual cuenta como producto nuevo para la vitalidad (auditoría, punto 6)
   } else {
     eq.productos.push(prod);
   }
   eq.fijoOperativoNuevoTrim = (eq.fijoOperativoNuevoTrim || 0) + hoja.fijoTrim;
   p.estado = 'lanzado'; p.trimestreLanzamiento = t; delete p.lanzamientoPendiente;
-  eventos.push({ equipo: eq.id, proyecto: p.id, trimestre: t, evento: 'lanzamiento', producto: prod.id });
+  eventos.push({ equipo: eq.id, proyecto: p.id, trimestre: t, evento: 'lanzamiento', producto: prod.id, factorReal: prod.factorReal });
 }
 
 /** Une los extras de innovación con las decisiones comerciales del trimestre. */
