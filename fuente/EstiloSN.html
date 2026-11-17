@@ -145,7 +145,7 @@ function SN_nombre(t) { var n = t; VR_MENU.forEach(function (m) { m[2].forEach(f
 function SN_hero(t) {
   var m = VR_menuDe(t), i = SN_paso(t);
   var jour = '<div class="sn-jour" role="navigation" aria-label="Recorrido del trimestre">' + VR_MENU.map(function (g, k) { return (k ? '<b aria-hidden="true"></b>' : '') + '<a href="#" class="' + (g[0] === m[0] ? 'cur' : '') + '"' + (g[0] === m[0] ? ' aria-current="step"' : '') + ' onclick="VR_ir(\'' + g[0] + '\');return false">' + SN_ico(SN_GICO[g[0]]) + esc(g[1]) + '</a>'; }).join('') + '</div>';
-  return jour + '<div class="sn-hero"><div class="pic">' + SN_ico(SN_SICO[t]) + '</div><div><small>' + esc(m[1]) + (i >= 0 ? ' · Paso ' + (i + 1) + ' de ' + SN_PASOS.length : '') + '</small><h2>' + esc(SN_nombre(t)) + '</h2>' + (i >= 0 ? '<p>' + esc(SN_PASOS[i][1]) + '</p>' : '') + '</div></div>';
+  return '<div class="sn-hero"><div class="pic">' + SN_ico(SN_SICO[t]) + '</div><div><small>' + esc(m[1]) + (i >= 0 ? ' · Paso ' + (i + 1) + ' de ' + SN_PASOS.length : '') + '</small><h2>' + esc(SN_nombre(t)) + '</h2>' + (i >= 0 ? '<p>' + esc(SN_PASOS[i][1]) + '</p>' : '') + '</div></div>';
 }
 function SN_siguiente(t) {
   var i = SN_paso(t); if (i < 0) return '';
