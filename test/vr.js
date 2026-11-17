@@ -28,6 +28,12 @@ const pid = V.empresa.productos[0].id, precio = V.empresa.productos[0].precioEmp
 
 falla(() => G.apiGuardar(tok[0], {}, false), 'cerrado', 'no se puede guardar con el trimestre cerrado');
 G.apiAdmin(adm, 'abrir', { simId: sim.simId });
+// rubro nuevo pedido en el trimestre 1 y aprobado antes de procesarlo
+G.apiGuardar(tok[2], { solicitudes: [{ tipo: 'rubro', nombre: 'Estevia', unidad: 'kg', justificacion: 'Proyecto sin azúcar' }] }, false);
+const pan1 = G.apiAdmin(adm, 'vrPanel', { simId: sim.simId });
+ok(pan1.equipos[2].solicitudes.some((x) => x.nombre === 'Estevia' && x.enBorrador), 'el docente ve la solicitud del borrador antes de procesar el trimestre 1');
+ok(G.apiAdmin(adm, 'vrRubro', { simId: sim.simId, nombre: 'Estevia', unidad: 'kg', precio: 500, fuente: 'Prueba del simulador' }).ok, 'el docente aprueba un rubro antes de procesar el trimestre 1');
+ok(!!G.apiEstado(tok[0]).innov.rubrosAprobados['nuevo:Estevia'], 'todos los equipos ven el rubro aprobado en el trimestre 1');
 
 // equipo 1: proyecto incremental con menos azúcar
 const proyecto = {
@@ -108,6 +114,7 @@ G.apiAdmin(adm, 'retroceder', { simId: sim.simId });
 const rr = G.apiAdmin(adm, 'vrRubro', { simId: sim.simId, nombre: 'Estevia en polvo', unidad: 'kg', precio: 950, fuente: 'Cotización proveedor X, 2026' });
 ok(rr.ok, rr.mensaje);
 ok(G.apiEstado(tok[1]).cat.banco && G.apiEstado(tok[1]).innov.rubrosAprobados['nuevo:Estevia en polvo'], 'el rubro nuevo queda disponible para todos los equipos');
+ok(!!G.apiEstado(tok[1]).innov.rubrosAprobados['nuevo:Estevia'], 'el rubro aprobado antes del trimestre 1 sigue después de procesarlo');
 // atributo nuevo (punto b2): solo con utilidades por segmento y fuente
 falla(() => G.apiAdmin(adm, 'vrAtributo', { simId: sim.simId, nombre: 'Sin lactosa', natural: 5, calorias: 3, promedio: 2, fuente: '' }), 'estudio', 'un atributo nuevo exige la fuente del estudio');
 const ra = G.apiAdmin(adm, 'vrAtributo', { simId: sim.simId, nombre: 'Sin lactosa', natural: 5, calorias: 3, promedio: 2, fuente: 'Estudio de conjunto del equipo 1, 2026', rubro: 'nuevo:Estevia en polvo' });

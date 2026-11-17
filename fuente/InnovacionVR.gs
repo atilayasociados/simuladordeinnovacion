@@ -134,7 +134,7 @@ function vrCoherenciaEtiqueta_(D, proyecto, h, rubrosAprobados) {
     if (VR_AZUCARES_[e]) return;
     var n = vrNorm_(VR_NOMBRE_END_[e] || e);
     if (!varFilas.some(function (f) { return String(f.rubro).indexOf('nuevo:') === 0 && nombreRubro(f).indexOf(n) >= 0; }))
-      err.push('La etiqueta usa ' + (VR_NOMBRE_END_[e] || e) + ': agreguen una fila variable con su rubro (si no está en el banco, pídanlo al docente).');
+      err.push('La etiqueta usa ' + (VR_NOMBRE_END_[e] || e) + ': agreguen una fila variable con su rubro. Si no está en el banco, pídanlo al docente en Proyectos → Solicitudes al docente (tipo «Rubro nuevo») y, cuando lo apruebe, elíjanlo en la hoja de costos.');
   });
   if ((a.proteina100ml || 0) > 3.2 + 1e-9 && !varFilas.some(function (f) { return nombreRubro(f).indexOf('protein') >= 0; }))
     err.push('La etiqueta declara más proteína que la leche (3,2 g por 100 ml): agreguen una fila variable con un rubro de proteína.');

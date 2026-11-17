@@ -20,7 +20,10 @@ function vrCargar_(pa, t) {
     if (!eqs.length) return null;
     var E = vrCrearPartida(D, eqs.length), mapa = {}, innov = {};
     E.semilla = String(pa.simId); // azar reproducible por partida (reacción de la competencia, error de pronóstico)
-    E.equipos.forEach(function (e, i) { mapa[e.id] = eqs[i].equipoId; e.nombre = eqs[i].nombre; innov[e.id] = { comite: [], proyectos: [], rubrosAprobados: {}, solicitudes: [], informes: {} }; });
+    // rubros y atributos que el docente aprobó antes de procesar el trimestre 1 (se guardan en la fila del mercado con t = 0)
+    var B0 = getJson_('Estados', vrIdMercado_(pa.simId), 0), b0 = (B0 && B0.estado) || {};
+    E.rubrosAprobados = b0.rubrosAprobados || {}; if (b0.atributosAprobados) E.atributosAprobados = b0.atributosAprobados;
+    E.equipos.forEach(function (e, i) { mapa[e.id] = eqs[i].equipoId; e.nombre = eqs[i].nombre; innov[e.id] = { comite: [], proyectos: [], rubrosAprobados: E.rubrosAprobados, solicitudes: [], informes: {} }; });
     return { E: E, mapa: mapa, innov: innov };
   }
   var M = getJson_('Estados', vrIdMercado_(pa.simId), t);
@@ -42,6 +45,10 @@ function vrGuardar_(pa, t, P) {
   putJson_('Estados', vrIdMercado_(pa.simId), t, { estado: est, mapa: P.mapa });
   equipos.forEach(function (e) { putJson_('Estados', P.mapa[e.id], t, { empresa: e, innov: P.innov[e.id] }); });
   for (var k3 in P.innov) P.innov[k3].rubrosAprobados = P.E.rubrosAprobados || {};
+}
+/** Antes de procesar el trimestre 1 solo se guarda el banco común (rubros y atributos aprobados), no los equipos. */
+function vrGuardarBanco0_(pa, P) {
+  putJson_('Estados', vrIdMercado_(pa.simId), 0, { estado: { rubrosAprobados: P.E.rubrosAprobados || {}, atributosAprobados: P.E.atributosAprobados || {} }, mapa: {} });
 }
 function vrMiId_(P, equipoId) { for (var k in P.mapa) if (String(P.mapa[k]) === String(equipoId)) return k; return null; }
 function vrEmpresa_(P, id) { for (var i = 0; i < P.E.equipos.length; i++) if (P.E.equipos[i].id === id) return P.E.equipos[i]; return null; }
@@ -124,6 +131,7 @@ function vrUnirInnov_(D, prev, dec, t) {
     var previas = (prev.solicitudes || []).filter(function (s) { return s.estado && s.estado !== 'pendiente'; });
     var nuevas = dec.solicitudes.slice(0, 10).filter(function (s) { return s && s.nombre; }).map(function (s) {
       var ya = (prev.solicitudes || []).filter(function (q) { return q.nombre === vrTxt_(s.nombre, 80); })[0];
+      if (!ya && (prev.rubrosAprobados || {})['nuevo:' + vrTxt_(s.nombre, 80)]) return null; // ya aprobado por el docente
       return ya && ya.estado !== 'pendiente' ? null : { tipo: s.tipo === 'atributo' ? 'atributo' : 'rubro', nombre: vrTxt_(s.nombre, 80), unidad: vrTxt_(s.unidad, 30), justificacion: vrTxt_(s.justificacion, 800), proyecto: vrTxt_(s.proyecto, 10), estado: 'pendiente', trimestre: t };
     }).filter(Boolean);
     st.solicitudes = previas.concat(nuevas);
@@ -483,7 +491,10 @@ function vrApiAdmin_(ses, pa, accion, datos) {
           ventas: h ? h.resultados.ventas : null, utilidadNeta: h ? h.resultados.utilidadNeta : null, caja: h ? h.balance.caja : e.caja,
           indicadores: ind, productos: e.productos.filter(function (p) { return p.activo; }).map(function (p) { return p.nombre; }),
           proyectos: (st.proyectos || []).map(function (p) { return { id: p.id, nombre: p.nombre, clase: p.clase, estado: p.estado || 'exploracion', c1: p.resultados && p.resultados.compuerta1 ? p.resultados.compuerta1.aprobada : null, c2: p.resultados && p.resultados.compuerta2 ? p.resultados.compuerta2.aprobada : null }; }),
-          solicitudes: st.solicitudes || [], rubrosAprobados: st.rubrosAprobados || {} };
+          solicitudes: (st.solicitudes || []).concat(((dT && dT.solicitudes) || []).filter(function (s) {
+            return s && s.nombre && !(st.solicitudes || []).some(function (q) { return q.nombre === s.nombre; }) && !(P.E.rubrosAprobados || {})['nuevo:' + s.nombre] && !(P.E.atributosAprobados || {})['nuevo:' + s.nombre];
+          }).map(function (s) { return { tipo: s.tipo === 'atributo' ? 'atributo' : 'rubro', nombre: vrTxt_(s.nombre, 80), unidad: vrTxt_(s.unidad, 30), justificacion: vrTxt_(s.justificacion, 800), estado: 'pendiente', enBorrador: true }; })),
+          rubrosAprobados: st.rubrosAprobados || {} };
       }),
       atributosAprobados: P.E.atributosAprobados || {},
       eventos: P.E.eventos || [], reacciones: P.E.reacciones || [], precioLeche: P.E.precioLeche || D.precioLecheBase,
@@ -492,9 +503,9 @@ function vrApiAdmin_(ses, pa, accion, datos) {
   }
   if (accion === 'vrRubro') {
     // el docente incorpora al banco un rubro nuevo con fuente verificable, para todos los equipos (decisión 15)
-    if (t < 1) throw new Error('Los rubros nuevos se incorporan después de procesar el trimestre 1.');
     var nombre = vrTxt_(datos.nombre, 80).trim(), clave = 'nuevo:' + nombre;
     if (datos.rechazar) {
+      if (t < 1) throw new Error('Las solicitudes del trimestre 1 se pueden rechazar después de procesarlo; mientras tanto, simplemente no las apruebe.');
       var idR = vrMiId_(P, datos.equipoId); if (!idR) throw new Error('Equipo no encontrado en la partida.');
       (P.innov[idR].solicitudes || []).forEach(function (s) { if (s.nombre === nombre) { s.estado = 'rechazado'; s.motivo = vrTxt_(datos.motivo, 300); } });
       putJson_('Estados', P.mapa[idR], t, { empresa: vrEmpresa_(P, idR), innov: P.innov[idR] });
@@ -506,7 +517,7 @@ function vrApiAdmin_(ses, pa, accion, datos) {
     P.E.rubrosAprobados = P.E.rubrosAprobados || {};
     P.E.rubrosAprobados[clave] = { nombre: nombre, unidad: vrTxt_(datos.unidad, 30), precio: precio, fuente: fuente, aprobado: new Date().toISOString().slice(0, 10) };
     for (var id in P.innov) { P.innov[id].rubrosAprobados = P.E.rubrosAprobados; (P.innov[id].solicitudes || []).forEach(function (s) { if (s.nombre === nombre) { s.estado = 'aprobado'; s.clave = clave; } }); }
-    vrGuardar_(pa, t, P);
+    if (t < 1) vrGuardarBanco0_(pa, P); else vrGuardar_(pa, t, P);
     log_(ses.email, 'vrRubro', pa.codigo + ' ' + clave);
     return { ok: true, mensaje: 'Rubro "' + nombre + '" incorporado al banco de todos los equipos (clave ' + clave + ').' };
   }
@@ -522,9 +533,9 @@ function vrApiAdmin_(ses, pa, accion, datos) {
   }
   if (accion === 'vrAtributo') {
     // el docente incorpora un atributo nuevo del producto solo con un estudio que dé utilidades por segmento (decisión aprobada por voz, punto b2)
-    if (t < 1) throw new Error('Los atributos nuevos se incorporan después de procesar el trimestre 1.');
     var nomA = vrTxt_(datos.nombre, 80).trim(), claveA = 'nuevo:' + nomA;
     if (datos.rechazar) {
+      if (t < 1) throw new Error('Las solicitudes del trimestre 1 se pueden rechazar después de procesarlo; mientras tanto, simplemente no las apruebe.');
       var idA = vrMiId_(P, datos.equipoId); if (!idA) throw new Error('Equipo no encontrado en la partida.');
       (P.innov[idA].solicitudes || []).forEach(function (s) { if (s.nombre === nomA) { s.estado = 'rechazado'; s.motivo = vrTxt_(datos.motivo, 300); } });
       putJson_('Estados', P.mapa[idA], t, { empresa: vrEmpresa_(P, idA), innov: P.innov[idA] });
@@ -539,7 +550,7 @@ function vrApiAdmin_(ses, pa, accion, datos) {
     P.E.atributosAprobados = P.E.atributosAprobados || {};
     P.E.atributosAprobados[claveA] = { nombre: nomA, u: uA, fuente: fuenteA, rubro: rubroA, aprobado: new Date().toISOString().slice(0, 10) };
     for (var idB in P.innov) (P.innov[idB].solicitudes || []).forEach(function (s) { if (s.nombre === nomA) { s.estado = 'aprobado'; s.clave = claveA; } });
-    vrGuardar_(pa, t, P);
+    if (t < 1) vrGuardarBanco0_(pa, P); else vrGuardar_(pa, t, P);
     log_(ses.email, 'vrAtributo', pa.codigo + ' ' + claveA);
     return { ok: true, mensaje: 'Atributo "' + nomA + '" disponible para todos los equipos (clave ' + claveA + ').' };
   }
