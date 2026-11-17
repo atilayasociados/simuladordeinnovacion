@@ -1,0 +1,155 @@
+<style>
+/* ===================== Estilo SimNeuro (paleta Atila y Asociados: gris, verde, naranja y amarillo; fondo grafito) ===================== */
+body{font-family:'Sora',Arial,Helvetica,sans-serif}
+header{background:#2A2C2E;border-bottom:4px solid #44D62C;color:#fff}
+:is(body.ax-doc,body.ax-est)>header{background:#2A2C2E;border-bottom:4px solid #44D62C}
+:is(body.ax-doc,body.ax-est)>header h1,header h1{font-family:'Sora',Arial,sans-serif;letter-spacing:0;font-weight:700}
+.hbrand{display:flex;align-items:center;gap:12px;min-width:0}
+.hlogos{display:inline-flex;gap:4px;background:#fff;border-radius:8px;padding:3px 6px;flex:none}
+.hlogos img{height:30px;width:auto;display:block}
+.hlogos:empty{display:none}
+/* menú en dos niveles */
+:is(body.ax-doc,body.ax-est) nav{background:#2E3032;border-bottom:1px solid #5A5C5E;gap:8px;padding:10px 16px}
+:is(body.ax-doc,body.ax-est) nav button{display:inline-flex;align-items:center;gap:8px;font:700 15px 'Sora',Arial,sans-serif;color:#F2F3F3;border:1px solid transparent;border-radius:10px;padding:9px 16px;background:transparent}
+:is(body.ax-doc,body.ax-est) nav button:hover{background:#3A3C3E}
+:is(body.ax-doc,body.ax-est) nav button.on{background:#44D62C;border-color:#44D62C;color:#1F2022}
+.sn-i{width:18px;height:18px;flex:none;display:inline-block;vertical-align:-3px}
+body.ax-est .subnav{gap:10px;margin:0 0 14px}
+body.ax-est .subnav button{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1.5px solid #6E7072;border-radius:999px;padding:8px 16px;color:#F2F3F3;font:600 14px 'Sora',Arial,sans-serif}
+body.ax-est .subnav button.on{border-color:#44D62C;color:#7EE868;background:rgba(68,214,44,.10)}
+/* encabezado de cada pantalla y recorrido */
+.sn-hero{display:flex;gap:14px;align-items:center;background:#555759;background-image:linear-gradient(120deg,rgba(255,255,255,.08),rgba(255,255,255,0) 60%);box-shadow:inset 6px 0 0 #44D62C;color:#fff;border-radius:10px;padding:14px 18px;margin:0 0 12px}
+.sn-hero .pic{width:56px;height:56px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;color:#44D62C;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(68,214,44,.45)}
+.sn-hero .pic .sn-i{width:28px;height:28px}
+.sn-hero>div{min-width:0}
+.sn-hero small{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#9BE38C;font-weight:700}
+.sn-hero h2{margin:2px 0 2px;font-size:20px;color:#fff}
+.sn-hero p{margin:0;font-size:13.5px;color:#E3E4E5}
+.sn-jour{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.sn-jour a{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;border:1px solid #5A5C5E;color:#C9CBCC;text-decoration:none;font-size:13px;font-weight:600}
+.sn-jour a.cur{border-color:#44D62C;color:#1F2022;background:#44D62C}
+.sn-jour b{width:18px;height:2px;background:#5A5C5E;display:inline-block}
+/* tu siguiente paso */
+.sn-nxt{display:flex;gap:12px;align-items:flex-start;background:#2C4A2A;border:1px solid #44D62C;border-radius:10px;padding:12px 14px;margin:16px 0 0}
+.sn-nxt .ic{color:#44D62C;flex:none;margin-top:2px}.sn-nxt .ic .sn-i{width:24px;height:24px}
+.sn-nxt small{display:block;color:#8FE37F;font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.sn-nxt b{display:block;font-size:1rem;margin-top:2px;color:#fff}
+.sn-nxt p{margin:4px 0 0;font-size:.9rem;color:#E3E4E5}
+.sn-nxt>div{min-width:0}
+.sn-btn{display:inline-block;margin-top:8px;background:#44D62C;color:#1F2022!important;font-weight:700;border-radius:8px;padding:7px 12px;text-decoration:none;border:0;cursor:pointer;font-family:inherit;font-size:14px}
+/* recuadros de ayuda: estilo «en palabras sencillas» */
+:is(body.ax-doc,body.ax-est) .ayuda{background:rgba(255,206,0,.10);color:#F2F3F3;border-left:4px solid #FFCE00}
+:is(body.ax-doc,body.ax-est) .ayuda a,:is(body.ax-doc,body.ax-est) a{color:#8FE37F}
+/* pantallas del equipo: restos de colores claros */
+body.ax-est footer.acciones{background:#2A2C2E;border-top:1px solid #5A5C5E;box-shadow:0 -2px 10px rgba(0,0,0,.35);color:#F2F3F3}
+body.ax-est .pie-tit{color:#9BE38C}
+body.ax-est .pie-kpi{background:#3A3C3E;border-color:#5A5C5E;border-left-color:#44D62C}
+body.ax-est .pie-kpi small{color:#C9CBCC}
+body.ax-est .pie-av{background:rgba(255,76,0,.12);border-color:#FF4C00;border-left-color:#FF4C00}
+body.ax-est .pie-av .pie-tit,body.ax-est .pie-av ul{color:#FFB08A}
+body.ax-est .pie-av.ok{background:rgba(68,214,44,.12);border-color:#44D62C}
+body.ax-est .pie-av.ok .pie-tit{color:#8FE37F}
+body.ax-est .msg.ok{background:rgba(68,214,44,.14);color:#9BE38C;border:1px solid #44D62C}
+body.ax-est .msg.err{background:rgba(255,76,0,.14);color:#FFB08A;border:1px solid #FF4C00}
+body.ax-est .etapas span{background:#46484A;color:#C9CBCC}
+body.ax-est .etapas span.on{background:#44D62C;color:#1F2022}
+body.ax-est .etapas span.hecho{background:#2C4A2A;color:#9BE38C}
+body.ax-est .dot{background:#3A3C3E;border-color:#44D62C;color:#9BE38C}
+body.ax-est .dot.on{background:#44D62C;color:#1F2022}
+body.ax-est .refbar{background:#46484A}body.ax-est .refbar .rng{background:#5A5C5E;border-color:#44D62C}body.ax-est .refbar .med{background:#44D62C}body.ax-est .refbar .you{background:#FF4C00}
+body.ax-est .bar{background:#46484A}body.ax-est .bar i{background:#44D62C}
+body.ax-est .proj,body.ax-est .tema{border-left-color:#44D62C}
+body.ax-est .box,body.ax-est .malla,body.ax-est .empatia>div{border-color:#5A5C5E}
+body.ax-est .malla>b,body.ax-est .tarea .lbl{color:#FFCE00}
+body.ax-est .cita{border-left-color:#FF4C00}
+body.ax-est .ref{color:#B9BBBD}
+body.ax-est dl.glos dt,body.ax-est details summary,body.ax-est details.card summary{color:#9BE38C}
+body.ax-est .hist>div{border-left-color:#5A5C5E}body.ax-est .hist b{color:#C9CBCC}
+body.ax-est .blk>b,body.ax-est .p4blk>b{color:#9BE38C}
+body.ax-est .blk.chg{border-color:#FF4C00}
+body.ax-est .cadena>div{background:#46484A}body.ax-est .cadena b{color:#9BE38C}body.ax-est .cadena>div:not(:last-child)::after{color:#44D62C}
+body.ax-est .ent-acc{background:#46484A;border-left-color:#44D62C}
+body.ax-est .ent-g{background:#3A3C3E;border-color:#5A5C5E}body.ax-est .ent-g legend,body.ax-est .ent-acc-t{color:#9BE38C}
+body.ax-est .ent-not{border-bottom-color:#5A5C5E}
+body.ax-est .como{color:#E3E4E5}
+body.ax-est .enl-ef a{background:#3A3C3E;border-color:#5A5C5E;color:#9BE38C}
+body.ax-est table.crono td.cw.on{background:#44D62C}body.ax-est table.crono tr.carga td.cw{background:#46484A}body.ax-est table.crono tr.carga td.cw.sobre{background:#FF4C00;color:#fff}
+body.ax-est .inv-proy,body.ax-est .okc{color:#8FE37F}
+body.ax-est li.aviso-l{color:#FFCE00}
+body.ax-est p.err,body.ax-est span.err{color:#FF8A5C}
+body.ax-est th.sub-g{background:#46484A;color:#F2F3F3}
+body.ax-est th.a0,body.ax-est td.a0{background:#333537;color:#C9CBCC}
+body.ax-est .paso-a{border-top-color:#5A5C5E}
+/* zonas donde decide el equipo: se mantienen en ámbar para distinguirlas, con texto oscuro */
+body.ax-est{--dec:#FFE9A6;--dec-borde:#FFCE00;--dec-zona:rgba(255,206,0,.08)}
+body.ax-est #app input[data-p]:not([type=checkbox]):not([type=radio]),body.ax-est #app input[data-campo],body.ax-est #app input[data-cron],body.ax-est #app select[data-p],body.ax-est #app select[data-campo],body.ax-est #app select[data-cron],body.ax-est #app textarea[data-p],body.ax-est #app input[id^="np"],body.ax-est #app select[id^="np"],body.ax-est #app textarea[id^="np"]{color:#1F2022}
+body.ax-est #app input[data-p]:focus,body.ax-est #app input[data-campo]:focus,body.ax-est #app select[data-p]:focus,body.ax-est #app select[data-campo]:focus,body.ax-est #app textarea[data-p]:focus,body.ax-est #app [id^="np"]:focus{background:#fff;color:#1F2022}
+body.ax-est #app input[data-p]:disabled,body.ax-est #app select[data-p]:disabled,body.ax-est #app textarea[data-p]:disabled{background:#46484A;color:#C9CBCC;border-color:#5A5C5E}
+body.ax-est #app label.chk:has(input[data-p]),body.ax-est #app label.chk:has(input[data-arr]){color:#1F2022}
+body.ax-est #app label.chk:has(input:disabled){background:#46484A;border-color:#5A5C5E;color:#C9CBCC}
+body.ax-est .tarea{color:#F2F3F3}
+body.ax-est .leyenda-dec{color:#C9CBCC}
+
+:is(body.ax-doc,body.ax-est) .card h2{font-family:'Sora',Arial,sans-serif;letter-spacing:0;color:#9BE38C;font-size:17px}
+:is(body.ax-doc,body.ax-est) .card h3{color:#F2F3F3}
+:is(body.ax-doc,body.ax-est) main .msg{top:70px}
+body.ax-est footer .muted[style*="b42318"]{color:#FF8A5C!important}
+body.ax-est footer .muted{color:#C9CBCC}
+@media (max-width:600px){.sn-jour{display:none}.hlogos img{height:22px}:is(body.ax-doc,body.ax-est) nav button{padding:8px 11px;font-size:14px}.sn-hero{padding:12px}.sn-hero .pic{width:44px;height:44px}.sn-hero h2{font-size:17px}}
+</style>
+<script>
+var SN_P={
+compass:'<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36z"/>',
+pen:'<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+chart:'<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+grad:'<path d="M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.91a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+bag:'<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+radio:'<path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/>',
+user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+bulb:'<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+cart:'<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+eye:'<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+trend:'<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
+clip:'<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+book:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+gear:'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+repeat:'<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+key:'<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>',
+doc:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+school:'<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/>'
+};
+
+// ===================== Estilo SimNeuro: iconos, encabezado de pantalla, recorrido y «Tu siguiente paso» =====================
+function SN_ico(n) { return '<svg class="sn-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (SN_P[n] || SN_P.compass) + '</svg>'; }
+var SN_GICO = { sit: 'compass', dec: 'pen', res: 'chart', apr: 'grad' };
+var SN_SICO = { inicio: 'bag', informes: 'radio', equipo: 'user', comite: 'users', proyectos: 'bulb', productos: 'cart', compraEstudio: 'eye', trimestre: 'trend', estados: 'clip', resMercado: 'target', aprender: 'book' };
+var SN_AICO = { simulaciones: 'gear', partida: 'repeat', equipos: 'users', vida: 'trend', ranking: 'chart', resultados: 'target', docentes: 'school', cuenta: 'key' };
+// Orden de trabajo de un trimestre: [pantalla, qué es, título del siguiente paso, qué hacer, pantalla a la que lleva]
+var SN_PASOS = [
+  ['inicio', 'Conozcan su empresa láctea, su presupuesto de innovación del año y cómo se juega.', 'Revisen el entorno', 'En Situación → Entorno lean las noticias que afectan a todas las empresas y el informe del macroentorno.', 'informes'],
+  ['informes', 'Noticias e informe del macroentorno que afectan a todas las empresas.', 'Revisen su equipo', 'En Situación → Mi equipo confirmen quiénes integran el equipo.', 'equipo'],
+  ['equipo', 'Integrantes del equipo y contraseña.', 'Armen el comité de innovación', 'En Decisión → Comité definan quiénes integran el comité y qué porcentaje de su tiempo dedican.', 'comite'],
+  ['comite', 'Quiénes integran el comité y qué porcentaje de su tiempo dedican a innovar.', 'Planifiquen sus proyectos', 'En Decisión → Proyectos escriban la idea, el producto propuesto, la hoja de costos y el Gantt de cada proyecto.', 'proyectos'],
+  ['proyectos', 'La idea, el producto propuesto, la hoja de costos, el Gantt y las compuertas de cada proyecto.', 'Decidan sobre sus productos', 'En Decisión → Productos fijen el precio, los canales, la publicidad y la producción semanal.', 'productos'],
+  ['productos', 'Precio, canales, publicidad y producción semanal de cada producto en el mercado.', 'Decidan si compran el estudio de mercado', 'Es opcional y de pago. Después, abajo, toquen «Enviar decisiones».', 'compraEstudio'],
+  ['compraEstudio', 'Estudio de mercado y competencia de pago (opcional).', 'Envíen sus decisiones', 'Abajo toquen «Enviar decisiones». Cuando el docente procese el trimestre, vean lo que pasó en Resultados → Trimestre.', 'trimestre'],
+  ['trimestre', 'Lo que pasó en el último trimestre procesado, producto por producto.', 'Revisen los estados financieros', 'En Resultados → Estados financieros vean cómo quedó la empresa.', 'estados'],
+  ['estados', 'Estados financieros de la empresa.', 'Revisen los estudios de mercado', 'En Resultados → Estudio de mercado lean los estudios que recibieron.', 'resMercado'],
+  ['resMercado', 'Estudios de mercado que recibieron.', 'Repasen los conceptos', 'En Aprender → Unidades de aprendizaje revisen los conceptos de innovación que usa el simulador.', 'aprender'],
+  ['aprender', 'Los conceptos de innovación que usa el simulador, con su fuente.', 'Preparen el siguiente trimestre', 'Vuelvan a Decisión → Comité y ajusten sus decisiones con lo que aprendieron.', 'comite']
+];
+function SN_paso(t) { for (var i = 0; i < SN_PASOS.length; i++) if (SN_PASOS[i][0] === t) return i; return -1; }
+function SN_nombre(t) { var n = t; VR_MENU.forEach(function (m) { m[2].forEach(function (x) { if (x[0] === t) n = x[1]; }); }); return n; }
+function SN_hero(t) {
+  var m = VR_menuDe(t), i = SN_paso(t);
+  var jour = '<div class="sn-jour" role="navigation" aria-label="Recorrido del trimestre">' + VR_MENU.map(function (g, k) { return (k ? '<b aria-hidden="true"></b>' : '') + '<a href="#" class="' + (g[0] === m[0] ? 'cur' : '') + '"' + (g[0] === m[0] ? ' aria-current="step"' : '') + ' onclick="VR_ir(\'' + g[0] + '\');return false">' + SN_ico(SN_GICO[g[0]]) + esc(g[1]) + '</a>'; }).join('') + '</div>';
+  return jour + '<div class="sn-hero"><div class="pic">' + SN_ico(SN_SICO[t]) + '</div><div><small>' + esc(m[1]) + (i >= 0 ? ' · Paso ' + (i + 1) + ' de ' + SN_PASOS.length : '') + '</small><h2>' + esc(SN_nombre(t)) + '</h2>' + (i >= 0 ? '<p>' + esc(SN_PASOS[i][1]) + '</p>' : '') + '</div></div>';
+}
+function SN_siguiente(t) {
+  var i = SN_paso(t); if (i < 0) return '';
+  var x = SN_PASOS[i];
+  return '<div class="sn-nxt"><span class="ic">' + SN_ico('compass') + '</span><div><small>Tu siguiente paso</small><b>' + esc(x[2]) + '</b><p>' + esc(x[3]) + '</p><button type="button" class="sn-btn" onclick="VR_ir(\'' + x[4] + '\')">Ir a ' + esc(VR_menuDe(x[4])[1]) + ' → ' + esc(SN_nombre(x[4])) + '</button></div></div>';
+}
+</script>

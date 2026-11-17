@@ -19,13 +19,14 @@ function pantallaLogin(modo) {
   if (TOK) { try { call('apiAXSalir', TOK).catch(function () { }); } catch (e) { } }
   if (typeof vigilarApertura === 'function') vigilarApertura(false);
   TOK = null; ROL = null; V = null; ADM = null; SIMID = null;
-  document.body.classList.remove('ax-doc');
+  document.body.classList.remove('ax-doc'); document.body.classList.remove('ax-est');
   $('nav').style.display = 'none'; $('pie').style.display = 'none'; $('meta').innerHTML = ''; $('titulo').textContent = 'Simulador de Innovación'; $('app').innerHTML = '';
   AX_mostrar(modo || 'ingresar');
 }
 
 // ---------- equipo: simulador vida real (VRUI.html) ----------
 function cargar() {
+  document.body.classList.add('ax-est');
   $('app').innerHTML = '<p class="muted">Cargando…</p>';
   call('apiEstado', TOK).then(function (v) { if (!v || v.modelo !== 'VR') throw 'Esta simulación usa el motor anterior, que fue retirado. Pide a tu docente el código de una simulación nueva.'; VR_iniciar(v); })
     .catch(function (e) {
@@ -70,7 +71,7 @@ function renderAdmin() {
   $('meta').innerHTML = '<span class="ax-who"><b>' + esc(yo.nombre || '') + '</b> · ' + esc(yo.rol || '') + '</span>' + (sim ? '<span>' + esc(sim.nombre) + ' (' + esc(sim.codigo) + ')</span><span>' + (sim.t > (sim.total || SIMS.total) ? 'Terminada' : 'T' + sim.t + ' · ' + sim.estado) + '</span>' : '<span>Sin simulación seleccionada</span>') + '<a href="#" class="ax-salir" onclick="pantallaLogin();return false">Salir</a>';
   $('nav').style.display = 'flex'; $('pie').style.display = 'none';
   var tabs = (sim && sim.motorRetirado ? ATABS.filter(function (t) { return ['simulaciones', 'partida', 'resultados'].indexOf(t[0]) >= 0; }) : ATABS).concat(yo.superadmin ? [['docentes', 'Docentes']] : []).concat([['cuenta', 'Mi cuenta']]);
-  $('nav').innerHTML = tabs.map(function (t) { return '<button class="' + (ATAB === t[0] ? 'on' : '') + '" onclick="irA(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
+  $('nav').innerHTML = tabs.map(function (t) { return '<button class="' + (ATAB === t[0] ? 'on' : '') + '" onclick="irA(\'' + t[0] + '\')">' + (typeof SN_ico === 'function' ? SN_ico(SN_AICO[t[0]]) : '') + t[1] + '</button>'; }).join('');
   if (['simulaciones', 'docentes', 'cuenta'].indexOf(ATAB) < 0 && !ADM) { $('app').innerHTML = '<div class="card"><p>Primero cree o seleccione una simulación en la pestaña Simulaciones.</p></div>'; return; }
   var f = { docentes: AX_aDocentes, cuenta: AX_aCuenta, simulaciones: aSimulaciones, partida: aPartida, equipos: AX_aEquipos, ranking: aRanking, vida: VR_aPanel, resultados: aResultados }[ATAB] || aSimulaciones;
   $('app').innerHTML = f();

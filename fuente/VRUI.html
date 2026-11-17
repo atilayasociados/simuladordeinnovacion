@@ -14,7 +14,7 @@ function vrBs(n, d) { return 'Bs ' + vrN(n, d); }
 function vrP(x) { return vrN((Number(x) || 0) * 100, 1) + ' %'; }
 
 function VR_iniciar(v) {
-  VV = v; V = null;
+  VV = v; V = null; document.body.classList.add('ax-est');
   if (v.sinEmpresa) { $('nav').style.display = 'none'; $('pie').style.display = 'none'; $('meta').innerHTML = '<a href="#" class="ax-salir" onclick="pantallaLogin();return false">Salir</a>'; $('app').innerHTML = '<div class="msg err">' + esc(v.mensaje) + '</div>'; return; }
   var b = v.borrador ? JSON.parse(JSON.stringify(v.borrador)) : null;
   DD = {
@@ -55,11 +55,12 @@ function VR_ir(t) { var m = VR_menuDe(t); VTAB = m[0] === t ? (VR_ULT[t] || m[2]
 function VR_render() {
   var m = VR_menuDe(VTAB);
   $('nav').style.display = 'flex';
-  $('nav').innerHTML = VR_tabs().map(function (t) { return '<button class="' + (m[0] === t[0] ? 'on' : '') + '" onclick="VR_ir(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
+  $('nav').innerHTML = VR_tabs().map(function (t) { return '<button class="' + (m[0] === t[0] ? 'on' : '') + '"' + (m[0] === t[0] ? ' aria-current="page"' : '') + ' onclick="VR_ir(\'' + t[0] + '\')">' + (typeof SN_ico === 'function' ? SN_ico(SN_GICO[t[0]]) : '') + t[1] + '</button>'; }).join('');
   var f = { inicio: VR_inicio, informes: VR_informes, equipo: AX_vEquipo, comite: VR_comite, proyectos: VR_proyectos, productos: VR_productos, compraEstudio: VR_compraEstudio,
     trimestre: VR_resTrimestre, estados: VR_estados, resMercado: VR_resMercado, aprender: VR_aprender }[VTAB] || VR_inicio;
-  var sub = m[2].length > 1 ? '<div class="subnav">' + m[2].map(function (x) { return '<button class="' + (VTAB === x[0] ? 'on' : '') + '" onclick="VR_ir(\'' + x[0] + '\')">' + x[1] + '</button>'; }).join('') + '</div>' : '';
-  $('app').innerHTML = sub + f();
+  var sn = typeof SN_ico === 'function';
+  var sub = m[2].length > 1 ? '<div class="subnav">' + m[2].map(function (x) { return '<button class="' + (VTAB === x[0] ? 'on' : '') + '" onclick="VR_ir(\'' + x[0] + '\')">' + (sn ? SN_ico(SN_SICO[x[0]]) : '') + x[1] + '</button>'; }).join('') + '</div>' : '';
+  $('app').innerHTML = sub + (sn ? SN_hero(VTAB) : '') + f() + (sn ? SN_siguiente(VTAB) : '');
   if (VTAB === 'equipo') AX_cargarMiEquipo();
   VR_pie();
 }
