@@ -63,6 +63,13 @@ const malo = JSON.parse(JSON.stringify(dec1)); malo.proyectos[0].gantt[0].duraci
 falla(() => G.apiGuardar(tok[0], malo, true), 'corrijan', 'el servidor rechaza un Gantt inválido al enviar');
 falla(() => G.apiGuardar(tok[0], { comercial: { [pid]: { precioEmpresa: -5, mezcla: { supermercado: 1 }, publicidad: 0 } } }, true), 'corrijan', 'el servidor rechaza un precio negativo');
 G.apiGuardar(tok[0], dec1, true);
+// decisiones enviadas: no se pueden corregir, salvo que el docente lo permita
+falla(() => G.apiGuardar(tok[0], dec1, false), 'ya fueron enviadas', 'no se pueden corregir decisiones enviadas');
+const pan0 = G.apiAdmin(adm, 'vrPanel', { simId: sim.simId });
+ok(pan0.equipos[0].decision === 'enviado', 'el panel docente ve que el equipo envió');
+ok(G.apiAdmin(adm, 'vrDevolver', { simId: sim.simId, equipoId: pan0.equipos[0].equipoId }).ok, 'el docente permite corregir');
+G.apiGuardar(tok[0], dec1, true);
+ok(true, 'el equipo corrige y vuelve a enviar');
 // equipo 2: baja publicidad y vende en tiendas; equipo 3 no envía nada
 G.apiGuardar(tok[1], { comercial: { [G.apiEstado(tok[1]).empresa.productos[0].id]: { precioEmpresa: precio * 1.05, mezcla: { tienda: 1 }, publicidad: pubRef * 0.5, produccionSemanal: null } }, comite: [{ nombre: 'Uno', cargo: 'profesional', dedicacion: 0.2 }] }, true);
 

@@ -320,6 +320,8 @@ function vrApiGuardar_(ses, pa, eqRow, dec, enviar) {
   if (pa.t > D.horizonteTrimestres) throw new Error('La partida terminó.');
   var P = vrCargar_(pa, pa.t - 1); if (!P) throw new Error('Todavía no hay equipos en la simulación.');
   var id = vrMiId_(P, eqRow.equipoId); if (!id) throw new Error('Tu equipo no forma parte de esta partida.');
+  var previa = getJson_('Decisiones', eqRow.equipoId, pa.t);
+  if (previa && previa._estado === 'enviado') throw new Error('Las decisiones de este trimestre ya fueron enviadas y no se pueden corregir. Si hace falta un cambio, pidan al docente que les permita corregir.');
   dec = dec || {}; delete dec._estado; delete dec._fecha; delete dec._autor;
   var rev = vrRevisar_(pa, P, id, dec);
   if (enviar && rev.errores.length) throw new Error('Para enviar, corrijan: ' + rev.errores.slice(0, 6).join(' · '));
@@ -476,7 +478,8 @@ function vrApiAdmin_(ses, pa, accion, datos) {
       t: pa.t, horizonte: D.horizonteTrimestres,
       equipos: P.E.equipos.map(function (e) {
         var st = P.innov[e.id] || {}, h = e.historial[e.historial.length - 1], ind = h ? vrIndicadores_(D, e, st) : null;
-        return { id: e.id, equipoId: P.mapa[e.id], nombre: e.nombre,
+        var dT = pa.t <= D.horizonteTrimestres ? getJson_('Decisiones', P.mapa[e.id], pa.t) : null;
+        return { id: e.id, equipoId: P.mapa[e.id], nombre: e.nombre, decision: dT ? dT._estado : null,
           ventas: h ? h.resultados.ventas : null, utilidadNeta: h ? h.resultados.utilidadNeta : null, caja: h ? h.balance.caja : e.caja,
           indicadores: ind, productos: e.productos.filter(function (p) { return p.activo; }).map(function (p) { return p.nombre; }),
           proyectos: (st.proyectos || []).map(function (p) { return { id: p.id, nombre: p.nombre, clase: p.clase, estado: p.estado || 'exploracion', c1: p.resultados && p.resultados.compuerta1 ? p.resultados.compuerta1.aprobada : null, c2: p.resultados && p.resultados.compuerta2 ? p.resultados.compuerta2.aprobada : null }; }),
@@ -506,6 +509,16 @@ function vrApiAdmin_(ses, pa, accion, datos) {
     vrGuardar_(pa, t, P);
     log_(ses.email, 'vrRubro', pa.codigo + ' ' + clave);
     return { ok: true, mensaje: 'Rubro "' + nombre + '" incorporado al banco de todos los equipos (clave ' + clave + ').' };
+  }
+  if (accion === 'vrDevolver') {
+    // el docente permite que un equipo corrija sus decisiones ya enviadas del trimestre en curso
+    var idD = vrMiId_(P, datos.equipoId); if (!idD) throw new Error('Equipo no encontrado en la partida.');
+    var dv = getJson_('Decisiones', datos.equipoId, pa.t);
+    if (!dv || dv._estado !== 'enviado') throw new Error('Ese equipo no tiene decisiones enviadas en el trimestre ' + pa.t + '.');
+    var autorD = dv._autor; delete dv._estado; delete dv._fecha; delete dv._autor;
+    putJson_('Decisiones', datos.equipoId, pa.t, dv, { estado: 'borrador', autor: autorD });
+    log_(ses.email, 'vrDevolver', pa.codigo + ' ' + datos.equipoId + ' T' + pa.t);
+    return { ok: true, mensaje: 'El equipo ya puede corregir y volver a enviar sus decisiones del trimestre ' + pa.t + '.' };
   }
   if (accion === 'vrAtributo') {
     // el docente incorpora un atributo nuevo del producto solo con un estudio que dé utilidades por segmento (decisión aprobada por voz, punto b2)

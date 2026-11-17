@@ -64,13 +64,15 @@ function VR_render() {
   if (VTAB === 'equipo') AX_cargarMiEquipo();
   VR_pie();
 }
-function VR_puedeEditar() { return VV.partida.estado === 'abierto' && !VV.partida.finalizada; }
+function VR_enviado() { return !!(VV.borrador && VV.borrador._estado === 'enviado'); }
+function VR_puedeEditar() { return VV.partida.estado === 'abierto' && !VV.partida.finalizada && !VR_enviado(); }
 function VR_pie() {
   var p = $('pie');
   if (VV.partida.finalizada) { p.style.display = 'none'; return; }
   p.style.display = 'flex';
   var errs = VREV ? VREV.errores : []; VR_ERRS = errs || [];
-  var est = VV.borrador && VV.borrador._estado === 'enviado' ? 'Decisiones enviadas (pueden corregir y volver a enviar hasta que el docente cierre).' : (VV.borrador ? 'Borrador guardado.' : 'Sin guardar.');
+  if (VR_enviado()) { p.innerHTML = '<div style="flex:1;min-width:240px"><b>Decisiones enviadas.</b><div class="muted">Ya no se pueden corregir. Si necesitan un cambio, pidan al docente que les permita corregir. Los resultados llegan cuando el docente procese el trimestre.</div></div>'; return; }
+  var est = VV.borrador ? 'Borrador guardado.' : 'Sin guardar.';
   p.innerHTML = '<div style="flex:1;min-width:240px"><b>' + esc(est) + '</b>' +
     (errs.length ? '<div class="muted" style="color:#b42318">Para enviar falta corregir ' + errs.length + ' punto(s). Toquen cada uno para ir al lugar donde se corrige:</div><div class="vr-pie-errs">' + errs.slice(0, 4).map(function (x, n) { return '<button class="vr-ir" onclick="VR_irError(' + n + ')">' + esc(x) + ' →</button>'; }).join('') + (errs.length > 4 ? '<span class="muted"> y ' + (errs.length - 4) + ' más (aparecen en cada sección).</span>' : '') + '</div>' : '<div class="muted">Sin errores: pueden enviar.</div>') + '</div>' +
     (VR_puedeEditar() ? '<button class="btn sec" onclick="VR_guardar(false)">Guardar borrador</button><button class="btn" onclick="VR_guardar(true)">Enviar decisiones</button>' : '<span class="muted">El trimestre está cerrado.</span>');
@@ -133,10 +135,11 @@ function VR_revisar() {
   }, 500);
 }
 function VR_guardar(enviar) {
+  if (enviar && !confirm('Una vez enviadas, las decisiones de este trimestre NO se pueden corregir. ¿Enviarlas ahora?')) return;
   call('apiGuardar', TOK, VR_decision(), enviar).then(function (r) {
     VREV = r; VV.borrador = VV.borrador || {}; VV.borrador._estado = r.estado;
-    aviso(enviar ? 'Decisiones enviadas. Pueden corregirlas y volver a enviar hasta que el docente cierre el trimestre.' : 'Borrador guardado.');
-    VR_pie();
+    aviso(enviar ? 'Decisiones enviadas. Ya no se pueden corregir; los resultados llegan cuando el docente procese el trimestre.' : 'Borrador guardado.');
+    if (enviar) VR_render(); else VR_pie();
   }).catch(function (e) {
     var m = String(e && e.message || e);
     if (m.indexOf('Para enviar') === 0) { aviso('Todavía no se puede enviar: hay puntos por corregir. Toquen cada punto en la barra de abajo para ir al lugar donde se corrige.', 'err'); VR_revisar(); }
@@ -508,10 +511,10 @@ function VR_cargarPanel() {
 }
 function VR_htmlPanel(r) {
   if (!r.equipos || !r.equipos.length) return '<div class="card"><p>Todavía no hay equipos registrados.</p></div>';
-  var h = '<div class="card"><h2>Simulador vida real · estado de los equipos</h2><p class="muted">Trimestre ' + Math.min(r.t, r.horizonte) + ' de ' + r.horizonte + '. Indicadores de rendición de cuentas: resultado comercial (ventas de productos nuevos), retorno de la innovación y calidad del proceso (compuertas evaluadas).</p><div class="scroll"><table><tr><th>Equipo</th><th class="n">Ventas último trim.</th><th class="n">Utilidad neta</th><th class="n">Caja</th><th class="n">Ventas de productos nuevos</th><th class="n">Retorno</th><th class="n">Proceso</th><th>Productos</th><th>Proyectos</th></tr>' +
+  var h = '<div class="card"><h2>Simulador vida real · estado de los equipos</h2><p class="muted">Trimestre ' + Math.min(r.t, r.horizonte) + ' de ' + r.horizonte + '. Indicadores de rendición de cuentas: resultado comercial (ventas de productos nuevos), retorno de la innovación y calidad del proceso (compuertas evaluadas).</p><div class="scroll"><table><tr><th>Equipo</th><th class="n">Ventas último trim.</th><th class="n">Utilidad neta</th><th class="n">Caja</th><th class="n">Ventas de productos nuevos</th><th class="n">Retorno</th><th class="n">Proceso</th><th>Decisiones del trimestre</th><th>Productos</th><th>Proyectos</th></tr>' +
     r.equipos.map(function (e) {
       var i = e.indicadores || {};
-      return '<tr><td>' + esc(e.nombre) + '</td><td class="n">' + (e.ventas === null ? '—' : vrN(e.ventas)) + '</td><td class="n">' + (e.utilidadNeta === null ? '—' : vrN(e.utilidadNeta)) + '</td><td class="n">' + vrN(e.caja) + '</td><td class="n">' + (e.indicadores ? vrP(i.vitalidad) : '—') + '</td><td class="n">' + (e.indicadores ? vrN(i.retorno, 2) : '—') + '</td><td class="n">' + (e.indicadores ? vrP(i.proceso) : '—') + '</td><td>' + esc(e.productos.join(', ')) + '</td><td>' +
+      return '<tr><td>' + esc(e.nombre) + '</td><td class="n">' + (e.ventas === null ? '—' : vrN(e.ventas)) + '</td><td class="n">' + (e.utilidadNeta === null ? '—' : vrN(e.utilidadNeta)) + '</td><td class="n">' + vrN(e.caja) + '</td><td class="n">' + (e.indicadores ? vrP(i.vitalidad) : '—') + '</td><td class="n">' + (e.indicadores ? vrN(i.retorno, 2) : '—') + '</td><td class="n">' + (e.indicadores ? vrP(i.proceso) : '—') + '</td><td>' + (e.decision === 'enviado' ? 'Enviadas <button class="btn sec" onclick="VR_devolver(\'' + esc(e.equipoId) + '\',\'' + esc(String(e.nombre).replace(/'/g, '')) + '\')">Permitir corregir</button>' : (e.decision === 'borrador' ? 'Borrador' : 'Sin guardar')) + '</td><td>' + esc(e.productos.join(', ')) + '</td><td>' +
         e.proyectos.map(function (p) { return esc(p.nombre) + ' (' + esc(p.clase || 'sin clase') + ', ' + esc(VR_EST[p.estado] || p.estado) + (p.c1 !== null ? ', C1 ' + (p.c1 ? '✅' : '❌') : '') + (p.c2 !== null ? ', C2 ' + (p.c2 ? '✅' : '❌') : '') + ')'; }).join('<br>') + '</td></tr>';
     }).join('') + '</table></div></div>';
   h += '<div class="card"><h2>Entorno y azar de la partida (solo docente)</h2><p>Leche cruda: Bs ' + vrN(r.precioLeche, 2) + ' por litro.</p>' +
@@ -527,6 +530,10 @@ function VR_htmlPanel(r) {
     '<button class="btn" style="margin-top:8px" onclick="adm(\'vrAtributo\',{nombre:$(\'vran\').value,natural:$(\'vra1\').value,calorias:$(\'vra2\').value,promedio:$(\'vra3\').value,fuente:$(\'vraf\').value,rubro:$(\'vrar\').value},false).then(VR_cargarPanel)">Aprobar atributo</button>' +
     (Object.keys(r.atributosAprobados || {}).length ? '<h3>Atributos aprobados</h3><ul>' + Object.keys(r.atributosAprobados).map(function (k) { var a = r.atributosAprobados[k]; return '<li>' + esc(a.nombre) + ': natural ' + vrN(a.u.natural, 1) + ', calorías ' + vrN(a.u.calorias, 1) + ', promedio ' + vrN(a.u.promedio, 1) + ' · ' + esc(a.fuente) + '</li>'; }).join('') + '</ul>' : '') + '</div>';
   return h;
+}
+function VR_devolver(equipoId, nombre) {
+  if (!confirm('¿Permitir que ' + nombre + ' corrija y vuelva a enviar sus decisiones de este trimestre?')) return;
+  adm('vrDevolver', { equipoId: equipoId }, false).then(VR_cargarPanel);
 }
 function VR_rechazar(equipoId, nombre, accion) {
   var m = prompt('Motivo del rechazo (lo verá el equipo):', ''); if (m === null) return;

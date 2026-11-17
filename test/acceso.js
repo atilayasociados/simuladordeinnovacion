@@ -189,7 +189,7 @@ const srv = http.createServer((req, res) => {
     await pc.evaluate(() => { document.getElementById('ax').scrollTop = 0; });
     await pc.screenshot({ path: OUT + '/3_registro_1280.png', fullPage: true });
     await pc.click('text=✓ Registrar Equipo'); await pc.waitForTimeout(1500);
-    const enTrabajo = await pc.isVisible('nav >> text=Estados financieros');
+    const enTrabajo = await pc.isVisible('nav >> text=Resultados');
     await pc.screenshot({ path: OUT + '/4_pantalla_de_trabajo_tras_registro.png' });
     // ingreso del equipo con varios integrantes: ¿Quién eres?
     await pc.click('text=Salir'); await pc.waitForSelector('#axU');
