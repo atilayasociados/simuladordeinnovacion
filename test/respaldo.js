@@ -10,19 +10,16 @@ G.apiRegistrarEquipo(s2.codigo, { nombreEquipo: 'Otros', pin: 'otra1', integrant
 G.apiAdmin(adm, 'abrir', { simId: s1.simId });
 const tk = (i) => G.apiLogin('21800' + i, 'clave' + i, s1.simId).token;
 for (let t = 1; t <= 3; t++) {
-  [0, 1].forEach((i) => { const v = G.apiEstado(tk(i)); const dec = { hipotesis: 'Hipótesis del trimestre ' + t, productos: {}, decInformes: {} };
-    v.estado.informes.filter(x => x.requiere && x.t === t - 1).forEach(x => { dec.decInformes[x.id] = 'Decisión tomada con el informe.'; });
-    if (t === 1) dec.investigacion = { metodos: ['encuesta'], segmentos: ['S2'] };
-    G.apiGuardar(tk(i), dec, true); });
+  [0, 1].forEach((i) => { G.apiEstado(tk(i)); G.apiGuardar(tk(i), { comite: [{ nombre: 'Uno', cargo: 'profesional', dedicacion: 0.2 }], proyectos: [], comercial: {}, estudioMercado: t === 1 }, true); });
   G.apiBitacora && 0;
   G.apiAdmin(adm, 'procesar', { simId: s1.simId });
 }
 const antes = G.apiAdmin(adm, 'resultados', { simId: s1.simId });
-const estAntes = JSON.stringify(G.apiEstado(tk(0)).estado.hist);
+const estAntes = JSON.stringify(G.apiEstado(tk(0)).empresa.historial);
 const tokViejo = tk(0);
 // 1) respaldo
 const R = JSON.parse(JSON.stringify(G.apiAdmin(adm, 'respaldo', { simId: s1.simId })));
-ok(R.tipo === 'simulador-innovacion-respaldo' && R.simulacion.equipos === 2 && R.tablas.Estados.filas.length === 6 && R.tablas.Resultados.filas.length === 6, 'respaldo con 2 equipos, 6 estados y 6 resultados');
+ok(R.tipo === 'simulador-innovacion-respaldo' && R.simulacion.equipos === 2 && R.tablas.Estados.filas.length === 9 && R.tablas.Resultados.filas.length === 6, 'respaldo con 2 equipos, 9 estados (2 equipos + mercado, 3 trimestres) y 6 resultados');
 ok(!JSON.stringify(R).includes('219000'), 'el respaldo no incluye datos de otra simulación');
 // 2) eliminar exige el código
 let err = ''; try { G.apiAdmin(adm, 'eliminarSimulacion', { simId: s1.simId, confirmar: 'XXXX' }); } catch (e) { err = e.message; }
@@ -41,18 +38,19 @@ ok(G.simById_(s1.simId).acceso === 'cerrada', 'queda con el acceso cerrado');
 G.apiAdmin(adm, 'acceso', { simId: s1.simId, valor: 'activa' });
 const despues = G.apiAdmin(adm, 'resultados', { simId: s1.simId });
 ok(JSON.stringify(despues) === JSON.stringify(antes), 'resultados idénticos tras restaurar');
-ok(JSON.stringify(G.apiEstado(tk(0)).estado.hist) === estAntes, 'el equipo ingresa con su contraseña y ve su historia idéntica');
+ok(JSON.stringify(G.apiEstado(tk(0)).empresa.historial) === estAntes, 'el equipo ingresa con su contraseña y ve su historia idéntica');
 // seguir jugando después de restaurar
 G.apiAdmin(adm, 'abrir', { simId: s1.simId });
-[0, 1].forEach((i) => { const v = G.apiEstado(tk(i)); const dec = { hipotesis: 'Hipótesis del trimestre 4', productos: {}, decInformes: {} }; v.estado.informes.filter(x => x.requiere && x.t === 3).forEach(x => { dec.decInformes[x.id] = 'Decisión tomada con el informe.'; }); G.apiGuardar(tk(i), dec, true); });
+[0, 1].forEach((i) => { G.apiGuardar(tk(i), { comite: [{ nombre: 'Uno', cargo: 'profesional', dedicacion: 0.2 }], proyectos: [], comercial: {} }, true); }); /*decInformes[x.id] = 'Decisión tomada con el informe.'; }); G.apiGuardar(tk(i), dec, true); }); */
 const pr = G.apiAdmin(adm, 'procesar', { simId: s1.simId }); ok(/procesado/.test(pr.mensaje), 'se puede procesar el T4 después de restaurar');
 // 5) restaurar otra vez mientras existe → copia con id y código nuevos
 const r2 = G.apiAdmin(adm, 'restaurarSimulacion', { respaldo: JSON.stringify(R) });
 ok(r2.simId !== s1.simId && r2.codigo !== s1.codigo && /restaurada/.test(G.simById_(r2.simId).nombre), 'restaurar una que existe crea una copia: ' + r2.simId + ' ' + r2.codigo);
 const eqCopia = G.rows_('Equipos').filter(e => e.simId === r2.simId);
 ok(eqCopia.length === 2 && eqCopia.every(e => e.equipoId.indexOf(r2.simId + '-E') === 0), 'equipos de la copia con ids propios');
-ok(G.rows_('Estados').filter(e => String(e.equipoId).indexOf(r2.simId + '-') === 0).length === 6, 'estados de la copia con ids propios');
-const st = G.getJson_('Estados', r2.simId + '-E01', 3); ok(st && st.hist.length === 3 && !JSON.stringify(st).includes('"' + s1.simId + '-E'), 'el contenido del estado copiado no apunta a la original');
+ok(G.rows_('Estados').filter(e => String(e.equipoId).indexOf(r2.simId + '-') === 0).length === 9, 'estados de la copia con ids propios (equipos y mercado)');
+const st = G.getJson_('Estados', r2.simId + '-E01', 3), mc = G.getJson_('Estados', r2.simId + '-MERCADO', 3); ok(st && st.empresa.historial.length === 3 && mc && !JSON.stringify(mc).includes('"' + s1.simId + '-E'), 'el estado y el mercado copiados no apuntan a la original');
+G.apiAdmin(adm, 'abrir', { simId: r2.simId }); ok(G.apiAdmin(adm, 'procesar', { simId: r2.simId }).ok, 'la copia restaurada se puede seguir jugando');
 G.apiAdmin(adm, 'acceso', { simId: r2.simId, valor: 'activa' });
 const lc = G.apiLoginEquipo ? null : null;
 // 6) archivar
@@ -63,7 +61,7 @@ err = ''; try { G.apiEstado(abierta); } catch (e) { err = e.message; } ok(/archi
 const lg = (() => { try { return G.apiAXLogin('Halcones', 'clave0', s1.codigo); } catch (e) { return { error: e.message }; } })(); ok(!lg.token, 'archivada: no se puede iniciar sesión (' + (lg.error || lg.mensaje || JSON.stringify(lg)).slice(0, 80) + ')');
 const L = G.apiAdmin(adm, 'simulaciones').lista; ok(L.find(x => x.simId === s1.simId).acceso === 'archivada', 'aparece como archivada en la lista');
 G.apiAdmin(adm, 'desarchivar', { simId: s1.simId }); G.apiAdmin(adm, 'acceso', { simId: s1.simId, valor: 'activa' });
-ok(G.apiEstado(tk(0)).estado.hist.length === 4, 'desarchivar y activar: el equipo vuelve a ingresar con sus datos');
+ok(G.apiEstado(tk(0)).empresa.historial.length === 4, 'desarchivar y activar: el equipo vuelve a ingresar con sus datos');
 // 7) archivo inválido
 err = ''; try { G.apiAdmin(adm, 'restaurarSimulacion', { respaldo: { tipo: 'otro' } }); } catch (e) { err = e.message; } ok(/no es un respaldo válido/.test(err), 'un archivo que no es respaldo se rechaza');
 console.log('RESPALDO OK');

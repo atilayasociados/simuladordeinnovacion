@@ -20,11 +20,7 @@ function instalar() {
   // con una contraseña temporal (la antigua clave docente, si existía) y obliga a cambiarla.
   var mig = AX_migrar_();
 
-  var par = sh_('Parametros');
-  if (par.getLastRow() < 2) {
-    var filas = Object.keys(DEF.general).map(function (k) { return [k, DEF.general[k], '']; });
-    par.getRange(2, 1, filas.length, 3).setValues(filas);
-  }
+  // Los parámetros del simulador vida real están en DatosVR.gs (con fuente); la hoja Parametros queda vacía.
   log_('sistema', 'instalar', 'Hojas creadas');
   var txt = mig && mig.superadmin ? 'Superadministrador: ' + mig.superadmin.email + ' · contraseña temporal: ' + mig.superadmin.temporal + ' (cámbiela al ingresar)' : 'Hojas verificadas. Si olvidó la contraseña del superadministrador, use el menú Simulador → Restablecer contraseña del superadministrador.';
   try { ss_().toast(txt, 'Instalación completa', 30); } catch (e) { /* ejecución sin interfaz */ }

@@ -127,12 +127,12 @@ await prueba(8, 'Pantalla de trabajo, envío y procesamiento del trimestre', asy
   const tk = (await api('apiAXLogin', 'Halcones', 'nueva22', sim.codigo)).token; await api('apiAXElegir', tk, '218003');
   await api('apiAdmin', adm, 'abrir', { simId: sim.simId });
   const v = await api('apiEstado', tk);
-  exige(v.partida && v.estado && v.cat && v.usuario.registro === '218003', 'falta la pantalla de trabajo');
-  await api('apiGuardar', tk, { senales: sen(v), anual: { p4: { producto: 40, proceso: 20, posicion: 20, paradigma: 20 }, nucleo: 70, adyacente: 20, transf: 10, postura: 'ofensiva', estructura: 'integrada', tiempoLibre: 10, incentivo: 'reconocimiento', politica: 'aprendizaje', composicion: 'multifuncional', capacitacion: 'no', umbral: 'moderado', hipotesis: 'Hipótesis anual de prueba con más de veinte caracteres.' }, noticias: {}, proyectos: {}, productos: {}, hipotesis: 'Hipótesis de prueba del acceso nuevo para el trimestre 1' }, true);
+  exige(v.modelo === 'VR' && v.partida && v.empresa && v.cat && v.usuario.registro === '218003', 'falta la pantalla de trabajo');
+  await api('apiGuardar', tk, { comite: [{ nombre: 'Uno', cargo: 'profesional', dedicacion: 0.2 }], proyectos: [], comercial: {} }, true);
   const p = await api('apiAdmin', adm, 'procesar', { simId: sim.simId });
   exige(p.ok, 'no procesó: ' + p.mensaje);
   const v2 = await api('apiEstado', tk);
-  exige(v2.partida.t === 2 && v2.estado.hist.length === 1, 'no avanzó el trimestre');
+  exige(v2.partida.t === 2 && v2.empresa.historial.length === 1, 'no avanzó el trimestre');
   const dec = filas('decisiones').find((r) => r.k2 === 1);
   exige(dec && dec.fila.includes('218003'), 'no conserva quién envió');
   await api('apiAXSalir', tk); await falla(() => api('apiEstado', tk), 'expiró');
@@ -145,7 +145,7 @@ await prueba(10, 'Carga: 10 equipos, 3 trimestres', async () => {
   await api('apiAdmin', adm, 'abrir', { simId: s.simId });
   const proc = [];
   for (let t = 1; t <= 3; t++) {
-    for (const tk of toks) { const v = await api('apiEstado', tk); await api('apiGuardar', tk, { senales: sen(v), anual: { p4: { producto: 40, proceso: 20, posicion: 20, paradigma: 20 }, nucleo: 70, adyacente: 20, transf: 10, postura: 'ofensiva', estructura: 'integrada', tiempoLibre: 10, incentivo: 'reconocimiento', politica: 'aprendizaje', composicion: 'multifuncional', capacitacion: 'no', umbral: 'moderado', hipotesis: 'Hipótesis anual de prueba con más de veinte caracteres.' }, noticias: {}, proyectos: {}, productos: {}, hipotesis: 'Hipótesis de carga del trimestre ' + t + ' para medir tiempos' }, true); }
+    for (const tk of toks) { await api('apiEstado', tk); await api('apiGuardar', tk, { comite: [{ nombre: 'Uno', cargo: 'profesional', dedicacion: 0.2 }], proyectos: [], comercial: {} }, true); }
     const a = Date.now(); const p = await api('apiAdmin', adm, 'procesar', { simId: s.simId }); proc.push(Date.now() - a);
     exige(p.ok, 'no procesó T' + t + ': ' + p.mensaje);
     if (t < 3) await api('apiAdmin', adm, 'abrir', { simId: s.simId });

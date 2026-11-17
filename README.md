@@ -21,7 +21,7 @@ Simulador de negocios para la materia de Innovación (UAGRM). Esta versión reem
 
 ## Simulador "vida real" (Lácteos Chiquitano)
 
-Una simulación usa el motor "vida real" cuando se crea con el mandato **VR — Simulador vida real**. Las demás siguen con el motor anterior sin cambios.
+Desde el 17-nov-2026 el simulador tiene un solo modelo: **vida real**. El motor anterior se retiró: las simulaciones creadas con él conservan sus datos (respaldo, archivo y eliminación desde el panel docente), pero ya no se pueden jugar. Los equipos se fijan al procesar el trimestre 1.
 
 | Archivo | Contenido |
 |---|---|

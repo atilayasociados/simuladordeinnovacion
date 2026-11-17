@@ -17,7 +17,7 @@ try {
   await pg.goto(U + '?vista=docente');
   await ingresar(s.sa.email, s.sa.temporal);
   await pg.fill('#axN1', 'Clave#2026'); await pg.fill('#axN2', 'Clave#2026'); await pg.click('text=Guardar y continuar →'); await pg.waitForTimeout(1000);
-  await pg.fill('#snom', 'Innovación vida real'); await pg.fill('#ssig', 'COM505T'); await pg.selectOption('#smand', 'VR');
+  await pg.fill('#snom', 'Innovación vida real'); await pg.fill('#ssig', 'COM505T');
   await pg.click('text=Crear simulación y generar código'); await pg.waitForTimeout(900);
   const codigo = s.mem.tablas.simulaciones[0].k1;
   R.tabVida = await pg.isVisible('nav >> text=Vida real');

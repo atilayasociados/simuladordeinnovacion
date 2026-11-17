@@ -256,8 +256,9 @@ function apiRegistrarEquipo(codigo, datos) {
   datos = datos || {};
   var s = simPorCodigo_(codigo);
   if (!s || !AX_simActiva_(s)) throw new Error('El código de simulación no es válido.');
-  var pa = partida_(s.simId), P = getParams_();
+  var pa = partida_(s.simId);
   if (!pa.registroAbierto) throw new Error('El registro de equipos de esta simulación está cerrado. Consulta al docente.');
+  if (vrEsVR_(pa) && pa.t > 1) throw new Error('La partida ya empezó: los equipos se fijan al procesar el trimestre 1. Pide al docente que te agregue como integrante de un equipo existente.');
   var nombre = String(datos.nombreEquipo || '').trim().replace(/\s+/g, ' ');
   if (nombre.length < 3 || nombre.length > 40) throw new Error('El nombre del equipo debe tener entre 3 y 40 caracteres.');
   var clave = AX_validarClave_(datos.clave !== undefined ? datos.clave : datos.pin, 4);
@@ -277,8 +278,7 @@ function apiRegistrarEquipo(codigo, datos) {
     });
     var n = eqs.length + 1;
     do { equipoId = pa.simId + '-E' + ('0' + n).slice(-2); n++; } while (equipoById_(equipoId));
-    var claves = Object.keys(P.mandatos);
-    var mand = pa.mandato === 'aleatorio' ? claves[Math.floor(Math.random() * claves.length)] : (P.mandatos[pa.mandato] ? pa.mandato : 'MA');
+    var mand = pa.mandato; // simulador vida real: el equipo no tiene mandato propio
     var sl = AX_sal_();
     appendObj_('Equipos', { equipoId: equipoId, simId: pa.simId, nombre: nombre, mandato: mand, creado: new Date(), registradoPor: limpios[0].registro, claveHash: AX_hash_(clave, sl), claveSal: sl, claveTemporal: false, edicionBloqueada: false });
     limpios.forEach(function (o) {

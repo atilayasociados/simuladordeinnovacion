@@ -7,7 +7,7 @@ const fs = require('fs'), path = require('path');
 const F = (f) => fs.readFileSync(path.join(__dirname, 'fuente', f), 'utf8');
 
 // ---------- servidor ----------
-const GS = ['Params.gs', 'Engine.gs', 'Informes.gs', 'Proyectos.gs', 'Evaluacion.gs', 'Db.gs', 'Setup.gs', 'Code.gs', 'Acceso.gs', 'DatosVR.gs', 'MotorVR.gs', 'InnovacionVR.gs', 'VR.gs'];
+const GS = ['Db.gs', 'Setup.gs', 'Code.gs', 'Acceso.gs', 'DatosVR.gs', 'MotorVR.gs', 'InnovacionVR.gs', 'VR.gs'];
 const codigo = GS.map((f) => '// ===== ' + f + ' =====\n' + F(f)).join('\n');
 fs.writeFileSync(path.join(__dirname, 'supabase/functions/api/gas_codigo.js'),
   '// Archivo generado por build.js a partir de fuente/*.gs. No editar a mano.\nexport const CODIGO = ' + JSON.stringify(codigo) + ';\n');
@@ -74,11 +74,6 @@ let html = F('Index.html')
   .replace(/<script>var VISTA = '<\?= vista \?>'; var AX_INV = '<\?= invitacion \?>';<\/script>/, puente)
   .replace("<?!= include('App'); ?>", F('App.html'))
   .replace("<?!= include('AccesoUI'); ?>", F('AccesoUI.html'))
-  .replace("<?!= include('InformesUI'); ?>", F('InformesUI.html'))
-  .replace("<?!= include('ProyectosUI'); ?>", F('ProyectosUI.html'))
-  .replace("<?!= include('EvaluacionUI'); ?>", F('EvaluacionUI.html'))
-  .replace("<?!= include('Aprender'); ?>", F('Aprender.html'))
-  .replace("<?!= include('Manual'); ?>", F('Manual.html'))
   .replace("<?!= include('VRUI'); ?>", F('VRUI.html'))
   .replace('<head>', '<head>\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n  <title>Simulador de Innovación</title>')
   .replace('<base target="_top">', '');

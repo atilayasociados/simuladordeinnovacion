@@ -1,7 +1,7 @@
 // Pruebas de aceptación del acceso v2.3 (sección F de la especificación).
 const fs = require('fs'), path = require('path'), http = require('http');
 const { makeGas } = require('./gasmock');
-const OUT = '/mnt/user-data/outputs/capturas_acceso';
+const OUT = process.env.CAPTURAS || '/home/claude/capturas/acceso';
 fs.mkdirSync(OUT, { recursive: true });
 const R = []; let fallos = 0;
 function prueba(n, nombre, fn) { try { const det = fn(); R.push([n, nombre, 'OK', det || '']); } catch (e) { fallos++; R.push([n, nombre, 'FALLA', e.message]); } }
@@ -128,12 +128,12 @@ prueba(8, 'Después de ingresar se llega a la pantalla de trabajo y el simulador
   const tk = G.apiAXLogin('Halcones', 'nueva22', sim.codigo).token; G.apiAXElegir(tk, '218003');
   G.apiAdmin(adm, 'abrir', { simId: sim.simId });
   const v = G.apiEstado(tk);
-  exige(v.partida && v.estado && v.cat && v.usuario.registro === '218003', 'falta la pantalla de trabajo');
-  G.apiGuardar(tk, { noticias: {}, proyectos: {}, productos: {}, hipotesis: 'Hipótesis de prueba del acceso nuevo para el trimestre 1' }, true);
+  exige(v.modelo === 'VR' && v.partida && v.empresa && v.cat && v.usuario.registro === '218003', 'falta la pantalla de trabajo');
+  G.apiGuardar(tk, { comite: [{ nombre: 'Uno', cargo: 'profesional', dedicacion: 0.2 }], proyectos: [], comercial: {} }, true);
   const p = G.apiAdmin(adm, 'procesar', { simId: sim.simId });
   exige(p.ok, 'no procesó: ' + p.mensaje);
   const v2 = G.apiEstado(tk);
-  exige(v2.partida.t === 2 && v2.estado.hist.length === 1, 'no avanzó el trimestre');
+  exige(v2.partida.t === 2 && v2.empresa.historial.length === 1, 'no avanzó el trimestre');
   const dec = G.rows_('Decisiones').filter(d => Number(d.trimestre) === 1)[0];
   exige(String(dec.enviadoPor) === '218003', 'no conserva quién envió');
   G.apiAXSalir(tk); falla(() => G.apiEstado(tk), 'expiró');
@@ -165,6 +165,7 @@ const srv = http.createServer((req, res) => {
   res.end(pagina(req.url.includes('vista=docente') ? 'docente' : 'estudiante', inv));
 }).listen(PUERTO);
 (async () => {
+  const sim9 = G.apiAdmin(adm, 'crearSimulacion', { nombre: 'Diseño', sigla: 'COM505T', maxIntegrantes: 5 });
   const { chromium } = require('playwright');
   const br = await chromium.launch(), errs = [];
   const U = 'http://localhost:' + PUERTO;
@@ -175,11 +176,11 @@ const srv = http.createServer((req, res) => {
     const est1 = await pc.evaluate(() => { const c = document.querySelector('.ax-card'), cs = getComputedStyle(c), b = getComputedStyle(document.querySelector('#ax')), l = document.querySelector('.ax-logo'), t = getComputedStyle(document.querySelector('.ax-title')), inp = getComputedStyle(document.querySelector('#axC'));
       return { ancho: c.getBoundingClientRect().width, radio: cs.borderRadius, padding: cs.paddingTop, blur: cs.backdropFilter || cs.webkitBackdropFilter, fondoSvg: /svg/.test(b.backgroundImage), logo: l.getBoundingClientRect().width, tituloFuente: t.fontFamily, tituloEsp: t.letterSpacing, codigoFuente: inp.fontFamily, codigoMay: inp.textTransform, pie: document.querySelector('.ax-foot').textContent, ojo: !!document.querySelector('.ax-eye') }; });
     await pc.screenshot({ path: OUT + '/1_ingresar_1280.png' });
-    await pc.fill('#axU', 'Halcones'); await pc.fill('#axP', 'mala'); await pc.fill('#axC', sim.codigo); await pc.click('text=Ingresar →'); await pc.waitForTimeout(500);
+    await pc.fill('#axU', 'Halcones'); await pc.fill('#axP', 'mala'); await pc.fill('#axC', sim9.codigo); await pc.click('text=Ingresar →'); await pc.waitForTimeout(500);
     const errRojo = await pc.evaluate(() => { const e = document.querySelector('#axErr'); return { txt: e.textContent, color: getComputedStyle(e).color }; });
     await pc.screenshot({ path: OUT + '/2_error_1280.png' });
     await pc.click('text=Registrar mi equipo'); await pc.waitForSelector('#axRn');
-    await pc.fill('#axRn', 'Cóndores'); await pc.fill('#axRp', 'andes1'); await pc.fill('#axRp2', 'andes1'); await pc.fill('#axRc', sim.codigo.toLowerCase()); await pc.waitForTimeout(800);
+    await pc.fill('#axRn', 'Cóndores'); await pc.fill('#axRp', 'andes1'); await pc.fill('#axRp2', 'andes1'); await pc.fill('#axRc', sim9.codigo.toLowerCase()); await pc.waitForTimeout(800);
     const codOk = await pc.textContent('#axRcm');
     await pc.click('text=+ Agregar integrante'); await pc.click('text=+ Agregar integrante');
     const filas = [['QUISPE', 'MAMANI', 'Ana Lucía', '218101', '71234567'], ['Rojas', 'Vaca', 'Luis', '218102', ''], ['Suárez', '', 'Marta', '218103', '']];
@@ -188,14 +189,14 @@ const srv = http.createServer((req, res) => {
     await pc.evaluate(() => { document.getElementById('ax').scrollTop = 0; });
     await pc.screenshot({ path: OUT + '/3_registro_1280.png', fullPage: true });
     await pc.click('text=✓ Registrar Equipo'); await pc.waitForTimeout(1500);
-    const enTrabajo = await pc.isVisible('nav >> text=Situación');
+    const enTrabajo = await pc.isVisible('nav >> text=Estados financieros');
     await pc.screenshot({ path: OUT + '/4_pantalla_de_trabajo_tras_registro.png' });
     // ingreso del equipo con varios integrantes: ¿Quién eres?
     await pc.click('text=Salir'); await pc.waitForSelector('#axU');
-    await pc.fill('#axU', 'cóndores'); await pc.fill('#axP', 'andes1'); await pc.fill('#axC', sim.codigo); await pc.click('text=Ingresar →'); await pc.waitForSelector('.ax-pick');
+    await pc.fill('#axU', 'cóndores'); await pc.fill('#axP', 'andes1'); await pc.fill('#axC', sim9.codigo); await pc.click('text=Ingresar →'); await pc.waitForSelector('.ax-pick');
     await pc.screenshot({ path: OUT + '/5_quien_eres_1280.png' });
     await pc.click('.ax-pick >> nth=1'); await pc.waitForTimeout(1200);
-    const quien = await pc.evaluate(() => V && V.usuario && V.usuario.registro);
+    const quien = await pc.evaluate(() => VV && VV.usuario && VV.usuario.registro);
     // docente
     await pc.click('text=Salir'); await pc.waitForSelector('#axU');
     await pc.fill('#axU', 'docente@test.bo'); await pc.waitForTimeout(100);
@@ -203,7 +204,7 @@ const srv = http.createServer((req, res) => {
     await pc.fill('#axP', 'Super#2026'); await pc.click('text=Ingresar →'); await pc.waitForTimeout(1200);
     await pc.click('nav >> text=Simulaciones'); await pc.waitForTimeout(600);
     await pc.screenshot({ path: OUT + '/6_docente_simulaciones.png', fullPage: true });
-    await pc.evaluate(id => elegirSim(id), sim.simId); await pc.waitForTimeout(800);
+    await pc.evaluate(id => elegirSim(id), sim9.simId); await pc.waitForTimeout(800);
     await pc.click('nav >> text=Equipos'); await pc.waitForTimeout(900);
     await pc.screenshot({ path: OUT + '/7_docente_equipos.png', fullPage: true });
     await pc.click('#axEq button:has-text("Eliminar") >> nth=0'); await pc.waitForTimeout(300);
@@ -216,8 +217,8 @@ const srv = http.createServer((req, res) => {
     await pc.click('#axMOk');
     await pc.click('nav >> text=Docentes'); await pc.waitForTimeout(700);
     await pc.screenshot({ path: OUT + '/10_docente_docentes.png', fullPage: true });
-    await pc.click('nav >> text=Textos y calificación'); await pc.waitForTimeout(700);
-    await pc.screenshot({ path: OUT + '/11_docente_textos_tema.png' });
+    await pc.click('nav >> text=Vida real'); await pc.waitForTimeout(700);
+    await pc.screenshot({ path: OUT + '/11_docente_vida_real.png' });
     // celular
     const pm = await br.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 }); pm.on('pageerror', e => errs.push(e.message));
     await pm.goto(U + '/'); await pm.waitForSelector('#axU');

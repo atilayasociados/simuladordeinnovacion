@@ -15,7 +15,7 @@ function vrP(x) { return vrN((Number(x) || 0) * 100, 1) + ' %'; }
 
 function VR_iniciar(v) {
   VV = v; V = null;
-  if (v.sinEmpresa) { $('nav').style.display = 'none'; $('pie').style.display = 'none'; $('app').innerHTML = '<div class="msg err">' + esc(v.mensaje) + '</div>'; return; }
+  if (v.sinEmpresa) { $('nav').style.display = 'none'; $('pie').style.display = 'none'; $('meta').innerHTML = '<a href="#" class="ax-salir" onclick="pantallaLogin();return false">Salir</a>'; $('app').innerHTML = '<div class="msg err">' + esc(v.mensaje) + '</div>'; return; }
   var b = v.borrador ? JSON.parse(JSON.stringify(v.borrador)) : null;
   DD = {
     comite: b && b.comite ? b.comite : JSON.parse(JSON.stringify(v.innov.comite || [])),
@@ -41,13 +41,14 @@ function VR_iniciar(v) {
   if (v.partida.estado !== 'abierto' && !v.partida.finalizada && typeof vigilarApertura === 'function') vigilarApertura(true);
 }
 function vrR(x) { return Math.round(Number(x) * 100) / 100; }
-function VR_tabs() { return [['inicio', 'Resumen'], ['informes', 'Informes'], ['comite', 'Comité'], ['proyectos', 'Proyectos'], ['productos', 'Productos'], ['estados', 'Estados financieros']]; }
+function VR_tabs() { return [['inicio', 'Resumen'], ['informes', 'Informes'], ['comite', 'Comité'], ['proyectos', 'Proyectos'], ['productos', 'Productos'], ['estados', 'Estados financieros'], ['equipo', 'Mi equipo']]; }
 function VR_ir(t) { VTAB = t; VR_render(); }
 function VR_render() {
   $('nav').style.display = 'flex';
   $('nav').innerHTML = VR_tabs().map(function (t) { return '<button class="' + (VTAB === t[0] ? 'on' : '') + '" onclick="VR_ir(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
-  var f = { inicio: VR_inicio, informes: VR_informes, comite: VR_comite, proyectos: VR_proyectos, productos: VR_productos, estados: VR_estados }[VTAB];
+  var f = { inicio: VR_inicio, informes: VR_informes, comite: VR_comite, proyectos: VR_proyectos, productos: VR_productos, estados: VR_estados, equipo: AX_vEquipo }[VTAB] || VR_inicio;
   $('app').innerHTML = f();
+  if (VTAB === 'equipo') AX_cargarMiEquipo();
   VR_pie();
 }
 function VR_puedeEditar() { return VV.partida.estado === 'abierto' && !VV.partida.finalizada; }

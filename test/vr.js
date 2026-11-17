@@ -9,13 +9,13 @@ const fmt = (x) => Math.round(x).toLocaleString('es-BO');
 
 const adm = G.apiLoginDocente().token;
 const lista = G.apiAdmin(adm, 'simulaciones', {});
-ok(lista.mandatos.some((m) => m.id === 'VR'), 'el docente puede elegir el simulador vida real');
+ok(lista.mandatos.length === 1 && lista.mandatos[0].id === 'VR', 'solo existe el simulador vida real');
 const sim = G.apiAdmin(adm, 'crearSimulacion', { nombre: 'Innovación vida real', sigla: 'COM505T', maxIntegrantes: 3, mandato: 'VR' });
-// otra simulación con el motor anterior: no debe verse afectada
-const simOld = G.apiAdmin(adm, 'crearSimulacion', { nombre: 'Motor anterior', sigla: 'COM540D', maxIntegrantes: 3, mandato: 'MA' });
+// aunque se pida otro mandato, la simulación nueva es vida real
+const simOld = G.apiAdmin(adm, 'crearSimulacion', { nombre: 'Otra', sigla: 'COM540D', maxIntegrantes: 3, mandato: 'MA' });
 const est = (n, reg) => ({ apPaterno: 'Vaca', apMaterno: 'Roca', nombres: 'Ana ' + n, registro: reg });
 const equipos = ['Halcones', 'Jaguares', 'Parabas'].map((n, i) => G.apiRegistrarEquipo(sim.codigo, { nombreEquipo: n, clave: 'Clave#' + (1000 + i), integrantes: [est(i, String(218100 + i))] }));
-G.apiRegistrarEquipo(simOld.codigo, { nombreEquipo: 'Antiguo', clave: 'Clave#9999', integrantes: [est(9, '218999')] });
+const tokVieja = G.apiRegistrarEquipo(simOld.codigo, { nombreEquipo: 'Antiguo', clave: 'Clave#9999', integrantes: [est(9, '218999')] }).token;
 const tok = equipos.map((e) => e.token);
 
 // estado inicial
@@ -101,9 +101,13 @@ G.apiAdmin(adm, 'retroceder', { simId: sim.simId });
 const rr = G.apiAdmin(adm, 'vrRubro', { simId: sim.simId, nombre: 'Estevia en polvo', unidad: 'kg', precio: 950, fuente: 'Cotización proveedor X, 2026' });
 ok(rr.ok, rr.mensaje);
 ok(G.apiEstado(tok[1]).cat.banco && G.apiEstado(tok[1]).innov.rubrosAprobados['nuevo:Estevia en polvo'], 'el rubro nuevo queda disponible para todos los equipos');
-// el motor anterior sigue funcionando
-G.apiAdmin(adm, 'abrir', { simId: simOld.simId });
-const ro = G.apiAdmin(adm, 'procesar', { simId: simOld.simId });
-ok(ro.ok, 'la simulación con el motor anterior procesa normalmente');
+// toda simulación nueva es vida real
+ok(G.rows_('Simulaciones').find((x) => x.simId === simOld.simId).mandato === 'VR', 'una simulación nueva siempre usa el simulador vida real');
+// una simulación antigua (motor retirado) solo se puede administrar: respaldo sí, procesar no
+const vieja = G.rows_('Simulaciones').find((x) => x.simId === simOld.simId); vieja.mandato = 'MA'; G.updateRow_('Simulaciones', vieja);
+falla(() => G.apiAdmin(adm, 'procesar', { simId: simOld.simId }), 'motor anterior', 'no se puede procesar una simulación del motor anterior');
+falla(() => G.apiAdmin(adm, 'abrir', { simId: simOld.simId }), 'motor anterior', 'no se puede jugar una simulación del motor anterior');
+ok(G.apiAdmin(adm, 'respaldo', { simId: simOld.simId }).simulacion, 'su respaldo sigue disponible');
+falla(() => G.apiEstado(G.apiRegistrarEquipo === undefined ? '' : tokVieja), 'motor anterior', 'el equipo de una simulación antigua ve el aviso de motor retirado');
 console.log(fallas ? `\n${fallas} FALLAS` : '\nTodas las pruebas pasaron');
 process.exit(fallas ? 1 : 0);
