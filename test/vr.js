@@ -101,6 +101,12 @@ G.apiAdmin(adm, 'retroceder', { simId: sim.simId });
 const rr = G.apiAdmin(adm, 'vrRubro', { simId: sim.simId, nombre: 'Estevia en polvo', unidad: 'kg', precio: 950, fuente: 'Cotización proveedor X, 2026' });
 ok(rr.ok, rr.mensaje);
 ok(G.apiEstado(tok[1]).cat.banco && G.apiEstado(tok[1]).innov.rubrosAprobados['nuevo:Estevia en polvo'], 'el rubro nuevo queda disponible para todos los equipos');
+// atributo nuevo (punto b2): solo con utilidades por segmento y fuente
+falla(() => G.apiAdmin(adm, 'vrAtributo', { simId: sim.simId, nombre: 'Sin lactosa', natural: 5, calorias: 3, promedio: 2, fuente: '' }), 'estudio', 'un atributo nuevo exige la fuente del estudio');
+const ra = G.apiAdmin(adm, 'vrAtributo', { simId: sim.simId, nombre: 'Sin lactosa', natural: 5, calorias: 3, promedio: 2, fuente: 'Estudio de conjunto del equipo 1, 2026', rubro: 'nuevo:Estevia en polvo' });
+ok(ra.ok, ra.mensaje);
+const est1 = G.apiEstado(tok[1]);
+ok(est1.cat.atributosAprobados.some((x) => x.clave === 'nuevo:Sin lactosa') && est1.cat.mensajes.length === 7, 'los equipos ven el atributo aprobado y los 7 mensajes frontales');
 // toda simulación nueva es vida real
 ok(G.rows_('Simulaciones').find((x) => x.simId === simOld.simId).mandato === 'VR', 'una simulación nueva siempre usa el simulador vida real');
 // una simulación antigua (motor retirado) solo se puede administrar: respaldo sí, procesar no

@@ -95,6 +95,7 @@ function vrEvaluarHoja(D, banco, proyecto, rubrosAprobados) {
     r.filas.push({ descripcion: f.descripcion, categoria: f.categoria, tipo: f.tipo, rubro: f.rubro, cantidad: f.cantidad, precio: ref ? ref.precio : null, monto: monto });
   });
   ['contenido', 'envase', 'mano_de_obra'].forEach(function (c) { if (!cat[c]) err.push('Falta la fila mínima: ' + c.replace('_', ' ') + ' (decisión 16).'); });
+  err = err.concat(vrCoherenciaEtiqueta_(D, proyecto, h, rubrosAprobados));
   var precio = (proyecto.plan && proyecto.plan.precioEmpresa) || 0;
   r.distribucionL = D.costoDistribucionPctVentas * precio;
   r.margenL = precio - r.costoVariableL - r.distribucionL;
@@ -108,6 +109,43 @@ function vrEvaluarHoja(D, banco, proyecto, rubrosAprobados) {
   return r;
 }
 
+/**
+ * La etiqueta y la hoja de costos deben decir lo mismo (auditoría, punto 3; aprobado 17-nov-2026):
+ * - azúcar añadida declarada → kg de azúcar por litro en la hoja (g por 100 ml × 10 / 1.000);
+ * - endulzante distinto del azúcar → fila con un rubro aprobado que lo nombre;
+ * - proteína por encima de la de la leche (3,2 g/100 ml, Colun semidescremada, banco §2) → fila con un rubro de proteína;
+ * - tamaño distinto de 1 L → envase propio (el envase del producto actual es el cartón de 1 L);
+ * - atributo nuevo aprobado que exige un rubro → fila con ese rubro.
+ */
+var VR_AZUCARES_ = { azucar_cana: true, azucar_remolacha: true };
+var VR_NOMBRE_END_ = { estevia: 'estevia', jarabe_maiz: 'jarabe de maíz', fruta_monje: 'fruta del monje', agave: 'agave', sucralosa: 'sucralosa' };
+function vrNorm_(x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function vrCoherenciaEtiqueta_(D, proyecto, h, rubrosAprobados) {
+  var a = proyecto.producto, err = [];
+  if (!a) return err;
+  var varFilas = h.filter(function (f) { return f.tipo === 'variable'; });
+  function nombreRubro(f) { var r = rubrosAprobados[f.rubro]; return vrNorm_((r && r.nombre) || f.rubro) + ' ' + vrNorm_(f.descripcion); }
+  var ends = a.endulzante || [], azucarL = (a.azucarAnadida100ml || 0) * 10 / 1000;
+  if (azucarL > 0 && ends.some(function (e) { return VR_AZUCARES_[e]; })) {
+    var kg = 0; varFilas.forEach(function (f) { if (f.rubro === 'azucar') kg += f.cantidad || 0; });
+    if (kg + 1e-6 < azucarL) err.push('La etiqueta declara ' + a.azucarAnadida100ml + ' g de azúcar añadida por 100 ml: la hoja debe tener al menos ' + azucarL.toFixed(4).replace('.', ',') + ' kg de azúcar por litro (tiene ' + kg.toFixed(4).replace('.', ',') + ').');
+  }
+  ends.forEach(function (e) {
+    if (VR_AZUCARES_[e]) return;
+    var n = vrNorm_(VR_NOMBRE_END_[e] || e);
+    if (!varFilas.some(function (f) { return String(f.rubro).indexOf('nuevo:') === 0 && nombreRubro(f).indexOf(n) >= 0; }))
+      err.push('La etiqueta usa ' + (VR_NOMBRE_END_[e] || e) + ': agreguen una fila variable con su rubro (si no está en el banco, pídanlo al docente).');
+  });
+  if ((a.proteina100ml || 0) > 3.2 + 1e-9 && !varFilas.some(function (f) { return nombreRubro(f).indexOf('protein') >= 0; }))
+    err.push('La etiqueta declara más proteína que la leche (3,2 g por 100 ml): agreguen una fila variable con un rubro de proteína.');
+  if (Math.abs((a.tamanoMl || 1000) - 1000) > 50 && !h.some(function (f) { return f.categoria === 'envase' && f.rubro !== 'insumos_envase_actual'; }))
+    err.push('El tamaño es distinto de 1 L: el envase del producto actual es el cartón de 1 L; agreguen una fila de envase con su rubro.');
+  (proyecto.atributosResueltos || []).forEach(function (x) {
+    if (x.rubro && !varFilas.concat(h).some(function (f) { return f.rubro === x.rubro; })) err.push('El atributo «' + x.nombre + '» exige el rubro «' + x.rubro.replace('nuevo:', '') + '» en la hoja de costos.');
+  });
+  return err;
+}
+
 // =====================================================================
 // ESTUDIOS (decisiones 10 y 22)
 // =====================================================================
@@ -115,25 +153,40 @@ function vrEvaluarHoja(D, banco, proyecto, rubrosAprobados) {
 function vrEstudioMercado(D, estado) {
   var ult = estado.mercadoHistorial[estado.mercadoHistorial.length - 1];
   if (!ult) return null;
-  var filas = [];
-  for (var id in ult.demanda) filas.push({ producto: id, litros: ult.demanda[id].litros, cuota: ult.demanda[id].cuota, porSegmento: ult.demanda[id].porSegmento });
+  var filas = [], prods = {};
+  estado.equipos.forEach(function (e) { e.productos.forEach(function (p) { prods[p.id] = p; }); });
+  estado.competidores.forEach(function (c) { prods[c.id] = c; });
+  for (var id in ult.demanda) {
+    var p = prods[id] || {}, precios = {}, pub = null, estimada = false;
+    if (p.precioConsumidorFijo) { // competidores: precio de góndola; publicidad estimada con la proporción de Leche Gloria 2024 (banco §10)
+      for (var c in D.canales) precios[c] = p.precioConsumidorFijo;
+      pub = ult.demanda[id].litros * p.precioConsumidorFijo * (1 - D.canales.supermercado.margen) * D.publicidadPctVentas; estimada = true;
+    } else {
+      for (var c2 in D.canales) if ((p.mezcla || {})[c2] > 0) precios[c2] = p.precioEmpresa / (1 - D.canales[c2].margen);
+      pub = p.publicidad || 0;
+    }
+    filas.push({ producto: id, nombre: p.nombre, litros: ult.demanda[id].litros, cuota: ult.demanda[id].cuota, porSegmento: ult.demanda[id].porSegmento,
+      preciosConsumidor: precios, publicidadTrim: pub, publicidadEstimada: estimada, mensaje: p.mensaje || 'ninguno' });
+  }
   var seg = {}; D.segmentos.forEach(function (s) { seg[s.id] = D.mercadoLitrosAnio / D.trimestresPorAnio * s.peso; });
   return { trimestre: ult.t, mercadoLitrosTrim: D.mercadoLitrosAnio / D.trimestresPorAnio, segmentos: seg, productos: filas };
 }
 
 /** Estudio del consumidor de un segmento: utilidades por nivel e importancia de cada atributo (Brodock et al., 2021). */
-function vrEstudioConsumidor(D, segId) {
+function vrEstudioConsumidor(D, segId, aprobados) {
   var U = D.utilidades, out = { segmento: segId, atributos: {} }, rangos = {}, tot = 0, k;
   var ends = []; for (k in U.endulzante) ends.push({ nivel: k, utilidad: U.endulzante[k][segId] });
   out.atributos.endulzante = ends;
   ['azucar', 'grasa', 'proteina', 'tamano'].forEach(function (a) {
     out.atributos[a] = U[a].niveles.map(function (n) { return { nivel: n.id || n.valor, utilidad: n.u[segId] }; });
   });
+  out.atributos.mensaje = Object.keys(U.mensaje).filter(function (k) { return k !== 'ninguno'; }).map(function (k) { return { nivel: U.mensaje[k].nombre, utilidad: U.mensaje[k].u[segId] }; });
   for (k in out.atributos) {
     var v = out.atributos[k].map(function (x) { return x.utilidad; });
     rangos[k] = Math.max.apply(null, v) - Math.min.apply(null, v); tot += rangos[k];
   }
   out.importancia = {}; for (k in rangos) out.importancia[k] = rangos[k] / tot;
+  out.atributosNuevos = []; for (k in (aprobados || {})) out.atributosNuevos.push({ nombre: aprobados[k].nombre, utilidad: aprobados[k].u[segId], fuente: aprobados[k].fuente });
   return out;
 }
 
@@ -168,7 +221,8 @@ function vrProductoDeProyecto_(D, eq, proyecto) {
   return {
     id: eq.id + '-' + proyecto.id, nombre: proyecto.nombre, esEquipo: true, activo: true,
     endulzante: a.endulzante, azucarAnadida100ml: a.azucarAnadida100ml, grasa100ml: a.grasa100ml,
-    proteina100ml: a.proteina100ml, tamanoMl: a.tamanoMl,
+    proteina100ml: a.proteina100ml, tamanoMl: a.tamanoMl, mensaje: a.mensaje || 'ninguno',
+    extras: (proyecto.atributosResueltos || []).map(function (x) { return { clave: x.clave, nombre: x.nombre, u: x.u }; }),
     precioEmpresa: plan.precioEmpresa || actual.precioEmpresa,
     mezcla: plan.mezcla || vrCopia_(actual.mezcla),
     publicidad: plan.publicidad != null ? plan.publicidad : actual.publicidadRef,
@@ -285,6 +339,7 @@ function vrTrimestreInnovacion(D, estado0, innov0, banco) {
     (st.proyectos || []).forEach(function (p) {
       if (p.estado === 'detenido' || p.estado === 'lanzado') return;
       p.resultados = p.resultados || {}; p.estado = p.estado || 'exploracion';
+      p.atributosResueltos = vrResolverAtributos_(E.atributosAprobados, p);
       var g = p.gantt || [];
       for (var s = s0; s <= s1; s++) {
         if (p.estado === 'detenido' || p.estado === 'pausa') break;
@@ -300,7 +355,12 @@ function vrTrimestreInnovacion(D, estado0, innov0, banco) {
           }
           // resultados al terminar la actividad externa
           if (s === fin) {
-            if (a.tipo === 'estudio_consumidor') p.resultados.estudioConsumidor = vrEstudioConsumidor(D, p.segmentoObjetivo);
+            if (a.tipo === 'estudio_consumidor') {
+              p.resultados.estudioConsumidor = vrEstudioConsumidor(D, p.segmentoObjetivo, E.atributosAprobados);
+              p.resultados.estudioConsumidor.semana = s;
+              st.estudiosConsumidor = st.estudiosConsumidor || {};
+              st.estudiosConsumidor[p.segmentoObjetivo] = p.resultados.estudioConsumidor; // lo comparten los proyectos del equipo (auditoría, punto 7)
+            }
             if (a.tipo === 'prueba_concepto') p.resultados.pruebaConcepto = vrPrueba(D, E, eq.id, p, p.muestra || 400, eq.id + '|' + p.id + '|concepto|' + s);
             if (a.tipo === 'prueba_producto') p.resultados.pruebaProducto = vrPrueba(D, E, eq.id, p, p.muestra || 400, eq.id + '|' + p.id + '|producto|' + s);
             if (a.tipo === 'registro_sanitario') p.resultados.registroSanitario = { semana: s };
@@ -314,6 +374,7 @@ function vrTrimestreInnovacion(D, estado0, innov0, banco) {
         });
         // compuertas
         if (p.compuerta1 && s === p.compuerta1.semana && !p.c1Aprobada) {
+          vrUsarEstudioEquipo_(st, p, s);
           var c1 = vrEvaluarCompuerta1(D, banco, p, st.rubrosAprobados);
           p.resultados.compuerta1 = { semana: s, aprobada: c1.aprobada, requisitos: c1.requisitos };
           if (c1.aprobada) { p.c1Aprobada = true; p.estado = p.compuerta1.continuar === false ? 'pausa' : 'desarrollo'; }
@@ -354,6 +415,8 @@ function vrIncorporarProducto_(D, eq, p, banco, rubros, eventos, t) {
     ['endulzante', 'azucarAnadida100ml', 'grasa100ml', 'proteina100ml', 'tamanoMl'].forEach(function (k) { act[k] = prod[k]; });
     act.costoVariable = prod.costoVariable; act.precioEmpresa = prod.precioEmpresa; act.mezcla = prod.mezcla; act.publicidad = prod.publicidad;
     act.nombre = prod.nombre || act.nombre;
+    act.mensaje = prod.mensaje; act.extras = prod.extras;
+    act.lanzadoEn = t; // la mejora del producto actual cuenta como producto nuevo para la vitalidad (auditoría, punto 6)
   } else {
     eq.productos.push(prod);
   }
@@ -378,8 +441,34 @@ function vrUnirDecisiones(decComerciales, extras) {
 // VALIDACIÓN DE LAS DECISIONES DE INNOVACIÓN DE UN EQUIPO (se repite en el servidor)
 // =====================================================================
 /** Errores que impiden guardar: comité, Gantt y presupuesto anual del 0,8 % (comité + registro + desarrollo). */
+/** Atributos nuevos aprobados por el docente que el proyecto eligió (clave → nombre, utilidades por segmento, rubro exigido). */
+function vrResolverAtributos_(aprobados, p) {
+  var ap = aprobados || {}, claves = (p.producto && p.producto.atributos) || [];
+  return claves.filter(function (k) { return ap[k]; }).map(function (k) { return { clave: k, nombre: ap[k].nombre, u: ap[k].u, rubro: ap[k].rubro || '' }; });
+}
+/** Si el proyecto no compró su propio estudio de consumidor, usa el último del equipo para su segmento ya entregado. */
+function vrUsarEstudioEquipo_(st, p, s) {
+  var r = p.resultados || {};
+  if (r.estudioConsumidor && r.estudioConsumidor.segmento === p.segmentoObjetivo) return;
+  var e = (st.estudiosConsumidor || {})[p.segmentoObjetivo];
+  if (e && (e.semana == null || e.semana <= s)) { r.estudioConsumidor = vrCopia_(e); r.estudioConsumidor.compartido = true; p.resultados = r; }
+}
+/** Máximo un estudio de consumidor por segmento y trimestre en todo el equipo (auditoría, punto 7). */
+function vrValidarEstudios_(D, st) {
+  var err = [], vistos = {};
+  (st.proyectos || []).forEach(function (p) {
+    if (p.estado === 'detenido') return;
+    (p.gantt || []).forEach(function (a) {
+      if (a.tipo !== 'estudio_consumidor' || !p.segmentoObjetivo) return;
+      var k = p.segmentoObjetivo + '|' + vrTrimDeSemana_(D, a.inicio);
+      if (vistos[k] && vistos[k] !== p.id) err.push('Solo se puede comprar un estudio de consumidor por segmento y trimestre: ' + vistos[k] + ' y ' + p.id + ' compran el del segmento ' + p.segmentoObjetivo + ' en el trimestre ' + vrTrimDeSemana_(D, a.inicio) + '. El resultado lo comparten todos los proyectos del equipo.');
+      else vistos[k] = p.id;
+    });
+  });
+  return err;
+}
 function vrValidarInnovacion(D, estado, eq, st, banco) {
-  var err = vrValidarComite(D, st.comite).concat(vrValidarGantt(D, st.comite || [], st.proyectos || []));
+  var err = vrValidarComite(D, st.comite).concat(vrValidarGantt(D, st.comite || [], st.proyectos || [])).concat(vrValidarEstudios_(D, st));
   (st.proyectos || []).forEach(function (p) {
     if (p.estado === 'detenido' || p.estado === 'lanzado') return;
     if (!p.segmentoObjetivo) err.push(p.nombre + ': falta el segmento objetivo.');

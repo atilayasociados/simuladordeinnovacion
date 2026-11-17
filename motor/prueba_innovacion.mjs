@@ -68,5 +68,31 @@ const h2 = E.equipos[1].historial;
 console.log('   equipo 2, litros por trimestre (actual + nuevo):', h2.map((h) => fmt(h.operacion.litrosVendidos)).join(' | '));
 console.log('   equipo 2, utilidad neta por trimestre:', h2.map((h) => fmt(h.resultados.utilidadNeta)).join(' | '));
 ok(E.equipos.every((eq) => eq.historial.every((h) => Math.abs(h.balance.cuadre) < 1e-4)), 'todos los balances cuadran');
+
+// ---- puntos aprobados el 17-nov ----
+// (b1) mensaje frontal: 'premium' sube la utilidad; 'polifenoles' la baja (Brodock et al., 2021, tabla 3)
+{
+  const base = { endulzante: ['azucar_cana'], azucarAnadida100ml: 1.67, grasa100ml: 1.6, proteina100ml: 3.1, tamanoMl: 1000 };
+  const u0 = ctx.vrUtilidad_(D, base, 'natural'), uP = ctx.vrUtilidad_(D, { ...base, mensaje: 'premium' }, 'natural'), uF = ctx.vrUtilidad_(D, { ...base, mensaje: 'polifenoles' }, 'natural');
+  ok(uP > u0 && uF < u0, 'el mensaje frontal cambia la utilidad (premium sube, polifenoles baja)');
+  const uX = ctx.vrUtilidad_(D, { ...base, extras: [{ u: { natural: 10, calorias: 0, promedio: 0 } }] }, 'natural');
+  ok(Math.abs(uX - u0 - 10) < 1e-9, 'un atributo nuevo aprobado suma su utilidad en el segmento');
+}
+// (c3) coherencia etiqueta ↔ hoja de costos
+{
+  const q = JSON.parse(JSON.stringify(proyecto)); q.producto.azucarAnadida100ml = 5;
+  const h = ctx.vrEvaluarHoja(D, banco, q, {});
+  ok(!h.valida && h.errores.some((x) => /az[uú]car/i.test(x)), 'detecta etiqueta con más azúcar que la hoja de costos');
+  const q2 = JSON.parse(JSON.stringify(proyecto)); q2.producto.endulzante = ['estevia'];
+  const h2b = ctx.vrEvaluarHoja(D, banco, q2, {});
+  ok(!h2b.valida, 'exige un rubro para un endulzante distinto del azúcar');
+}
+// (c7) un estudio de consumidor por segmento y trimestre en el equipo
+{
+  const st = JSON.parse(JSON.stringify({ comite: [{ nombre: 'J', cargo: 'jefe', dedicacion: 0.5 }, { nombre: 'A', cargo: 'profesional', dedicacion: 1 }], proyectos: [proyecto, { ...JSON.parse(JSON.stringify(proyecto)), id: 'P2' }] }));
+  st.proyectos.forEach((x) => { delete x.estado; delete x.resultados; });
+  const e = ctx.vrValidarEstudios_(D, st);
+  ok(e.length === 1 && e[0].includes('un estudio de consumidor por segmento'), 'no permite dos estudios del mismo segmento en el mismo trimestre');
+}
 console.log(fallas ? `\n${fallas} FALLAS` : '\nTodas las pruebas pasaron');
 process.exit(fallas ? 1 : 0);

@@ -65,6 +65,17 @@ var VR_DATOS = {
         { valor: 16, u: { natural: 9.2, calorias: 5.8, promedio: -2.4 } }
       ]
     },
+    // Mensaje frontal de la etiqueta (Brodock et al., 2021, tabla 3; no difiere entre segmentos). Aprobado 17-nov-2026.
+    // "ninguno" = 0: un producto sin mensaje se toma igual al promedio de los mensajes medidos (las utilidades están centradas en cero).
+    mensaje: {
+      ninguno: { nombre: 'Sin mensaje frontal', u: { natural: 0, calorias: 0, promedio: 0 } },
+      recuperacion: { nombre: 'Bebida de recuperación deportiva', u: { natural: -30.1, calorias: -27.3, promedio: -33.5 } },
+      proteina: { nombre: 'Buena fuente de proteína', u: { natural: 6.0, calorias: 6.3, promedio: 4.8 } },
+      indulgente: { nombre: 'Chocolatada oscura indulgente', u: { natural: 19.2, calorias: 18.2, promedio: 17.3 } },
+      premium: { nombre: 'Bebida de chocolate oscuro premium', u: { natural: 20.9, calorias: 20.1, promedio: 26.1 } },
+      polifenoles: { nombre: 'Contiene polifenoles de cacao', u: { natural: -27.5, calorias: -27.4, promedio: -31.4 } },
+      cacao_real: { nombre: 'Contiene cacao real', u: { natural: 11.5, calorias: 10.1, promedio: 16.8 } }
+    },
     tamano: { // onzas líquidas → nivel
       niveles: [
         { valor: 8, u: { natural: -7.5, calorias: -1.1, promedio: -4.4 } },

@@ -42,6 +42,8 @@ function vrUtilidad_(D, prod, seg) {
   u += vrNivelCercano_(U.grasa.niveles, p.grasa).u[seg];
   u += vrNivelCercano_(U.proteina.niveles, p.proteina).u[seg];
   u += vrNivelCercano_(U.tamano.niveles, p.onzas).u[seg];
+  if (U.mensaje) u += (U.mensaje[prod.mensaje] || U.mensaje.ninguno).u[seg];      // mensaje frontal (Brodock, tabla 3)
+  (prod.extras || []).forEach(function (x) { u += (x.u && x.u[seg]) || 0; });       // atributos nuevos aprobados por el docente
   return u;
 }
 

@@ -79,7 +79,9 @@ function vrLimpiarProyecto_(D, x) {
     grasa100ml: vrNum_(a.grasa100ml || 0, 0, 6, nom + ' · grasa'),
     proteina100ml: vrNum_(a.proteina100ml || 0, 0, 12, nom + ' · proteína'),
     tamanoMl: vrNum_(a.tamanoMl || 1000, 100, 2000, nom + ' · tamaño'),
-    conservacion: a.conservacion === 'pasteurizado' ? 'pasteurizado' : 'uht'
+    conservacion: a.conservacion === 'pasteurizado' ? 'pasteurizado' : 'uht',
+    mensaje: D.utilidades.mensaje && D.utilidades.mensaje[a.mensaje] ? a.mensaje : 'ninguno',
+    atributos: (Array.isArray(a.atributos) ? a.atributos : []).slice(0, 3).map(function (k) { return vrTxt_(k, 90); }).filter(function (k) { return /^nuevo:/.test(k); })
   };
   p.hoja = (Array.isArray(x.hoja) ? x.hoja : []).slice(0, 40).map(function (f, i) {
     return { descripcion: vrTxt_(f.descripcion, 120), categoria: ['contenido', 'envase', 'mano_de_obra', 'equipo', 'otro'].indexOf(f.categoria) >= 0 ? f.categoria : 'otro',
@@ -121,7 +123,7 @@ function vrUnirInnov_(D, prev, dec, t) {
     var previas = (prev.solicitudes || []).filter(function (s) { return s.estado && s.estado !== 'pendiente'; });
     var nuevas = dec.solicitudes.slice(0, 10).filter(function (s) { return s && s.nombre; }).map(function (s) {
       var ya = (prev.solicitudes || []).filter(function (q) { return q.nombre === vrTxt_(s.nombre, 80); })[0];
-      return ya && ya.estado !== 'pendiente' ? null : { nombre: vrTxt_(s.nombre, 80), unidad: vrTxt_(s.unidad, 30), justificacion: vrTxt_(s.justificacion, 800), proyecto: vrTxt_(s.proyecto, 10), estado: 'pendiente', trimestre: t };
+      return ya && ya.estado !== 'pendiente' ? null : { tipo: s.tipo === 'atributo' ? 'atributo' : 'rubro', nombre: vrTxt_(s.nombre, 80), unidad: vrTxt_(s.unidad, 30), justificacion: vrTxt_(s.justificacion, 800), proyecto: vrTxt_(s.proyecto, 10), estado: 'pendiente', trimestre: t };
     }).filter(Boolean);
     st.solicitudes = previas.concat(nuevas);
   }
@@ -191,6 +193,7 @@ function vrRevisar_(pa, P, eqId, dec) {
   errores = errores.concat(u.errores);
   try { vrLimpiarComercial_(eq, (dec || {}).comercial); } catch (e2) { errores.push(e2.message); }
   var st = u.st;
+  (st.proyectos || []).forEach(function (p) { p.atributosResueltos = vrResolverAtributos_(P.E.atributosAprobados, p); });
   try { errores = errores.concat(vrValidarInnovacion(D, { t: t - 1 }, eq, st, banco)); } catch (e3) { errores.push(e3.message); }
   var s0 = vrSemanaInicioTrim_(D, t), s1 = vrSemanaFinTrim_(D, t);
   var comite = vrCostoComiteSemana(D, st.comite) * D.semanasPorTrimestre, estudios = (dec && dec.estudioMercado) ? D.estudios.mercado : 0, desarrollo = 0, registro = 0;
@@ -269,7 +272,9 @@ function vrApiEstado_(ses, pa, eqRow) {
     cat: {
       banco: banco, segmentos: D.segmentos, endulzantes: Object.keys(D.utilidades.endulzante), semanasTrimestre: D.semanasPorTrimestre,
       semanaInicio: vrSemanaInicioTrim_(D, tVista), semanaFin: vrSemanaFinTrim_(D, tVista), estudios: D.estudios, registroSanitario: D.registroSanitario,
-      sueldos: D.sueldos, tiposActividad: Object.keys(VR_TIPOS_ACT_), presupuestoPct: D.presupuestoExploracionPctVentas, horizonte: D.horizonteTrimestres
+      sueldos: D.sueldos, tiposActividad: Object.keys(VR_TIPOS_ACT_),
+      mensajes: Object.keys(D.utilidades.mensaje).map(function (k) { return { clave: k, nombre: D.utilidades.mensaje[k].nombre }; }),
+      atributosAprobados: Object.keys(P.E.atributosAprobados || {}).map(function (k) { var x = P.E.atributosAprobados[k]; return { clave: k, nombre: x.nombre, rubro: x.rubro || '' }; }), presupuestoPct: D.presupuestoExploracionPctVentas, horizonte: D.horizonteTrimestres
     },
     borrador: draft
   };
@@ -383,12 +388,18 @@ function vrProcesar_(simId) {
 function vrSegPeso_(D, s) { for (var i = 0; i < D.segmentos.length; i++) if (D.segmentos[i].id === s) return D.segmentos[i].peso; return 1; }
 
 /** Indicadores de rendición de cuentas (decisión 4): resultado comercial, retorno y calidad del proceso. */
+/** Producto nuevo: lanzado por un proyecto, o el actual mejorado desde el trimestre de su relanzamiento (auditoría, punto 6). */
+function vrEsNuevo_(e, pid, t) {
+  if (pid.indexOf('-actual') < 0) return true;
+  var act = null; e.productos.forEach(function (p) { if (p.id === pid) act = p; });
+  return !!(act && act.lanzadoEn && t >= act.lanzadoEn);
+}
 function vrIndicadores_(D, e, st) {
   var h = e.historial, ult = h.slice(-D.trimestresPorAnio);
   var ventas = 0, ventasNuevas = 0, contribNuevos = 0;
   ult.forEach(function (x) {
     ventas += x.resultados.ventas;
-    for (var pid in x.operacion.porProducto) if (pid.indexOf('-actual') < 0) ventasNuevas += x.operacion.porProducto[pid].ventas;
+    for (var pid in x.operacion.porProducto) if (vrEsNuevo_(e, pid, x.t)) ventasNuevas += x.operacion.porProducto[pid].ventas;
   });
   // retorno de lo lanzado: margen de contribución acumulado de los productos nuevos menos su inversión y gastos de innovación
   var inversionTotal = 0, gastoInnov = 0;
@@ -450,7 +461,8 @@ function vrApiAdmin_(ses, pa, accion, datos) {
           indicadores: ind, productos: e.productos.filter(function (p) { return p.activo; }).map(function (p) { return p.nombre; }),
           proyectos: (st.proyectos || []).map(function (p) { return { id: p.id, nombre: p.nombre, clase: p.clase, estado: p.estado || 'exploracion', c1: p.resultados && p.resultados.compuerta1 ? p.resultados.compuerta1.aprobada : null, c2: p.resultados && p.resultados.compuerta2 ? p.resultados.compuerta2.aprobada : null }; }),
           solicitudes: st.solicitudes || [], rubrosAprobados: st.rubrosAprobados || {} };
-      })
+      }),
+      atributosAprobados: P.E.atributosAprobados || {}
     };
   }
   if (accion === 'vrRubro') {
@@ -472,6 +484,29 @@ function vrApiAdmin_(ses, pa, accion, datos) {
     vrGuardar_(pa, t, P);
     log_(ses.email, 'vrRubro', pa.codigo + ' ' + clave);
     return { ok: true, mensaje: 'Rubro "' + nombre + '" incorporado al banco de todos los equipos (clave ' + clave + ').' };
+  }
+  if (accion === 'vrAtributo') {
+    // el docente incorpora un atributo nuevo del producto solo con un estudio que dé utilidades por segmento (decisión aprobada por voz, punto b2)
+    if (t < 1) throw new Error('Los atributos nuevos se incorporan después de procesar el trimestre 1.');
+    var nomA = vrTxt_(datos.nombre, 80).trim(), claveA = 'nuevo:' + nomA;
+    if (datos.rechazar) {
+      var idA = vrMiId_(P, datos.equipoId); if (!idA) throw new Error('Equipo no encontrado en la partida.');
+      (P.innov[idA].solicitudes || []).forEach(function (s) { if (s.nombre === nomA) { s.estado = 'rechazado'; s.motivo = vrTxt_(datos.motivo, 300); } });
+      putJson_('Estados', P.mapa[idA], t, { empresa: vrEmpresa_(P, idA), innov: P.innov[idA] });
+      return { ok: true, mensaje: 'Solicitud rechazada.' };
+    }
+    if (!nomA) throw new Error('Escriba el nombre del atributo.');
+    var uA = {};
+    ['natural', 'calorias', 'promedio'].forEach(function (sg) { uA[sg] = vrNum_(datos[sg], -100, 100, 'Utilidad del segmento ' + sg); });
+    var fuenteA = vrTxt_(datos.fuente, 300).trim(); if (fuenteA.length < 5) throw new Error('Indique el estudio que da las utilidades por segmento (fuente verificable).');
+    var rubroA = vrTxt_(datos.rubro, 90).trim();
+    if (rubroA && !(P.E.rubrosAprobados || {})[rubroA] && !vrBanco(D, P.E)[rubroA]) throw new Error('El rubro de costo "' + rubroA + '" no está en el banco.');
+    P.E.atributosAprobados = P.E.atributosAprobados || {};
+    P.E.atributosAprobados[claveA] = { nombre: nomA, u: uA, fuente: fuenteA, rubro: rubroA, aprobado: new Date().toISOString().slice(0, 10) };
+    for (var idB in P.innov) (P.innov[idB].solicitudes || []).forEach(function (s) { if (s.nombre === nomA) { s.estado = 'aprobado'; s.clave = claveA; } });
+    vrGuardar_(pa, t, P);
+    log_(ses.email, 'vrAtributo', pa.codigo + ' ' + claveA);
+    return { ok: true, mensaje: 'Atributo "' + nomA + '" disponible para todos los equipos (clave ' + claveA + ').' };
   }
   throw new Error('Acción no reconocida.');
 }

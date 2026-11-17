@@ -173,7 +173,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = 'f45e0189cbc8';
+  var V0 = 'ee029c6b72fd';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -1002,10 +1002,15 @@ function VR_informes() {
 function VR_estudiosMercado() {
   var E = VV.informes.estudiosMercado || {}, ks = Object.keys(E).sort(function (a, b) { return Number(b.slice(1)) - Number(a.slice(1)); });
   if (!ks.length) return '<p class="muted">Todavía no compraron estudios de mercado.</p>';
-  var e = E[ks[0]];
+  var e = E[ks[0]], CAN = { supermercado: 'Supermercado', tienda: 'Tienda de barrio', mercado: 'Mercado' }, cs = Object.keys(CAN), algunaEst = false;
+  var MSJ = {}; (VV.cat.mensajes || []).forEach(function (m) { MSJ[m.clave] = m.nombre; });
   return '<h3>Estudio del trimestre ' + e.trimestre + '</h3><div class="scroll"><table><tr><th>Producto</th><th class="n">Litros</th><th class="n">Participación</th>' + Object.keys(VR_SEG).map(function (s) { return '<th class="n">' + VR_SEG[s] + ' (L)</th>'; }).join('') + '</tr>' +
     e.productos.map(function (p) { return '<tr><td>' + esc(VR_nomMercado(p.producto)) + '</td><td class="n">' + vrN(p.litros) + '</td><td class="n">' + vrP(p.cuota) + '</td>' + Object.keys(VR_SEG).map(function (s) { return '<td class="n">' + vrN(p.porSegmento[s]) + '</td>'; }).join('') + '</tr>'; }).join('') +
     '<tr><td><b>Mercado</b></td><td class="n"><b>' + vrN(e.mercadoLitrosTrim) + '</b></td><td class="n">100 %</td>' + Object.keys(VR_SEG).map(function (s) { return '<td class="n">' + vrN(e.segmentos[s]) + '</td>'; }).join('') + '</tr></table></div>' +
+    '<h3>Precios al consumidor por canal y publicidad del trimestre</h3><div class="scroll"><table><tr><th>Producto</th>' + cs.map(function (c) { return '<th class="n">' + CAN[c] + ' (Bs/envase)</th>'; }).join('') + '<th class="n">Publicidad (Bs)</th><th>Mensaje frontal</th></tr>' +
+    e.productos.map(function (p) { var pc = p.preciosConsumidor || {}; if (p.publicidadEstimada) algunaEst = true;
+      return '<tr><td>' + esc(VR_nomMercado(p.producto)) + '</td>' + cs.map(function (c) { return '<td class="n">' + (pc[c] ? vrN(pc[c], 2) : 'no vende') + '</td>'; }).join('') + '<td class="n">' + (p.publicidadTrim == null ? '—' : vrN(p.publicidadTrim) + (p.publicidadEstimada ? ' *' : '')) + '</td><td>' + esc(MSJ[p.mensaje] || 'Sin mensaje frontal') + '</td></tr>'; }).join('') + '</table></div>' +
+    (algunaEst ? '<p class="muted">* Publicidad estimada por la consultora: ventas del competidor por la proporción de publicidad sobre ventas de Leche Gloria 2024. Los precios de los competidores son los de góndola, iguales en todos los canales.</p>' : '') +
     (ks.length > 1 ? '<p class="muted">Estudios anteriores: ' + ks.slice(1).join(', ') + '.</p>' : '');
 }
 function VR_nomMercado(id) {
@@ -1066,6 +1071,7 @@ function VR_proyectos() {
   h += '<div class="card"><h2>Producto propuesto</h2><p class="muted">Atributos por 100 ml, como en la etiqueta. El mercado los valora con las preferencias de cada segmento (Brodock et al., 2021); la porción de referencia es de 240 ml.</p><label>Endulzante (uno o varios)</label><div class="inline">' +
     Object.keys(VR_END).map(function (k) { var on = pr.endulzante.indexOf(k) >= 0; return '<label class="chk"><input type="checkbox"' + (on ? ' checked' : '') + (e ? '' : ' disabled') + ' onchange="VR_endulzante(' + i + ',\'' + k + '\', this.checked)"> ' + VR_END[k] + '</label>'; }).join('') + '</div>' +
     '<div class="grid g4"><div><label>Azúcar añadida (g/100 ml)</label>' + num('producto.azucarAnadida100ml', pr.azucarAnadida100ml, 0.1, e) + '</div><div><label>Grasa (%)</label>' + num('producto.grasa100ml', pr.grasa100ml, 0.1, e) + '</div><div><label>Proteína (g/100 ml)</label>' + num('producto.proteina100ml', pr.proteina100ml, 0.1, e) + '</div><div><label>Tamaño (ml)</label>' + num('producto.tamanoMl', pr.tamanoMl, 10, e) + '</div></div>' +
+    VR_mensajeYAtributos(p, base, e) +
     '<div class="grid g2"><div><label>Conservación</label><select' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'producto.conservacion\', this.value)"><option value="uht"' + (pr.conservacion !== 'pasteurizado' ? ' selected' : '') + '>UHT (16 semanas de vida útil)</option><option value="pasteurizado"' + (pr.conservacion === 'pasteurizado' ? ' selected' : '') + '>Pasteurizado (1 semana)</option></select></div><div><label>Muestra de las pruebas de concepto y de producto</label><select' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'muestra\', Number(this.value), false, true)"><option value="400"' + (p.muestra !== 1600 ? ' selected' : '') + '>400 personas (margen ±4,9 %; ' + vrBs(VV.cat.estudios.prueba[400]) + ')</option><option value="1600"' + (p.muestra === 1600 ? ' selected' : '') + '>1.600 personas (margen ±2,5 %; ' + vrBs(VV.cat.estudios.prueba[1600]) + ')</option></select></div></div></div>';
   // hoja de costos
   var opR = VR_rubros();
@@ -1080,7 +1086,7 @@ function VR_proyectos() {
       '<td class="n">' + (ref ? vrN(ref.precio, 2) + ' / ' + esc(ref.unidad) : '—') + '</td><td class="n">' + (ref ? vrN(ref.precio * f.cantidad, 2) : '—') + '</td>' +
       '<td>' + (e ? '<button class="btn sec" onclick="DD.proyectos[' + i + '].hoja.splice(' + j + ',1);VR_render();VR_revisar()">×</button>' : '') + '</td></tr>';
   });
-  h += '</table></div>' + (e ? '<button class="btn sec" onclick="DD.proyectos[' + i + '].hoja.push({descripcion:\'\',categoria:\'contenido\',tipo:\'variable\',rubro:\'leche_cruda\',cantidad:0});VR_render();VR_revisar()">Agregar fila</button>' : '') +
+  h += '</table></div>' + (e ? '<button class="btn sec" onclick="DD.proyectos[' + i + '].hoja.push({descripcion:\'\',categoria:\'contenido\',tipo:\'variable\',rubro:\'leche_cruda\',cantidad:0});VR_render();VR_revisar()">Agregar fila</button> <button class="btn sec" onclick="VR_azucarDesdeEtiqueta()">Azúcar según la etiqueta</button>' : '') +
     '<div id="vr-hoja" style="margin-top:10px">' + VR_hojaResumen(p) + '</div></div>';
   // plan de lanzamiento
   var pl = p.plan;
@@ -1091,6 +1097,24 @@ function VR_proyectos() {
   h += VR_resultados(p);
   h += VR_solicitudes();
   return h;
+}
+function VR_mensajeYAtributos(p, base, e) {
+  var pr = p.producto, ms = VV.cat.mensajes || [], at = VV.cat.atributosAprobados || [], sel = pr.atributos || [];
+  var h = '<div class="grid g2"><div><label>Mensaje frontal del envase</label><select' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'producto.mensaje\', this.value)">' +
+    ms.map(function (m) { return '<option value="' + m.clave + '"' + ((pr.mensaje || 'ninguno') === m.clave ? ' selected' : '') + '>' + esc(m.nombre) + '</option>'; }).join('') + '</select><p class="muted">Brodock et al. (2021) midieron cuánto valora cada segmento estos seis mensajes.</p></div><div><label>Atributos nuevos aprobados por el docente</label>';
+  h += at.length ? at.map(function (a) { var on = sel.indexOf(a.clave) >= 0; return '<label class="chk"><input type="checkbox"' + (on ? ' checked' : '') + (e ? '' : ' disabled') + ' onchange="VR_atributo(\'' + esc(a.clave).replace(/'/g, '') + '\', this.checked)"> ' + esc(a.nombre) + (a.rubro ? ' (exige el rubro ' + esc(a.rubro.replace('nuevo:', '')) + ')' : '') + '</label>'; }).join('') : '<p class="muted">Todavía no hay. Un proyecto radical puede proponer un atributo nuevo con un estudio que dé su valor por segmento (abajo, en solicitudes).</p>';
+  return h + '</div></div>';
+}
+function VR_atributo(k, on) {
+  var pr = DD.proyectos[VR_proyIdx()].producto; pr.atributos = pr.atributos || [];
+  var j = pr.atributos.indexOf(k); if (on && j < 0) pr.atributos.push(k); if (!on && j >= 0) pr.atributos.splice(j, 1);
+  VR_render(); VR_revisar();
+}
+function VR_azucarDesdeEtiqueta() {
+  var p = DD.proyectos[VR_proyIdx()], kg = Math.round((p.producto.azucarAnadida100ml || 0) * 10) / 1000, fila = null;
+  p.hoja.forEach(function (f) { if (f.rubro === 'azucar' && f.tipo === 'variable' && !fila) fila = f; });
+  if (fila) fila.cantidad = kg; else p.hoja.push({ descripcion: 'Azúcar según la etiqueta', categoria: 'contenido', tipo: 'variable', rubro: 'azucar', cantidad: kg });
+  VR_render(); VR_revisar();
 }
 function VR_endulzante(i, k, on) {
   var a = DD.proyectos[i].producto.endulzante, j = a.indexOf(k);
@@ -1170,9 +1194,11 @@ function VR_resultados(p) {
     var e = r.estudioConsumidor;
     h += '<div class="card"><h2>Estudio del consumidor: ' + esc(VR_SEG[e.segmento]) + '</h2><p class="muted">Puntaje de cada nivel para este segmento (más puntos, más le gusta) e importancia de cada atributo. Fuente: Brodock et al. (2021).</p><div class="grid g3">' +
       Object.keys(e.atributos).map(function (k) {
-        var nom = { endulzante: 'Endulzante', azucar: 'Azúcar añadida (g por porción de 240 ml)', grasa: 'Grasa', proteina: 'Proteína (g por porción)', tamano: 'Tamaño (onzas)' }[k];
+        var nom = { endulzante: 'Endulzante', azucar: 'Azúcar añadida (g por porción de 240 ml)', grasa: 'Grasa', proteina: 'Proteína (g por porción)', tamano: 'Tamaño (onzas)', mensaje: 'Mensaje frontal (un envase sin mensaje vale 0, el promedio)' }[k];
         return '<div class="box"><b>' + nom + '</b> · importancia ' + vrP(e.importancia[k]) + '<table>' + e.atributos[k].map(function (x) { return '<tr><td>' + esc(VR_END[x.nivel] || x.nivel) + '</td><td class="n">' + vrN(x.utilidad, 1) + '</td></tr>'; }).join('') + '</table></div>';
-      }).join('') + '</div></div>';
+      }).join('') + '</div>' +
+      ((e.atributosNuevos || []).length ? '<h3>Atributos nuevos aprobados</h3><table>' + e.atributosNuevos.map(function (x) { return '<tr><td>' + esc(x.nombre) + '</td><td class="n">' + vrN(x.utilidad, 1) + '</td><td class="muted">' + esc(x.fuente) + '</td></tr>'; }).join('') + '</table>' : '') +
+      (e.compartido ? '<p class="muted">Este estudio lo compró otro proyecto del equipo para el mismo segmento; se comparte.</p>' : '') + '</div>';
   }
   [['pruebaConcepto', 'Prueba de concepto'], ['pruebaProducto', 'Prueba de producto']].forEach(function (k) {
     var x = r[k[0]]; if (!x) return;
@@ -1193,12 +1219,12 @@ function VR_resultados(p) {
 }
 function VR_solicitudes() {
   var ed = VR_puedeEditar(), todas = (VV.innov.solicitudes || []).filter(function (s) { return s.estado !== 'pendiente'; });
-  var h = '<div class="card"><h2>Solicitar un rubro nuevo al banco (proyectos radicales)</h2><p class="muted">Si su proyecto radical necesita algo que no está en el banco (un equipo, un edulcorante, un envase distinto), pídanlo aquí. El docente busca su costo con una fuente verificable y lo agrega al banco para todos los equipos. Mientras tanto, la hoja de costos no es válida.</p>';
+  var h = '<div class="card"><h2>Solicitudes al docente (proyectos radicales)</h2><p class="muted"><b>Rubro nuevo:</b> algo que no está en el banco (un equipo, un edulcorante, un envase distinto); el docente busca su costo con una fuente verificable y lo agrega para todos los equipos. <b>Atributo nuevo:</b> una característica del producto que el mercado todavía no valora (por ejemplo, sin lactosa); el docente solo la aprueba si ustedes presentan un estudio que dé su valor para cada segmento.</p>';
   DD.solicitudes.forEach(function (s, j) {
-    h += '<div class="grid g3"><div><label>Rubro</label><input type="text" value="' + esc(s.nombre) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'solicitudes.' + j + '.nombre\', this.value)"></div><div><label>Unidad</label><input type="text" value="' + esc(s.unidad || '') + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'solicitudes.' + j + '.unidad\', this.value)"></div><div><label>Para qué lo necesitan</label><input type="text" value="' + esc(s.justificacion || '') + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'solicitudes.' + j + '.justificacion\', this.value)"></div></div>';
+    h += '<div class="grid g4"><div><label>Tipo</label><select' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'solicitudes.' + j + '.tipo\', this.value)"><option value="rubro"' + (s.tipo !== 'atributo' ? ' selected' : '') + '>Rubro nuevo</option><option value="atributo"' + (s.tipo === 'atributo' ? ' selected' : '') + '>Atributo nuevo</option></select></div><div><label>Nombre</label><input type="text" value="' + esc(s.nombre) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'solicitudes.' + j + '.nombre\', this.value)"></div><div><label>Unidad</label><input type="text" value="' + esc(s.unidad || '') + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'solicitudes.' + j + '.unidad\', this.value)"></div><div><label>Para qué lo necesitan / estudio que lo respalda</label><input type="text" value="' + esc(s.justificacion || '') + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'solicitudes.' + j + '.justificacion\', this.value)"></div></div>';
   });
-  if (ed && DD.solicitudes.length < 10) h += '<button class="btn sec" onclick="DD.solicitudes.push({nombre:\'\',unidad:\'\',justificacion:\'\',proyecto:VPROY||\'\'});VR_render()">Agregar solicitud</button>';
-  if (todas.length) h += '<h3>Respuestas del docente</h3><ul>' + todas.map(function (s) { return '<li>' + esc(s.nombre) + ': ' + (s.estado === 'aprobado' ? '✅ incorporado al banco' : '❌ rechazado' + (s.motivo ? ' (' + esc(s.motivo) + ')' : '')) + '</li>'; }).join('') + '</ul>';
+  if (ed && DD.solicitudes.length < 10) h += '<button class="btn sec" onclick="DD.solicitudes.push({tipo:\'rubro\',nombre:\'\',unidad:\'\',justificacion:\'\',proyecto:VPROY||\'\'});VR_render()">Agregar solicitud</button>';
+  if (todas.length) h += '<h3>Respuestas del docente</h3><ul>' + todas.map(function (s) { return '<li>' + esc(s.nombre) + ': ' + (s.estado === 'aprobado' ? (s.tipo === 'atributo' ? '✅ atributo aprobado: ya pueden elegirlo en el producto' : '✅ incorporado al banco') : '❌ rechazado' + (s.motivo ? ' (' + esc(s.motivo) + ')' : '')) + '</li>'; }).join('') + '</ul>';
   return h + '</div>';
 }
 
@@ -1263,14 +1289,17 @@ function VR_htmlPanel(r) {
     }).join('') + '</table></div></div>';
   var sol = [];
   r.equipos.forEach(function (e) { (e.solicitudes || []).forEach(function (s) { sol.push({ e: e, s: s }); }); });
-  h += '<div class="card"><h2>Solicitudes de rubros nuevos (proyectos radicales)</h2>' + (sol.length ? '<div class="scroll"><table><tr><th>Equipo</th><th>Rubro</th><th>Unidad</th><th>Para qué</th><th>Estado</th></tr>' + sol.map(function (x) { return '<tr><td>' + esc(x.e.nombre) + '</td><td>' + esc(x.s.nombre) + '</td><td>' + esc(x.s.unidad) + '</td><td>' + esc(x.s.justificacion) + '</td><td>' + esc(x.s.estado) + (x.s.estado === 'pendiente' ? ' <button class="btn sec" onclick="VR_rechazar(\'' + esc(x.e.equipoId) + '\',\'' + esc(String(x.s.nombre).replace(/'/g, '')) + '\')">Rechazar</button>' : '') + '</td></tr>'; }).join('') + '</table></div>' : '<p class="muted">No hay solicitudes.</p>') +
+  h += '<div class="card"><h2>Solicitudes de rubros y atributos nuevos (proyectos radicales)</h2>' + (sol.length ? '<div class="scroll"><table><tr><th>Equipo</th><th>Tipo</th><th>Nombre</th><th>Unidad</th><th>Para qué</th><th>Estado</th></tr>' + sol.map(function (x) { return '<tr><td>' + esc(x.e.nombre) + '</td><td>' + (x.s.tipo === 'atributo' ? 'Atributo' : 'Rubro') + '</td><td>' + esc(x.s.nombre) + '</td><td>' + esc(x.s.unidad) + '</td><td>' + esc(x.s.justificacion) + '</td><td>' + esc(x.s.estado) + (x.s.estado === 'pendiente' ? ' <button class="btn sec" onclick="VR_rechazar(\'' + esc(x.e.equipoId) + '\',\'' + esc(String(x.s.nombre).replace(/'/g, '')) + '\',\'' + (x.s.tipo === 'atributo' ? 'vrAtributo' : 'vrRubro') + '\')">Rechazar</button>' : '') + '</td></tr>'; }).join('') + '</table></div>' : '<p class="muted">No hay solicitudes.</p>') +
     '<h3>Incorporar un rubro al banco (para todos los equipos)</h3><div class="grid g4"><div><label>Nombre</label><input type="text" id="vrrn"></div><div><label>Unidad</label><input type="text" id="vrru" placeholder="kg, unidad, mes…"></div><div><label>Precio (Bs por unidad)</label><input type="number" id="vrrp" step="any"></div><div><label>Fuente verificable</label><input type="text" id="vrrf" placeholder="Cotización, página web, estudio…"></div></div>' +
-    '<button class="btn" style="margin-top:8px" onclick="adm(\'vrRubro\',{nombre:$(\'vrrn\').value,unidad:$(\'vrru\').value,precio:$(\'vrrp\').value,fuente:$(\'vrrf\').value},false).then(VR_cargarPanel)">Incorporar al banco</button><p class="muted">El nombre debe coincidir con el de la solicitud para marcarla como atendida.</p></div>';
+    '<button class="btn" style="margin-top:8px" onclick="adm(\'vrRubro\',{nombre:$(\'vrrn\').value,unidad:$(\'vrru\').value,precio:$(\'vrrp\').value,fuente:$(\'vrrf\').value},false).then(VR_cargarPanel)">Incorporar al banco</button><p class="muted">El nombre debe coincidir con el de la solicitud para marcarla como atendida.</p>' +
+    '<h3>Aprobar un atributo nuevo del producto (para todos los equipos)</h3><p class="muted">Solo con un estudio que dé la utilidad del atributo en cada segmento, en la misma escala de Brodock et al. (2021): el mensaje «premium» vale cerca de +20 y «polifenoles» cerca de −28.</p><div class="grid g4"><div><label>Nombre</label><input type="text" id="vran"></div><div><label>Utilidad · Natural</label><input type="number" id="vra1" step="any"></div><div><label>Utilidad · Cuida calorías</label><input type="number" id="vra2" step="any"></div><div><label>Utilidad · Promedio</label><input type="number" id="vra3" step="any"></div></div><div class="grid g2"><div><label>Estudio (fuente verificable)</label><input type="text" id="vraf"></div><div><label>Rubro de costo que exige (clave, opcional)</label><input type="text" id="vrar" placeholder="nuevo:…"></div></div>' +
+    '<button class="btn" style="margin-top:8px" onclick="adm(\'vrAtributo\',{nombre:$(\'vran\').value,natural:$(\'vra1\').value,calorias:$(\'vra2\').value,promedio:$(\'vra3\').value,fuente:$(\'vraf\').value,rubro:$(\'vrar\').value},false).then(VR_cargarPanel)">Aprobar atributo</button>' +
+    (Object.keys(r.atributosAprobados || {}).length ? '<h3>Atributos aprobados</h3><ul>' + Object.keys(r.atributosAprobados).map(function (k) { var a = r.atributosAprobados[k]; return '<li>' + esc(a.nombre) + ': natural ' + vrN(a.u.natural, 1) + ', calorías ' + vrN(a.u.calorias, 1) + ', promedio ' + vrN(a.u.promedio, 1) + ' · ' + esc(a.fuente) + '</li>'; }).join('') + '</ul>' : '') + '</div>';
   return h;
 }
-function VR_rechazar(equipoId, nombre) {
+function VR_rechazar(equipoId, nombre, accion) {
   var m = prompt('Motivo del rechazo (lo verá el equipo):', ''); if (m === null) return;
-  adm('vrRubro', { equipoId: equipoId, nombre: nombre, rechazar: true, motivo: m }, false).then(VR_cargarPanel);
+  adm(accion || 'vrRubro', { equipoId: equipoId, nombre: nombre, rechazar: true, motivo: m }, false).then(VR_cargarPanel);
 }
 function VR_htmlRanking(r) {
   return '<p>Indicadores al cierre de T' + r.t + '. Puntaje (decisión del docente): resultado comercial 35 %, retorno 35 %, calidad del proceso 30 %, normalizados en la clase.</p><div class="scroll"><table><tr><th>#</th><th>Equipo</th><th class="n">Puntaje</th><th class="n">Ventas de productos nuevos (último año)</th><th class="n">Retorno de la innovación</th><th class="n">Proceso</th><th class="n">Utilidad acumulada</th><th class="n">Caja</th></tr>' +
