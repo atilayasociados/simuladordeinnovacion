@@ -261,6 +261,7 @@ function vrApiEstado_(ses, pa, eqRow) {
       }),
       capacidadSemanal: eq.capacidadSemanal, historial: eq.historial,
       balanceInicial: tVista === 1 ? vrBalanceActual_(eq) : null,
+      anio0: vrAnio0_(D, P.E.nEquipos),
       presupuestoAnual: vrPresupuestoExploracion(D, eq), ventasAnioAnterior: eq.ventasAnioAnterior
     },
     innov: st,
@@ -279,6 +280,22 @@ function vrApiEstado_(ses, pa, eqRow) {
       atributosAprobados: Object.keys(P.E.atributosAprobados || {}).map(function (k) { var x = P.E.atributosAprobados[k]; return { clave: k, nombre: x.nombre, rubro: x.rubro || '' }; }), presupuestoPct: D.presupuestoExploracionPctVentas, horizonte: D.horizonteTrimestres
     },
     borrador: draft
+  };
+}
+/**
+ * Estados del Año 0 (punto de partida, iguales para todos los equipos): estado de resultados anual con las proporciones
+ * de Leche Gloria 2024 aplicadas a sus ventas (banco §10–11) y balance general inicial (banco §11).
+ */
+function vrAnio0_(D, nEquipos) {
+  var P0 = vrCrearPartida(D, nEquipos), e = P0.equipos[0], S = P0.anio0.ventasPorEquipo;
+  var costo = D.costoVentasPct * S, dist = D.costoDistribucionPctVentas * S, pub = D.publicidadPctVentas * S;
+  var adm = (D.gastosVentaAdmPct - D.costoDistribucionPctVentas - D.publicidadPctVentas) * S;
+  var uOp = S - costo - dist - pub - adm, inte = e.deuda * D.tasaInteresAnual, uai = uOp - inte, imp = Math.max(0, uai) * D.tasaImpuesto;
+  return {
+    litros: P0.anio0.litrosPorEquipo, precioEmpresa: P0.anio0.precioEmpresa,
+    resultados: { ventas: S, costoVentas: costo, utilidadBruta: S - costo, distribucion: dist, publicidad: pub, administracion: adm,
+      utilidadOperativa: uOp, intereses: inte, utilidadAntesImpuesto: uai, impuesto: imp, utilidadNeta: uai - imp },
+    balance: vrBalanceActual_(e), capital: e.capital, resultadosAcumulados: e.resultadosAcumulados
   };
 }
 function vrBalanceActual_(eq) {

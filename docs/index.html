@@ -173,7 +173,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = '29aa95eb18ee';
+  var V0 = 'd26f11e5543e';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -996,7 +996,10 @@ function VR_informes() {
     '<h3>Góndola: productos visibles y precio al consumidor</h3><div class="scroll"><table><tr><th>Empresa</th><th>Producto</th><th class="n">Precio (Bs/L)</th><th>Endulzante</th><th class="n">Azúcar añadida (g/100 ml)</th><th class="n">Grasa (%)</th><th class="n">Proteína (g/100 ml)</th><th class="n">Tamaño (ml)</th></tr>' +
     I.industria.gondola.map(function (g) { return '<tr><td>' + esc(g.empresa) + '</td><td>' + esc(g.producto) + '</td><td class="n">' + vrN(g.precioConsumidor * 1000 / (g.tamanoMl || 1000), 2) + '</td><td>' + esc((g.endulzante || []).map(function (e) { return VR_END[e] || e; }).join(' + ')) + '</td><td class="n">' + vrN(g.azucarAnadida100ml, 1) + '</td><td class="n">' + vrN(g.grasa100ml, 1) + '</td><td class="n">' + vrN(g.proteina100ml, 1) + '</td><td class="n">' + vrN(g.tamanoMl) + '</td></tr>'; }).join('') + '</table></div>' +
     '<h3>Canales</h3><div class="scroll"><table><tr><th>Canal</th><th class="n">Margen del comerciante</th><th class="n">Cobro a la empresa</th></tr>' + Object.keys(I.industria.canales).map(function (k) { var c = I.industria.canales[k]; return '<tr><td>' + VR_CAN[k] + '</td><td class="n">' + vrP(c.margen) + '</td><td class="n">' + (c.diasCobro ? c.diasCobro + ' días' : 'al contado') + '</td></tr>'; }).join('') + '</table></div><p class="muted">Costo de distribución: ' + vrP(I.industria.costoDistribucionPct) + ' de las ventas de la empresa en los tres canales.</p></div>';
-  h += '<div class="card"><h2>Estudio de mercado y competencia (de pago)</h2><p>Litros por segmento y participación exacta de cada marca, total y por segmento, del trimestre que se procesa. Cuesta ' + vrBs(VV.cat.estudios.mercado) + ' (gasto de ventas) y se entrega con los resultados.</p>' +
+  h += '<div class="card"><h2>Estudio de mercado y competencia (de pago)</h2><p>Una consultora mide lo que pasó en el mercado durante el trimestre. Cuesta <b>' + vrBs(VV.cat.estudios.mercado) + '</b> (gasto de ventas, no sale del presupuesto de innovación). Si lo marcan, lo reciben <b>en esta misma sección, cuando el docente procese el trimestre</b>, con estos datos de cada producto del mercado (los de todos los equipos, Cupesí y Motacú):</p><ul>' +
+    '<li>Litros vendidos y participación de mercado.</li><li>Litros vendidos en cada segmento (lo natural, cuidan calorías, promedio) y tamaño de cada segmento.</li>' +
+    '<li>Precio al consumidor en supermercado, tienda de barrio y mercado.</li><li>Publicidad del trimestre (la de Cupesí y Motacú, estimada por la consultora).</li><li>Mensaje del frente del envase.</li></ul>' +
+    '<p class="muted">Sin el estudio solo ven el rango aproximado del mercado y la góndola (arriba). Los otros estudios de pago (del consumidor, prueba de concepto y prueba de producto) se compran dentro de cada proyecto, en su Gantt.</p>' +
     (VR_puedeEditar() ? '<label class="chk"><input type="checkbox"' + (DD.estudioMercado ? ' checked' : '') + ' onchange="VR_set(\'estudioMercado\', this.checked)"> Comprar el estudio de mercado este trimestre</label>' : '') + VR_estudiosMercado() + '</div>';
   return h;
 }
@@ -1249,10 +1252,7 @@ function VR_productos() {
 // ---------- Estados financieros ----------
 function VR_estados() {
   var H = VV.empresa.historial;
-  if (!H.length) {
-    var b = VV.empresa.balanceInicial;
-    return '<div class="card"><h2>Balance inicial (Año 0)</h2>' + VR_tabla([['Caja', b.caja], ['Cuentas por cobrar', b.cxc], ['Inventario', b.inventario], ['Activo fijo neto', b.activoFijo], ['Total activo', b.activo], ['Cuentas por pagar', b.cxp], ['Deuda financiera (8 % anual)', b.deuda], ['Patrimonio', b.patrimonio]]) + '<p class="muted">Proporciones del balance auditado de Leche Gloria S.A. 2024 aplicadas a sus ventas. Los estados de cada trimestre aparecen aquí después de procesarlo.</p></div>';
-  }
+  if (!H.length) return VR_anio0(true);
   var cols = H.map(function (h) { return 'T' + h.t; });
   function fila(n, f, neg) { return '<tr><td>' + n + '</td>' + H.map(function (h) { var v = f(h); return '<td class="n">' + vrN(neg ? -v : v) + '</td>'; }).join('') + '</tr>'; }
   function cab() { return '<tr><th></th>' + cols.map(function (c) { return '<th class="n">' + c + '</th>'; }).join('') + '</tr>'; }
@@ -1270,6 +1270,23 @@ function VR_estados() {
     return '<h3>' + esc(VR_nomProd(id)) + '</h3><div class="scroll"><table><tr><th>Semana</th><th class="n">Producción</th><th class="n">Demanda</th><th class="n">Ventas</th><th class="n">Perdidas</th><th class="n">Vencido</th><th class="n">Inventario final</th></tr>' +
       r.semanas.map(function (w) { return '<tr><td>' + w.semana + '</td><td class="n">' + vrN(w.produccion) + '</td><td class="n">' + vrN(w.demanda) + '</td><td class="n">' + vrN(w.ventas) + '</td><td class="n">' + vrN(w.perdidas) + '</td><td class="n">' + vrN(w.vencido) + '</td><td class="n">' + vrN(w.inventarioLitros) + '</td></tr>'; }).join('') + '</table></div>';
   }).join('') + '</div>';
+  return h + VR_anio0(false);
+}
+/** Estados del Año 0: punto de partida de todas las empresas. */
+function VR_anio0(inicio) {
+  var A = VV.empresa.anio0; if (!A) return '';
+  var r = A.resultados, b = A.balance, q = 4;
+  function f(n, v, neg, neg2) { return '<tr><td>' + n + '</td><td class="n">' + vrN(neg ? -v : v) + '</td><td class="n">' + vrN((neg ? -v : v) / q) + '</td></tr>'; }
+  var h = (inicio ? '<div class="card"><p>Así terminó su empresa el <b>Año 0</b>, antes de que el comité empiece a decidir. Los estados de cada trimestre aparecerán aquí, a la par de estos, después de que el docente procese el trimestre 1.</p></div>' : '') +
+    '<div class="card"><h2>Estado de resultados del Año 0</h2><p class="muted">Ventas de ' + vrN(A.litros) + ' litros a ' + vrBs(A.precioEmpresa, 2) + ' por litro (precio a la empresa). Costos y gastos con las proporciones del estado de resultados auditado de Leche Gloria S.A. 2024 aplicadas a sus ventas.</p><div class="scroll"><table><tr><th></th><th class="n">Año 0</th><th class="n">Promedio por trimestre</th></tr>' +
+    f('Ventas', r.ventas) + f('Costo de ventas', r.costoVentas, true) + f('<b>Utilidad bruta</b>', r.utilidadBruta) +
+    f('Distribución', r.distribucion, true) + f('Publicidad', r.publicidad, true) + f('Administración (incluye depreciación administrativa)', r.administracion, true) +
+    f('<b>Utilidad operativa</b>', r.utilidadOperativa) + f('Intereses (8 % anual)', r.intereses, true) + f('Utilidad antes de impuesto', r.utilidadAntesImpuesto) + f('Impuesto (IUE 25 %)', r.impuesto, true) + f('<b>Utilidad neta</b>', r.utilidadNeta) + '</table></div></div>';
+  var corr = b.caja + b.cxc + b.inventario, pas = b.cxp + b.deuda;
+  h += '<div class="card"><h2>Balance general al cierre del Año 0</h2><div class="scroll"><table>' +
+    '<tr><th colspan="2">Activo</th></tr>' + [['Caja', b.caja], ['Cuentas por cobrar', b.cxc], ['Inventario', b.inventario], ['<b>Activo corriente</b>', corr], ['Activo fijo neto', b.activoFijo], ['<b>Total activo</b>', b.activo]].map(function (x) { return '<tr><td>' + x[0] + '</td><td class="n">' + vrN(x[1]) + '</td></tr>'; }).join('') +
+    '<tr><th colspan="2">Pasivo y patrimonio</th></tr>' + [['Cuentas por pagar a proveedores', b.cxp], ['Deuda financiera (8 % anual)', b.deuda], ['<b>Total pasivo</b>', pas], ['Capital', A.capital], ['Resultados acumulados', A.resultadosAcumulados], ['<b>Total patrimonio</b>', b.patrimonio], ['<b>Total pasivo y patrimonio</b>', pas + b.patrimonio]].map(function (x) { return '<tr><td>' + x[0] + '</td><td class="n">' + vrN(x[1]) + '</td></tr>'; }).join('') +
+    '</table></div><p class="muted">Proporciones del balance auditado de Leche Gloria S.A. 2024 aplicadas a sus ventas (banco de datos, sección 11).</p></div>';
   return h;
 }
 function VR_tabla(f) { return '<div class="scroll"><table>' + f.map(function (x) { return '<tr><td>' + x[0] + '</td><td class="n">' + vrN(x[1]) + '</td></tr>'; }).join('') + '</table></div>'; }
