@@ -554,54 +554,226 @@ function VR_htmlRanking(r) {
   return '<p>Indicadores al cierre de T' + r.t + '. Puntaje (decisión del docente): resultado comercial 35 %, retorno 35 %, calidad del proceso 30 %, normalizados en la clase.</p><div class="scroll"><table><tr><th>#</th><th>Equipo</th><th class="n">Puntaje</th><th class="n">Ventas de productos nuevos (último año)</th><th class="n">Retorno de la innovación</th><th class="n">Proceso</th><th class="n">Utilidad acumulada</th><th class="n">Caja</th></tr>' +
     r.filas.map(function (d, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(d.nombre) + '</td><td class="n"><b>' + d.puntaje + '</b></td><td class="n">' + vrN(d.vitalidad, 1) + ' %</td><td class="n">' + vrN(d.retorno, 2) + '</td><td class="n">' + vrN(d.proceso, 1) + ' %</td><td class="n">' + vrN(d.utilidadAcum) + '</td><td class="n">' + vrN(d.caja) + '</td></tr>'; }).join('') + '</table></div>';
 }
-// ---------- Aprender: unidades de aprendizaje que toca el simulador ----------
+// ---------- Aprender: unidades de aprendizaje (versión 2, 17-nov-2026) ----------
+// Contenido parafraseado de los libros y documentos del Proyecto (sin citas textuales largas).
+var VR_REF = {
+  tidd: 'Tidd, J., & Bessant, J. (2021). Managing innovation: Integrating technological, market and organizational change (7.ª ed.). Wiley.',
+  chr: 'Christensen, C. M. (1997). The innovator’s dilemma: When new technologies cause great firms to fail. Harvard Business School Press.',
+  saw: 'Sawyer, R. K., & Henriksen, D. (2024). Explaining creativity: The science of human innovation (3.ª ed.). Oxford University Press.',
+  ama: 'Amabile, T. M. (1996). Creativity in context: Update to The social psychology of creativity. Westview Press.',
+  bro: 'Brown, T. (2009). Change by design: How design thinking transforms organizations and inspires innovation. HarperCollins. (Ed. revisada y actualizada, con B. Katz, 2019.)',
+  kel: 'Kelley, T., & Kelley, D. (2013). Creative confidence: Unleashing the creative potential within us all. Crown Business.',
+  hbp: 'Harvard Business Publishing. (s. f.). Innovation simulation: Breaking news [Nota de enseñanza]. Documento del Proyecto.',
+  bro21: 'Brodock, J. L., Hayes, J. E., Masterson, T. D., & Hopfer, H. (2021). Differences in preferred fat level, sweetener type, and amount of added sugar in chocolate milk in a choice task relate to physical activity and orthorexia. Appetite, 163, 105214.',
+  mor: 'Morwitz, V. G., Steckel, J. H., & Gupta, A. (2007). When do purchase intentions predict sales? International Journal of Forecasting, 23(3), 347–364.',
+  kah: 'Kahn, K. B. (2002). An exploratory investigation of new product forecasting practices. Journal of Product Innovation Management, 19(2), 133–143.',
+  fra: 'OECD. (2015). Frascati Manual 2015: Guidelines for collecting and reporting data on research and experimental development. OECD Publishing.',
+  coo: 'Cooper, R. G. (2008). Perspective: The Stage-Gate idea-to-launch process—update, what’s new, and NexGen systems. Journal of Product Innovation Management, 25(3), 213–232.',
+  pmi: 'Project Management Institute. (2017). A guide to the project management body of knowledge (PMBOK guide) (6.ª ed.). PMI.',
+  mar: 'Markham, S. K., & Lee, H. (2013). Product Development and Management Association’s 2012 comparative performance assessment study. Journal of Product Innovation Management, 30(3), 408–429.',
+  dat: 'Datar, S. M., & Rajan, M. V. (2021). Horngren’s cost accounting: A managerial emphasis (17.ª ed.). Pearson.',
+  nic: 'IASB. (2003). NIC 2: Inventarios. International Accounting Standards Board.',
+  ncs: 'NCSES. (2024). Business enterprise research and development: 2022 (NSF 24-335). National Science Foundation.',
+  hu: 'Hu, Y., Dharmasena, S., Capps, O., Jr., & Janakiraman, R. (2016). U.S. demand for chocolate milk as an alternative to energy/sports drinks [Ponencia]. Southern Agricultural Economics Association Annual Meeting, San Antonio, TX.',
+  set: 'Sethuraman, R., Tellis, G. J., & Briesch, R. A. (2011). How well does advertising work? Generalizations from meta-analysis of brand advertising elasticities. Journal of Marketing Research, 48(3), 457–471.',
+  por: 'Porter, M. E. (1980). Competitive strategy: Techniques for analyzing industries and competitors. Free Press.',
+  ste: 'Steenkamp, J.-B. E. M., Nijs, V. R., Hanssens, D. M., & Dekimpe, M. G. (2005). Competitive reactions to advertising and promotion attacks. Marketing Science, 24(1), 35–54.',
+  adn: 'Adner, R. (2006). Match your innovation strategy to your innovation ecosystem. Harvard Business Review, 84(4), 98–107.',
+  ada: 'Adams, R., Bessant, J., & Phelps, R. (2006). Innovation management measurement: A review. International Journal of Management Reviews, 8(1), 21–47.'
+};
+var VR_BLOQUES = [
+  ['A', 'Innovar y crear'],
+  ['B', 'El cliente y la evidencia'],
+  ['C', 'Del concepto al mercado'],
+  ['D', 'Competencia, organización y resultados']
+];
 var VR_UNIDADES = [
-  { t: '1. Innovación: qué es y de qué tipo', idea: 'Innovar es convertir una idea en algo que crea valor y se usa. Tidd y Bessant (2021) distinguen cuatro direcciones (las 4P): producto, proceso, posición (cómo y a quién se presenta) y paradigma (el modelo de negocio); y dos grados: incremental («hacer mejor lo que hacemos») y radical («hacer algo diferente»). Christensen (1997) muestra que las empresas líderes suelen fracasar ante innovaciones disruptivas porque escuchan solo a sus mejores clientes actuales.',
-    sim: 'Cada proyecto se declara incremental o radical. El incremental solo usa costos del banco de referencias; el radical puede pedir rubros y atributos nuevos, pero tiene más incertidumbre: su venta real puede alejarse más de lo que mostraron las pruebas.',
-    preg: ['¿Qué P de la innovación toca cada uno de sus proyectos?', '¿Su cartera equilibra proyectos incrementales y radicales?'],
-    ref: ['Tidd, J., & Bessant, J. (2021). Managing innovation (7.ª ed.). Wiley.', 'Christensen, C. M. (1997). The innovator’s dilemma. Harvard Business School Press.'] },
-  { t: '2. Creatividad y Design Thinking', idea: 'Amabile propone que la creatividad nace de tres componentes: conocimiento del campo, habilidades de pensamiento creativo y motivación intrínseca, influidos por el entorno social. Brown describe el Design Thinking como tres espacios que se recorren varias veces: inspiración (entender el problema de las personas), ideación (generar y probar ideas) e implementación. Kelley y Kelley llaman confianza creativa a perder el miedo a equivocarse para experimentar.',
-    sim: 'La idea de cada proyecto es libre: el equipo escribe el problema del cliente, para quién y qué propone. No hay listas de opciones. Las pruebas de concepto y de producto son la forma de experimentar barato antes de invertir.',
-    preg: ['¿Qué problema real del cliente resuelve su idea?', '¿Qué aprendieron de la última prueba y qué cambiarán?'],
-    ref: ['Amabile, T. M. (2019). Creativity in context (actualización). Routledge.', 'Brown, T. (2019). Change by design (ed. revisada). Harper Business.', 'Kelley, T., & Kelley, D. (2013). Creative confidence. Crown Business.'] },
-  { t: '3. El cliente: segmentos y atributos', idea: 'Los consumidores no valoran igual las características de un producto. El análisis conjunto mide cuánto pesa cada atributo (utilidad) para cada grupo de clientes (segmento). Brodock et al. (2021) encontraron tres segmentos en la leche chocolatada: los que prefieren lo natural (36 %), los que cuidan las calorías (38 %) y los consumidores promedio (26 %). Los atributos que más pesan son el endulzante, la grasa, el azúcar añadida y el mensaje del envase.',
-    sim: 'El mercado reparte a los compradores de cada segmento entre todos los productos según la utilidad de sus atributos, el precio y la publicidad (modelo logit). Un producto pensado para un segmento le quita ventas a quien mejor lo atendía. El estudio del consumidor muestra estas utilidades.',
-    preg: ['¿A qué segmento apunta su producto y qué atributos valora ese segmento?', '¿Qué competidor pierde ventas si ustedes ganan?'],
-    ref: ['Brodock, J. L., Hayes, J. E., Masterson, T. D., & Hopfer, H. (2021). Differences in preferred fat level, sweetener type, and amount of added sugar in chocolate milk in a choice task relate to physical activity and orthorexia. Appetite, 163, 105214.'] },
-  { t: '4. Investigación de mercados y pruebas', idea: 'Las pruebas de concepto y de producto estiman la demanda con una muestra. Toda muestra tiene margen de error: con 400 personas, cerca de ±4,9 puntos (95 % de confianza, proporción 50 %); para reducirlo a la mitad hay que cuadruplicar la muestra. Además, lo que la gente dice que comprará no es lo que compra: la intención predice peor en productos nuevos y de compra frecuente (Morwitz et al., 2007). Las empresas reportan que sus pronósticos de productos nuevos aciertan entre 40 % y 65 % según lo novedoso del producto (Kahn, 2002).',
-    sim: 'Hay tres estudios de pago: mercado y competencia, consumidor y pruebas (400 o 1.600 personas). Se pagan como gasto de ventas, porque el Manual de Frascati no cuenta la investigación de mercados como I+D. Al lanzar, la venta real difiere de la prueba: más en lo radical.',
-    preg: ['¿Vale la pena pagar la prueba grande para reducir el margen de error?', '¿Cuánto se alejó la venta real de lo que mostró su prueba?'],
-    ref: ['Morwitz, V. G., Steckel, J. H., & Gupta, A. (2007). When do purchase intentions predict sales? International Journal of Forecasting, 23(3), 347–364.', 'Kahn, K. B. (2002). An exploratory investigation of new product forecasting practices. Journal of Product Innovation Management, 19(2), 133–143.', 'OECD. (2015). Frascati Manual 2015. OECD Publishing.'] },
-  { t: '5. El proceso Stage-Gate', idea: 'Cooper propone dividir el desarrollo en etapas separadas por compuertas. En cada compuerta se decide seguir o detener el proyecto con criterios conocidos de antemano. Así se invierte poco mientras la incertidumbre es alta y mucho cuando ya hay evidencia. Detener a tiempo un mal proyecto también es un buen resultado.',
-    sim: 'Dos compuertas. La 1 pide la idea completa, el estudio del consumidor, una hoja de costos válida y una prueba de concepto que supere al producto actual. La 2 pide el plan de lanzamiento, la prueba de producto y que el volumen mínimo estimado supere el punto de equilibrio.',
-    preg: ['¿Qué evidencia les falta para pasar la siguiente compuerta?', '¿Hay algún proyecto que convenga detener?'],
-    ref: ['Cooper, R. G. (2008). Perspective: The Stage-Gate idea-to-launch process—update, what’s new, and NexGen systems. Journal of Product Innovation Management, 25(3), 213–232.'] },
-  { t: '6. Planificar el proyecto: Gantt y recursos', idea: 'Un diagrama de Gantt ordena las actividades en el tiempo, con sus dependencias y responsables. Si la carga de una persona supera su tiempo disponible, el plan está sobreasignado y hay que nivelar recursos: mover actividades, reasignarlas o dar más dedicación (PMI, 2017). En la práctica, un producto incremental tarda unas 33 semanas desde el concepto hasta el mercado y uno radical, unas 82 (Markham y Lee, 2013).',
-    sim: 'Cada proyecto tiene su Gantt en semanas. Las actividades externas (estudios, registro sanitario del SENASAG) tienen duración fija; las internas las planifica el equipo. El simulador no deja guardar un plan sobreasignado. Cada semana se pagan los sueldos del comité según su dedicación.',
-    preg: ['¿Cuál es la ruta más larga de su proyecto?', '¿Quién del comité está más cargado?'],
-    ref: ['Project Management Institute. (2017). A guide to the project management body of knowledge (PMBOK guide) (6.ª ed.).', 'Markham, S. K., & Lee, H. (2013). Product Development and Management Association’s 2012 comparative performance assessment study. Journal of Product Innovation Management, 30(3), 408–429.'] },
-  { t: '7. Costos y finanzas de la innovación', idea: 'Un costo puede ser variable por unidad, fijo por período, inversión (se deprecia) o gasto de desarrollo. Con ellos se calcula el margen por unidad y el punto de equilibrio. Los estados oficiales usan costeo por absorción (NIC 2): parte de los costos fijos de fábrica queda en el inventario. El informe interno usa costeo variable (margen de contribución), y la diferencia entre ambas utilidades se concilia (Datar y Rajan, 2021).',
-    sim: 'La hoja de costos de cada proyecto clasifica cada fila y calcula el punto de equilibrio. El presupuesto de innovación es el 0,8 % de las ventas del año anterior (intensidad de I+D de la industria de alimentos). Al lanzar, cada fila pasa al balance, al estado de resultados y al flujo de efectivo.',
-    preg: ['¿Cuántos litros deben vender para no perder?', '¿Por qué la utilidad con absorción difiere de la de costeo variable?'],
-    ref: ['Datar, S. M., & Rajan, M. V. (2021). Horngren’s cost accounting (17.ª ed.). Pearson.', 'IASB. (2003). NIC 2 Inventarios.', 'NCSES. (2024). Business enterprise research and development: 2022 (NSF 24-335).'] },
-  { t: '8. Precio, publicidad y canales', idea: 'La elasticidad mide cuánto cambian las ventas ante un cambio. Para la leche chocolatada, la elasticidad precio es −2,05: subir el precio 10 % baja las ventas cerca de 20 % (Hu et al., 2016). La publicidad tiene una elasticidad promedio de 0,12 a corto plazo: duplicarla sube las ventas cerca de 9 % (Sethuraman et al., 2011). Cada canal se queda con un margen del precio al consumidor.',
-    sim: 'Ustedes fijan el precio a la empresa; el precio al consumidor depende del margen del canal (supermercado 18,5 %, tienda y mercado 15 %). Si dejan de hacer publicidad, las ventas caen poco a poco.',
+  { b: 'A', t: '1. Qué es innovar: de la idea al valor',
+    obj: 'Distinguir creatividad de innovación y reconocer las cuatro fases del proceso de innovación.',
+    ideas: [
+      'La creatividad es producir algo nuevo y, además, apropiado o valioso para un grupo que sabe juzgarlo. La innovación es llevar con éxito esas ideas a la práctica dentro de una organización (Sawyer y Henriksen, 2024, cap. 1, que recogen la definición de Amabile).',
+      'Toda innovación recorre cuatro fases: buscar oportunidades, seleccionar qué hacer y por qué, implementar y capturar el valor. Se apoya en dos condiciones: una estrategia de innovación clara y una organización que la haga posible (Tidd y Bessant, 2021, cap. 3).',
+      'El proceso no es una línea recta: los proyectos vuelven atrás, se revisan o se abandonan cuando aparece información nueva (Tidd y Bessant, 2021, cap. 3).'
+    ],
+    sim: 'Las cuatro fases están en el menú: Situación (buscar: informes y estudios), Decisión (seleccionar e implementar: proyectos, Gantt, compuertas) y Resultados (capturar: ventas y utilidad de lo lanzado).',
+    ej: 'Un estudio muestra que el segmento que cuida las calorías rechaza el azúcar añadida (buscar). El comité decide un proyecto de chocolatada sin azúcar añadida (seleccionar), arma su Gantt y su hoja de costos (implementar) y, si lo lanza, mide cuánto vende y gana (capturar).',
+    act: 'En 10 minutos, ubiquen cada pestaña del simulador en una de las cuatro fases y digan en cuál está hoy su equipo.',
+    preg: ['¿Qué idea de su equipo es creativa pero todavía no es una innovación?', '¿En qué fase del proceso están gastando más tiempo?'],
+    ref: ['saw', 'tidd'] },
+  { b: 'A', t: '2. Dónde innovar: las 4P y el grado de novedad',
+    obj: 'Explorar todo el espacio de innovación de la empresa, no solo el producto.',
+    ideas: [
+      'Hay cuatro direcciones para innovar (las 4P): producto (lo que se ofrece), proceso (cómo se hace y se entrega), posición (cómo y a quién se presenta) y paradigma (el modelo mental o modelo de negocio) (Tidd y Bessant, 2021, cap. 1).',
+      'Ejemplos de posición: Lucozade pasó de bebida para convalecientes a bebida para deportistas; Häagen-Dazs presentó el helado como un placer para adultos. Ejemplo de paradigma: Ford no inventó el auto, cambió el modelo de un producto artesanal para pocos a uno masivo y accesible (Tidd y Bessant, 2021, cap. 1).',
+      'Cada P puede ser incremental (hacer mejor lo que ya se hace) o radical (hacer algo diferente). También importa si se cambia un componente o la arquitectura completa (Tidd y Bessant, 2021, cap. 1).'
+    ],
+    sim: 'Cada proyecto se declara incremental o radical. El incremental usa solo costos del banco de referencias; el radical puede pedir rubros y atributos nuevos, y su venta real puede alejarse más de lo que mostraron las pruebas.',
+    ej: 'Producto: menos azúcar. Proceso: pasteurizado en lugar de UHT. Posición: mensaje «chocolate oscuro premium» en el envase. Paradigma: un atributo que el mercado todavía no valora, aprobado con un estudio.',
+    act: 'Dibujen el diamante de las 4P y ubiquen al menos una idea de Lácteos Chiquitano en cada punta. Luego marquen cuáles son incrementales y cuáles radicales.',
+    preg: ['¿Qué P está vacía en su cartera de proyectos?', '¿Su cartera equilibra lo incremental y lo radical?'],
+    ref: ['tidd'] },
+  { b: 'A', t: '3. Innovación de sostenimiento y disruptiva',
+    obj: 'Entender por qué empresas bien gestionadas fracasan ante ciertas innovaciones y cómo gestionar lo nuevo.',
+    ideas: [
+      'Las innovaciones de sostenimiento mejoran el desempeño en lo que ya valoran los clientes actuales. Las disruptivas al principio rinden menos en esos atributos, pero son más baratas, simples o convenientes y abren mercados nuevos; con el tiempo mejoran y desplazan a las anteriores (Christensen, 1997).',
+      'Las empresas líderes fallan justamente por hacer lo que las hizo exitosas: escuchar a sus mejores clientes, buscar márgenes más altos y apuntar a mercados grandes. Lo que una empresa considera sensato depende de su red de valor (Christensen, 1997, cap. 2 y segunda parte).',
+      'Los mercados que todavía no existen no se pueden analizar. Para lo disruptivo conviene planificar para aprender: hacer explícitos los supuestos y probarlos antes de compromisos caros, y aceptar que fallar es parte del camino (Christensen, 1997).',
+      'Tidd y Bessant (2021, cap. 3) lo traducen en dos modos de gestión: en la innovación de estado estable funcionan las etapas y compuertas; en la discontinua, varias apuestas pequeñas en paralelo, sondear y aprender, y compromisos limitados.'
+    ],
+    sim: 'Cupesí y Motacú no cambian su producto: son líderes que siguen haciendo lo mismo. Un proyecto radical tiene más incertidumbre: su venta real puede alejarse hasta un 53 % en promedio de lo que mostró la prueba (Kahn, 2002).',
+    ej: 'Una chocolatada pequeña, barata y sin azúcar quizás no gusta al consumidor promedio, pero puede abrir un espacio en el segmento que cuida las calorías, donde Cupesí no compite con fuerza.',
+    act: 'Escriban los tres supuestos más riesgosos de su proyecto más novedoso y, para cada uno, qué estudio o prueba lo confirmaría antes de invertir.',
+    preg: ['¿Su proyecto mejora lo que ya existe o abre un espacio nuevo?', '¿Qué tendría que pasar para que Cupesí no pudiera responder?'],
+    ref: ['chr', 'tidd', 'kah'] },
+  { b: 'A', t: '4. Creatividad: componentes y entorno',
+    obj: 'Identificar qué hace posible la creatividad en un equipo y qué la bloquea.',
+    ideas: [
+      'Modelo componencial: la creatividad requiere tres componentes. Conocimiento y habilidades del campo; habilidades de pensamiento creativo (estilo de trabajo y formas de explorar caminos nuevos); y motivación por la tarea, sobre todo la intrínseca (Amabile, 1996, cap. 4).',
+      'El entorno influye sobre todo en la motivación. Ayudan la libertad, el desafío, los recursos, el tiempo, el apoyo del grupo y el estímulo de la organización; frenan los impedimentos organizacionales y la presión excesiva de trabajo (Amabile, 1996).',
+      'Sawyer y Henriksen (2024, cap. 5) integran los modelos en ocho etapas: encontrar el problema, adquirir conocimiento, reunir información, incubar, generar ideas, combinarlas, seleccionar y externalizarlas. Advierten que elegir entre ideas ajenas es difícil y suele favorecer lo convencional.'
+    ],
+    sim: 'La dedicación del comité es el tiempo que la empresa da para innovar, y cuesta sueldo. La idea de cada proyecto es libre: no hay listas de opciones.',
+    ej: 'Si todos los integrantes están al 5 % de dedicación, el Gantt no avanza y el equipo vive con presión de tiempo; si se reparte mejor, hay espacio para explorar.',
+    act: 'Cada integrante escribe en silencio tres ideas para el segmento elegido. Luego las combinan y eligen dos con criterios acordados antes de votar.',
+    preg: ['¿Qué del entorno de su equipo ayuda y qué frena la creatividad?', '¿Eligieron la idea más novedosa o la más cómoda?'],
+    ref: ['ama', 'saw'] },
+  { b: 'A', t: '5. Design Thinking: empatía, síntesis y prototipos',
+    obj: 'Aplicar el enfoque centrado en las personas para definir bien el problema antes de buscar soluciones.',
+    ideas: [
+      'Brown (2009) describe tres espacios que se superponen y se recorren varias veces: inspiración (entender el problema), ideación (generar, desarrollar y probar ideas) e implementación (llevarlas al mercado). Se alterna entre abrir opciones (divergir) y elegir (converger).',
+      'Kelley y Kelley (2013) proponen inspiración (observar a las personas en su contexto y a usuarios extremos), síntesis (encontrar patrones y replantear el reto como «¿Cómo podríamos…?»), ideación y experimentación, e implementación. Una buena innovación equilibra lo deseable para las personas, lo factible técnicamente y lo viable como negocio.',
+      'Los prototipos deben ser tempranos, rápidos y baratos: desarrollan la idea lo justo para aprender algo y seguir. Un prototipo exitoso no es el que funciona perfecto, sino el que enseña (Brown, 2009).',
+      'El mayor obstáculo es el miedo a fallar; las personas creativas no fallan menos, hacen más intentos (Kelley y Kelley, 2013). La nota de Harvard del Proyecto separa el espacio del problema del espacio de la solución: primero se elige el problema y después la solución.'
+    ],
+    sim: 'Antes de la compuerta 1, cada proyecto escribe el problema, para quién y qué propone, y compra el estudio del consumidor del segmento. La prueba de concepto es el prototipo barato; la prueba de producto, el de mayor resolución.',
+    ej: 'Reto mal planteado: «hacer una chocolatada light» (ya es una solución). Reto bien planteado: «¿Cómo podríamos darle a quien cuida las calorías un gusto dulce sin culpa?».',
+    act: 'Redacten tres preguntas «¿Cómo podríamos…?» para su segmento sin nombrar ninguna solución. Elijan una y evalúenla en deseable, factible y viable.',
+    preg: ['¿Su problema está escrito sin mencionar la solución?', '¿Qué aprendieron de su última prueba que cambie el concepto?'],
+    ref: ['bro', 'kel', 'hbp'] },
+  { b: 'A', t: '6. Fuentes de ideas e innovación abierta',
+    obj: 'Reconocer que las buenas ideas pueden venir de afuera y que conviene combinar fuentes.',
+    ideas: [
+      'La nota de Harvard del Proyecto distingue cuatro modos de innovar: especialista, emprendimiento (venture), comunidad y red, cada uno con sus propios actores y formas de interactuar. Cada iniciativa produce ideas de distinta cantidad, calidad y costo.',
+      'Según esa nota, los modos funcionan mejor combinados; la innovación abierta es una fuente eficaz y eficiente, pero la experiencia sigue siendo importante y validar temprano es clave. El objetivo de generar muchas ideas es tener más probabilidades de encontrar las de valor extremo y luego saber elegirlas.',
+      'Tidd y Bessant (2021, cap. 8) muestran que innovar es cada vez más un juego entre muchos actores: clientes, proveedores, consorcios, clústeres y plataformas.'
+    ],
+    sim: 'Un equipo radical puede pedir al docente un rubro nuevo (por ejemplo, un endulzante o un envase) o un atributo nuevo; el docente lo incorpora con una fuente verificable y queda para todos.',
+    ej: 'Un proveedor de envases (red) propone una botella más pequeña; un grupo de deportistas (comunidad) pide más proteína. El comité combina ambas fuentes en un concepto.',
+    act: 'Hagan una lista de fuentes de ideas fuera del comité (proveedores, clientes extremos, otras industrias) y elijan una para consultar esta semana.',
+    preg: ['¿De dónde vienen hoy sus ideas?', '¿Qué actor externo podría reducir el riesgo de su proyecto?'],
+    ref: ['hbp', 'tidd'] },
+  { b: 'B', t: '7. El cliente: segmentos y atributos',
+    obj: 'Usar la evidencia sobre qué valora cada segmento para diseñar el producto.',
+    ideas: [
+      'Los consumidores no valoran igual las características de un producto. El análisis conjunto mide cuánto pesa cada atributo (su utilidad) para cada grupo de clientes.',
+      'Brodock et al. (2021) encontraron tres segmentos en la leche chocolatada: los que prefieren lo natural (36 %), los que cuidan las calorías (38 %) y los consumidores promedio (26 %). Pesan más el endulzante, la grasa, el azúcar añadida y el mensaje del envase.',
+      'Christensen (1997) advierte que observar cómo la gente usa los productos enseña más que escuchar lo que dice, sobre todo en mercados nuevos.'
+    ],
+    sim: 'El mercado reparte a los compradores de cada segmento entre todos los productos según sus atributos, el precio y la publicidad (modelo logit). El estudio del consumidor muestra estas utilidades.',
+    ej: 'El segmento natural rechaza los endulzantes no calóricos; el que cuida las calorías es el único que los valora. Un mismo producto no puede ganar en los tres.',
+    act: 'Con el estudio del consumidor, elijan un segmento y escriban la combinación de atributos que más valora. Comparen con el producto actual.',
+    preg: ['¿A qué segmento apunta su producto?', '¿A quién le quita ventas su lanzamiento?'],
+    ref: ['bro21', 'chr'] },
+  { b: 'B', t: '8. Investigación de mercados y pruebas',
+    obj: 'Interpretar estudios y pruebas con su margen de error y sus límites.',
+    ideas: [
+      'Toda muestra tiene margen de error: con 400 personas, cerca de ±4,9 puntos (95 % de confianza, proporción 50 %); para reducirlo a la mitad hay que cuadruplicar la muestra.',
+      'Lo que la gente dice que comprará no es lo que compra: la intención predice peor en productos nuevos y de compra frecuente (Morwitz et al., 2007). Las empresas reportan que sus pronósticos de productos nuevos aciertan entre 40 % y 72 % según lo novedoso del producto (Kahn, 2002).',
+      'El Manual de Frascati no cuenta la investigación de mercados como I+D (OECD, 2015).'
+    ],
+    sim: 'Tres estudios de pago: mercado y competencia, consumidor, y pruebas de concepto o producto (400 o 1.600 personas). Se pagan como gasto de ventas. Al lanzar, la venta real difiere de la prueba: más en lo radical.',
+    ej: '(Cifras ilustrativas.) Si la prueba de concepto estima 50.000 litros con ±4,9 puntos, el volumen real puede quedar bastante por debajo: por eso la compuerta 2 mira el límite inferior del rango.',
+    act: 'Calculen cuánto les costaría reducir a la mitad el margen de error de su prueba y decidan si vale la pena.',
+    preg: ['¿Cuánto se alejó la venta real de lo que mostró la prueba?', '¿Qué decisión cambiarían con un margen de error menor?'],
+    ref: ['mor', 'kah', 'fra'] },
+  { b: 'C', t: '9. Del concepto al lanzamiento: compuertas y cartera',
+    obj: 'Decidir con criterios cuándo seguir, cambiar o detener un proyecto.',
+    ideas: [
+      'Cooper (2008) divide el desarrollo en etapas separadas por compuertas; en cada una se decide seguir o detener con criterios conocidos. Se invierte poco mientras la incertidumbre es alta y mucho cuando hay evidencia.',
+      'Tidd y Bessant (2021, cap. 10) distinguen el embudo de desarrollo, que supone recursos limitados, del sistema de etapas y compuertas, y recomiendan un plan de cartera que equilibre tipos de proyectos y capacidad.',
+      'En proyectos radicales, buena parte del concepto final se define después de la etapa inicial; a veces conviene mantener dos conceptos en paralelo hasta reducir la incertidumbre (Tidd y Bessant, 2021, cap. 10).'
+    ],
+    sim: 'Compuerta 1: idea completa, estudio del consumidor, hoja de costos válida y prueba de concepto que supere al producto actual. Compuerta 2: plan de lanzamiento, prueba de producto y volumen mínimo estimado mayor que el punto de equilibrio. Detener a tiempo también suma en el ranking.',
+    ej: 'Un proyecto pasa la compuerta 1, pero su prueba de producto da un volumen mínimo por debajo del equilibrio: lo correcto es ajustar el precio o el concepto, o detenerlo.',
+    act: 'Hagan una tabla con sus proyectos y, para cada uno, la evidencia que tienen y la que les falta para la próxima compuerta.',
+    preg: ['¿Qué proyecto deberían detener?', '¿Su cartera usa bien el presupuesto y la dedicación del comité?'],
+    ref: ['coo', 'tidd'] },
+  { b: 'C', t: '10. Planificar el proyecto: Gantt y recursos',
+    obj: 'Planificar actividades, duraciones y cargas sin sobreasignar al comité.',
+    ideas: [
+      'Un Gantt ordena las actividades en el tiempo, con dependencias y responsables. Si la carga de una persona supera su tiempo disponible, el plan está sobreasignado y hay que nivelar: mover, reasignar o dar más dedicación (PMI, 2017).',
+      'En promedio, un producto incremental tarda unas 33 semanas desde el concepto hasta el mercado y uno radical, unas 82; solo una parte de los proyectos termina a tiempo (Markham y Lee, 2013).'
+    ],
+    sim: 'Las actividades externas (estudios, registro sanitario del SENASAG) tienen duración fija; las internas las planifica el equipo. El simulador no deja guardar un plan sobreasignado. Cada semana se pagan los sueldos del comité según su dedicación.',
+    ej: 'Si el estudio del consumidor (5 semanas) y la prueba de concepto (5 semanas) van en serie, la compuerta 1 no llega antes de la semana 11 desde que empiezan.',
+    act: 'Identifiquen la ruta más larga de su proyecto y una actividad que podrían adelantar sin sobrecargar a nadie.',
+    preg: ['¿Quién del comité está más cargado?', '¿Qué pasa con su lanzamiento si el registro sanitario se retrasa?'],
+    ref: ['pmi', 'mar'] },
+  { b: 'C', t: '11. Costos y finanzas de la innovación',
+    obj: 'Calcular si un proyecto puede ser rentable y leer sus efectos en los estados financieros.',
+    ideas: [
+      'Un costo puede ser variable por unidad, fijo por período, inversión (se deprecia) o gasto de desarrollo. Con ellos se calcula el margen por unidad y el punto de equilibrio (Datar y Rajan, 2021).',
+      'Los estados oficiales usan costeo por absorción (NIC 2): parte de los costos fijos de fábrica queda en el inventario. El informe interno usa costeo variable, y la diferencia entre ambas utilidades se concilia.',
+      'La intensidad de I+D de la industria de alimentos es cercana al 0,8 % de las ventas (NCSES, 2024).'
+    ],
+    sim: 'La hoja de costos clasifica cada fila y calcula el punto de equilibrio; el presupuesto de innovación es el 0,8 % de las ventas del año anterior. Al lanzar, cada fila pasa al balance, al estado de resultados y al flujo de efectivo.',
+    ej: '(Cifras ilustrativas.) Si el margen por litro es Bs 2 y los gastos fijos del producto son Bs 40.000 por trimestre, necesitan vender 20.000 litros por trimestre solo para no perder.',
+    act: 'Comparen el punto de equilibrio de su proyecto con el volumen mínimo de su prueba. ¿Qué tendrían que cambiar para que el proyecto sea viable?',
+    preg: ['¿Cuántos litros deben vender para no perder?', '¿Por qué difiere la utilidad por absorción de la del costeo variable?'],
+    ref: ['dat', 'nic', 'ncs'] },
+  { b: 'C', t: '12. Precio, publicidad y canales',
+    obj: 'Decidir precio y publicidad usando la sensibilidad real del mercado.',
+    ideas: [
+      'Para la leche chocolatada, la elasticidad precio es −2,05: subir el precio 10 % baja las ventas cerca de 20 % (Hu et al., 2016).',
+      'La elasticidad publicitaria promedio es 0,12 a corto plazo: duplicar la publicidad sube las ventas cerca de 9 % (Sethuraman et al., 2011).',
+      'Cada canal se queda con un margen del precio al consumidor.'
+    ],
+    sim: 'Ustedes fijan el precio a la empresa; el precio al consumidor depende del margen del canal (supermercado 18,5 %; tienda y mercado 15 %). Si dejan de hacer publicidad, las ventas caen poco a poco.',
+    ej: 'Bajar el precio 5 % puede subir las ventas cerca de 10 %, pero el margen por litro baja: hay que revisar si la utilidad sube o baja.',
+    act: 'Simulen dos escenarios para su producto: bajar el precio o subir la publicidad, y estimen cuál deja más utilidad.',
     preg: ['¿Les conviene bajar el precio o invertir en publicidad?', '¿Qué canal deja más margen a la empresa?'],
-    ref: ['Hu, Y., Dharmasena, S., Capps, O., Jr., & Janakiraman, R. (2016). U.S. demand for chocolate milk as an alternative to energy/sports drinks. SAEA Annual Meeting.', 'Sethuraman, R., Tellis, G. J., & Briesch, R. A. (2011). How well does advertising work? Journal of Marketing Research, 48(3), 457–471.'] },
-  { t: '9. Competencia y ecosistema', idea: 'Porter (1980) describe dos estrategias genéricas: diferenciarse o ser líder en costos. Los competidores no siempre reaccionan: ante un aumento de publicidad, los que anuncian regularmente responden con más publicidad en cerca del 37 % de los casos y casi nunca a largo plazo (Steenkamp et al., 2005). Una innovación depende además de otros actores (proveedores, canales, reguladores): su ecosistema (Adner, 2006).',
-    sim: 'Cupesí (diferenciador) y Motacú (líder en costos) mantienen su producto y precio; Cupesí puede responder a su publicidad. Hay eventos reales del entorno, como la subida de la leche cruda en el trimestre 7, que afectan a todas las empresas.',
+    ref: ['hu', 'set'] },
+  { b: 'D', t: '13. Competencia, redes y ecosistema',
+    obj: 'Anticipar cómo responden los competidores y de quién depende el éxito de una innovación.',
+    ideas: [
+      'Hay dos estrategias genéricas: diferenciarse o ser líder en costos (Porter, 1980).',
+      'Los competidores no siempre reaccionan: ante un aumento de publicidad, los que anuncian regularmente responden con más publicidad en cerca del 37 % de los casos a corto plazo y casi nunca a largo plazo (Steenkamp et al., 2005).',
+      'Una innovación depende de otros actores (proveedores, canales, reguladores): su ecosistema (Adner, 2006). Tidd y Bessant (2021, cap. 3) atribuyen el éxito de Apple con su tienda de aplicaciones a su experiencia orquestando ecosistemas, y el fracaso del lector electrónico de Sony a no lograrlo.'
+    ],
+    sim: 'Cupesí (diferenciador) y Motacú (líder en costos) mantienen su producto y precio; Cupesí puede responder a su publicidad. Hay eventos reales del entorno, como la subida de la leche cruda en el trimestre 7.',
+    ej: 'Si suben su publicidad 50 %, hay cerca de un 37 % de probabilidad de que Cupesí también la suba ese trimestre y reduzca su ventaja.',
+    act: 'Dibujen el ecosistema de su proyecto: proveedores, SENASAG, supermercados y consumidores. Marquen qué actor podría bloquear el lanzamiento.',
     preg: ['¿A quién le quitan ventas sus lanzamientos?', '¿De qué actores del ecosistema depende su proyecto?'],
-    ref: ['Porter, M. E. (1980). Competitive strategy. Free Press.', 'Steenkamp, J.-B. E. M., Nijs, V. R., Hanssens, D. M., & Dekimpe, M. G. (2005). Competitive reactions to advertising and promotion attacks. Marketing Science, 24(1), 35–54.', 'Adner, R. (2006). Match your innovation strategy to your innovation ecosystem. Harvard Business Review, 84(4), 98–107.'] },
-  { t: '10. Medir la innovación', idea: 'Las empresas miden la innovación con resultados (porcentaje de ventas de productos nuevos, utilidad que generan) y con la calidad del proceso. Markham y Lee (2013) informan que la utilidad de los productos nuevos y su porcentaje de las ventas son los dos indicadores más usados.',
-    sim: 'El ranking combina: resultado comercial (ventas de productos nuevos, incluida la mejora del actual) 35 %, retorno de lo invertido 35 % y calidad del proceso (compuertas, proyectos detenidos a tiempo, cumplimiento del Gantt) 30 %.',
-    preg: ['¿Qué parte del ranking pueden mejorar más rápido?', '¿Cuánto de sus ventas viene de productos nuevos?'],
-    ref: ['Markham, S. K., & Lee, H. (2013). Journal of Product Innovation Management, 30(3), 408–429.', 'Adams, R., Bessant, J., & Phelps, R. (2006). Innovation management measurement: A review. International Journal of Management Reviews, 8(1), 21–47.'] }
+    ref: ['por', 'ste', 'adn', 'tidd'] },
+  { b: 'D', t: '14. Organizar, medir y aprender',
+    obj: 'Evaluar el desempeño innovador y convertir la experiencia en aprendizaje.',
+    ideas: [
+      'Las empresas miden la innovación con resultados (porcentaje de ventas de productos nuevos y utilidad que generan) y con la calidad del proceso; esos dos resultados son los indicadores más usados (Markham y Lee, 2013; Adams et al., 2006).',
+      'No existe una organización perfecta para innovar: hay que revisar y reconfigurar según cambian las circunstancias, y capturar lo aprendido de cada proyecto para el siguiente (Tidd y Bessant, 2021, cap. 15).',
+      'Los gerentes con experiencia recomiendan un objetivo claro, permitir experimentar, una cartera ordenada con compuertas y no intentar gestionar la innovación con un reglamento (Tidd y Bessant, 2021, cap. 15).'
+    ],
+    sim: 'El ranking combina resultado comercial (ventas de productos nuevos, incluida la mejora del actual) 35 %, retorno de lo invertido 35 % y calidad del proceso (compuertas, proyectos detenidos a tiempo, cumplimiento del Gantt) 30 %.',
+    ej: 'Un equipo con muchas ventas de productos nuevos pero con inversión excesiva puede quedar por debajo de otro más eficiente.',
+    act: 'Al cierre de cada año simulado, escriban tres líneas: qué funcionó, qué no y qué harán distinto el próximo año.',
+    preg: ['¿Qué parte del ranking pueden mejorar más rápido?', '¿Qué aprendieron que usarían en una empresa real?'],
+    ref: ['mar', 'ada', 'tidd'] }
 ];
 function VR_aprender() {
-  return '<div class="card"><h2>Unidades de aprendizaje</h2><p>Los conceptos de innovación que usa el simulador, con su fuente. Toquen una unidad para abrirla.</p></div>' +
-    VR_UNIDADES.map(function (u) {
-      return '<details class="card"><summary><b>' + esc(u.t) + '</b></summary><p>' + esc(u.idea) + '</p><h3>En el simulador</h3><p>' + esc(u.sim) + '</p><h3>Para pensar en equipo</h3><ul>' + u.preg.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ul><h3>Referencias</h3><ul class="muted">' + u.ref.map(function (r) { return '<li>' + esc(r) + '</li>'; }).join('') + '</ul></details>';
-    }).join('');
+  var h = '<div class="card"><h2>Unidades de aprendizaje</h2><p>Los conceptos de innovación que usa el simulador, tomados de los libros y estudios del curso. Cada unidad trae su objetivo, las ideas clave con su fuente, cómo se ve en el simulador, un ejemplo con Lácteos Chiquitano, una actividad para el equipo y las referencias. Toquen una unidad para abrirla.</p></div>';
+  VR_BLOQUES.forEach(function (bl) {
+    h += '<h3 style="margin:18px 0 8px">' + esc(bl[0] + '. ' + bl[1]) + '</h3>';
+    VR_UNIDADES.filter(function (u) { return u.b === bl[0]; }).forEach(function (u) {
+      h += '<details class="card"><summary><b>' + esc(u.t) + '</b></summary>' +
+        '<p><b>Objetivo:</b> ' + esc(u.obj) + '</p>' +
+        '<h3>Ideas clave</h3><ul>' + u.ideas.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
+        '<h3>En el simulador</h3><p>' + esc(u.sim) + '</p>' +
+        '<div class="ayuda"><b>💡 Ejemplo con Lácteos Chiquitano</b><p>' + esc(u.ej) + '</p></div>' +
+        '<h3>Actividad en equipo</h3><p>' + esc(u.act) + '</p>' +
+        '<h3>Para pensar en equipo</h3><ul>' + u.preg.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ul>' +
+        '<h3>Referencias</h3><ul class="muted">' + u.ref.map(function (r) { return '<li>' + esc(VR_REF[r] || r) + '</li>'; }).join('') + '</ul></details>';
+    });
+  });
+  return h;
 }
 
 </script>

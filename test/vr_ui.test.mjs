@@ -67,7 +67,7 @@ try {
   R.t1 = await pg.isVisible('th:has-text("T1")');
   await pg.click('.subnav >> text=Estudio de mercado'); await pg.waitForTimeout(300); await foto('10_estudio_mercado');
   R.estudio = await pg.isVisible('text=Estudio del trimestre 1');
-  await pg.click('nav >> text=Aprender'); await pg.click('summary >> text=3. El cliente'); await pg.waitForTimeout(300); await foto('11_aprender');
+  await pg.click('nav >> text=Aprender'); await pg.click('summary >> text=7. El cliente'); await pg.waitForTimeout(300); await foto('11_aprender');
   await pg.click('nav >> text=Situación'); await pg.waitForTimeout(300); await foto('12_situacion');
   console.log(JSON.stringify(R));
   console.log('Errores de página:', errs.length ? errs : 'ninguno');
