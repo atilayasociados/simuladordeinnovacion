@@ -175,7 +175,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = '433eeb346146';
+  var V0 = '6242e07dad7c';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -1117,7 +1117,18 @@ function VR_comite() {
       '<td class="n">' + vrN(costo) + '</td><td>' + (ed && DD.comite.length > 1 ? '<button class="btn sec" onclick="DD.comite.splice(' + i + ',1);VR_render();VR_revisar()">Quitar</button>' : '') + '</td></tr>';
   });
   h += '</table></div>' + (ed && DD.comite.length < 5 ? '<button class="btn sec" onclick="DD.comite.push({nombre:\'Integrante ' + (DD.comite.length + 1) + '\',cargo:\'profesional\',dedicacion:0.2});VR_render();VR_revisar()">Agregar integrante</button>' : '') + '</div>';
+  h += VR_comiteAlcance();
   return h;
+}
+/** Cuánto del presupuesto anual se lleva el comité (decisión del docente, 17-nov-2026: se mantiene el 0,8 % y se avisa qué alcanza). */
+function VR_comiteAlcance() {
+  var S = VV.cat.sueldos, P = VV.empresa.presupuestoAnual || 0, anual = 0;
+  DD.comite.forEach(function (m) { anual += (S[m.cargo] || 0) * (m.dedicacion || 0) * 12; });
+  var pct = P > 0 ? anual / P : 0, exceso = anual > P;
+  return '<div class="ayuda" style="margin-top:12px' + (exceso ? ';border-left-color:#FF4C00' : '') + '"><b>💡 En palabras sencillas</b>' +
+    '<p>Su presupuesto de innovación de este año es <b>' + vrBs(P) + '</b> (0,8 % de las ventas del año anterior). Con la dedicación que pusieron, el comité cuesta <b>' + vrBs(anual) + ' al año</b>: el ' + vrP(pct) + ' del presupuesto.</p>' +
+    '<p>Como referencia, a tiempo completo un profesional cuesta ' + vrBs(S.profesional * 12) + ' al año y un jefe ' + vrBs(S.jefe * 12) + '. Por eso en una empresa de este tamaño el comité trabaja a tiempo parcial. Lo que no usen en sueldos queda para desarrollo y registro sanitario; los estudios de mercado se pagan aparte, como gasto de ventas.</p>' +
+    (exceso ? '<p><b>El comité cuesta más que todo el presupuesto del año:</b> bajen la dedicación o el número de personas.</p>' : '') + '</div>';
 }
 
 // ---------- Proyectos ----------
