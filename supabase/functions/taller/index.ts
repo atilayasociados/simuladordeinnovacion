@@ -140,6 +140,10 @@ function preparar() {
       await sql`update taller.config set v = ${CLAVE_HASH} where k = 'clave_fac' and v <> ${CLAVE_HASH}`;
       await sql`update taller.config set v = ${DOC_NOMBRE} where k = 'nombre_documento' and v = ''`;
       await sql`update taller.config set v = ${DOC_URL} where k = 'url_documento' and v = ''`;
+      // Borrado único pedido por el facilitador (18-11-2026, 13:44): participantes de prueba del código IA893.
+      // La marca en config asegura que se ejecute una sola vez aunque arranquen varias instancias.
+      const marca = await sql`insert into taller.config (k, v) values ('borrado_ia893_20261118', ${new Date().toISOString()}) on conflict (k) do nothing returning k`;
+      if (marca.length) await sql`delete from taller.part where upper(codigo) = 'IA893'`;
     })();
     listo.catch(() => { listo = null; });
   }
