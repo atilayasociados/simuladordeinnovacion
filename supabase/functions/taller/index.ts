@@ -104,6 +104,10 @@ async function hash_(s) {
 const hoyLaPaz = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/La_Paz', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 const horaLaPaz = (d) => new Intl.DateTimeFormat('es-BO', { timeZone: 'America/La_Paz', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(d);
 
+// Solo se guarda el resumen (hash) de la contraseña del panel; la contraseña no está en el código.
+const CLAVE_HASH = 'WKXPdbYYptEce4eTg5UKgRegbWZ5384XbvcCMQ0vCvU=';
+const DOC_NOMBRE = 'Estatuto Orgánico de la UAGRM (reforma del III Congreso Universitario 2023, promulgado en 2024)';
+const DOC_URL = 'https://atilayasociados.github.io/simuladordeneurociencias/taller/Estatuto-Organico-UAGRM-2024.pdf';
 let listo = null;
 function preparar() {
   if (!listo) {
@@ -129,10 +133,12 @@ function preparar() {
         alter table taller.part add column if not exists codigo_adm text not null default '';
         alter table taller.part add column if not exists telefono text not null default '';
       `);
-      const defs = [['codigo_taller', 'IA893'], ['titulo', TITULO], ['nombre_documento', ''], ['url_documento', ''], ['url_presentacion', ''], ['fecha_taller', '2026-11-18'], ['clave_fac', await hash_((Deno.env.get('CLAVE_TALLER') || 'Taller2026').toLowerCase())]];
+      const defs = [['codigo_taller', 'IA893'], ['titulo', TITULO], ['nombre_documento', ''], ['url_documento', ''], ['url_presentacion', ''], ['fecha_taller', '2026-11-18'], ['clave_fac', CLAVE_HASH]];
       for (const [k, v] of defs) await sql`insert into taller.config (k, v) values (${k}, ${v}) on conflict (k) do nothing`;
       await sql`update taller.config set v = ${TITULO} where k = 'titulo' and v <> ${TITULO}`;
-      await sql`update taller.config set v = ${await hash_('taller2026')} where k = 'clave_fac' and v = ${await hash_('Taller2026')}`;
+      await sql`update taller.config set v = ${CLAVE_HASH} where k = 'clave_fac' and v <> ${CLAVE_HASH}`;
+      await sql`update taller.config set v = ${DOC_NOMBRE} where k = 'nombre_documento' and v = ''`;
+      await sql`update taller.config set v = ${DOC_URL} where k = 'url_documento' and v = ''`;
     })();
     listo.catch(() => { listo = null; });
   }

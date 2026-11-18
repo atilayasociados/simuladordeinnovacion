@@ -35,7 +35,6 @@ jobs:
             if echo "$r" | grep -q '"r":'; then break; fi
             if [ $i = 6 ]; then exit 1; fi
           done
-          p=$(curl -s -X POST "https://$PROYECTO.supabase.co/functions/v1/taller" -H 'Content-Type: application/json' -H 'Origin: https://atilayasociados.github.io' -d '{"fn":"fcPanel","args":["taller2026 "]}' -D cabeceras.txt)
-          grep -i 'access-control-allow-origin' cabeceras.txt
-          echo "$p" | head -c 300
-          echo "$p" | grep -q '"codigo":"IA893"'
+          echo "$r" | grep -q 'Estatuto-Organico-UAGRM-2024.pdf'
+          curl -s -o /dev/null -D cabeceras.txt -X OPTIONS "https://$PROYECTO.supabase.co/functions/v1/taller" -H 'Origin: https://atilayasociados.github.io'
+          grep -qi 'access-control-allow-origin' cabeceras.txt
