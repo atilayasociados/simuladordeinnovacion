@@ -1,0 +1,37 @@
+# Publica la Edge Function "taller" (taller «Tu oficina en el bolsillo»). Independiente del simulador de innovación:
+# sus datos viven en el esquema "taller" y no toca la función "api".
+name: Publicar función del taller
+on:
+  push:
+    branches: [taller-ia]
+    paths:
+      - 'supabase/functions/taller/**'
+      - '.github/workflows/desplegar-taller.yml'
+  workflow_dispatch:
+concurrency:
+  group: desplegar-taller
+  cancel-in-progress: false
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROYECTO: xlkjssypdayyaxwjokry
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Publicar función taller
+        run: supabase functions deploy taller --project-ref "$PROYECTO" --no-verify-jwt --use-api --yes
+      - name: Probar la función
+        run: |
+          for i in 1 2 3 4 5 6; do
+            sleep 10
+            r=$(curl -s -X POST "https://$PROYECTO.supabase.co/functions/v1/taller" -H 'Content-Type: application/json' -d '{"fn":"iniciar","args":[]}')
+            echo "$r"
+            if echo "$r" | grep -q '"r":'; then exit 0; fi
+          done
+          exit 1
