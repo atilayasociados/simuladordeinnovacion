@@ -123,6 +123,11 @@ function preparar() {
           pid text not null references taller.part(id) on delete cascade, obj text not null, objetivo text not null,
           puntos int not null, nivel text not null, detalle text not null default '', datos jsonb not null default '{}'::jsonb);
         create index if not exists evid_pid on taller.evid(pid, id);
+        alter table taller.part add column if not exists ap_paterno text not null default '';
+        alter table taller.part add column if not exists ap_materno text not null default '';
+        alter table taller.part add column if not exists nombres text not null default '';
+        alter table taller.part add column if not exists codigo_adm text not null default '';
+        alter table taller.part add column if not exists telefono text not null default '';
       `);
       const defs = [['codigo_taller', 'IA893'], ['titulo', TITULO], ['nombre_documento', ''], ['url_documento', ''], ['url_presentacion', ''], ['fecha_taller', '2026-11-18'], ['clave_fac', await hash_(Deno.env.get('CLAVE_TALLER') || 'Taller2026')]];
       for (const [k, v] of defs) await sql`insert into taller.config (k, v) values (${k}, ${v}) on conflict (k) do nothing`;
@@ -144,7 +149,7 @@ async function estado(id) {
 function panelDe(cf, filas) {
   const ahora = Date.now();
   return { codigo: cf.codigo_taller, nombreDocumento: cf.nombre_documento || '', urlDocumento: cf.url_documento || '', urlPresentacion: cf.url_presentacion || '', urlHoja: '',
-    participantes: filas.map((f) => ({ id: f.id, nombre: f.nombre, unidad: f.unidad, ruta: f.ruta, pareja: f.pareja, equipo: f.equipo,
+    participantes: filas.map((f) => ({ id: f.id, nombre: f.ap_paterno ? (f.ap_paterno + ' ' + f.ap_materno + ', ' + f.nombres) : f.nombre, telefono: f.telefono || '', codigoAdm: f.codigo_adm || '', unidad: f.unidad, ruta: f.ruta, pareja: f.pareja, equipo: f.equipo,
       o: [f.o1, f.o2, f.o3, f.o4, f.o5], quiz: f.quiz, total: f.total || 0, minutos: Math.round((ahora - new Date(f.actualizado).getTime()) / 60000) })),
     hora: horaLaPaz(new Date()) };
 }
@@ -154,14 +159,23 @@ const API = {
   async ingresar(d) {
     d = d || {};
     const c = await config();
-    const codigo = limpio_(d.codigo).toUpperCase(), nombre = limpio_(d.nombre).slice(0, 120), unidad = limpio_(d.unidad).slice(0, 120), ruta = d.ruta === 'B' ? 'B' : 'A', equipo = limpio_(d.equipo).slice(0, 20);
+    const codigo = limpio_(d.codigo).toUpperCase(), ruta = d.ruta === 'B' ? 'B' : 'A', equipo = limpio_(d.equipo).slice(0, 20);
+    const apP = limpio_(d.apPaterno).slice(0, 60), apM = limpio_(d.apMaterno).slice(0, 60), noms = limpio_(d.nombres).slice(0, 80);
+    const codAdm = limpio_(d.codigoAdm).slice(0, 30), tel = limpio_(d.telefono).replace(/[\s-]/g, '').slice(0, 20), unidad = limpio_(d.unidad).slice(0, 120);
     if (!codigo || codigo !== String(c.codigo_taller || '').toUpperCase()) throw new Error('El código del taller no es correcto. Revíselo en la pantalla del facilitador.');
-    if (nombre.length < 5) throw new Error('Escriba su nombre y apellido.');
+    if (apP.length < 2) throw new Error('Escriba su apellido paterno.');
+    if (apM.length < 2) throw new Error('Escriba su apellido materno.');
+    if (noms.length < 2) throw new Error('Escriba su nombre o nombres.');
+    if (!/^\+?\d{7,15}$/.test(tel)) throw new Error('Escriba su número de teléfono (solo números, por ejemplo 71234567).');
     if (unidad.length < 2) throw new Error('Escriba su unidad o dependencia.');
-    const clave = norm_(nombre) + '|' + norm_(unidad) + '|' + codigo;
+    const nombre = (noms + ' ' + apP + ' ' + apM).replace(/\s+/g, ' ').trim();
+    const clave = norm_(apP) + '|' + norm_(apM) + '|' + norm_(noms) + '|' + codigo;
     const id = 'P' + crypto.randomUUID().replace(/-/g, '').slice(0, 10);
-    const r = await sql`insert into taller.part (id, clave_norm, codigo, nombre, unidad, ruta, equipo) values (${id}, ${clave}, ${codigo}, ${nombre}, ${unidad}, ${ruta}, ${equipo})
-      on conflict (clave_norm) do update set ruta = excluded.ruta, actualizado = now(), equipo = case when excluded.equipo <> '' then excluded.equipo else taller.part.equipo end
+    const r = await sql`insert into taller.part (id, clave_norm, codigo, nombre, unidad, ruta, equipo, ap_paterno, ap_materno, nombres, codigo_adm, telefono)
+      values (${id}, ${clave}, ${codigo}, ${nombre}, ${unidad}, ${ruta}, ${equipo}, ${apP}, ${apM}, ${noms}, ${codAdm}, ${tel})
+      on conflict (clave_norm) do update set ruta = excluded.ruta, actualizado = now(), unidad = excluded.unidad, telefono = excluded.telefono,
+        codigo_adm = case when excluded.codigo_adm <> '' then excluded.codigo_adm else taller.part.codigo_adm end,
+        equipo = case when excluded.equipo <> '' then excluded.equipo else taller.part.equipo end
       returning id`;
     return estado(r[0].id);
   },
@@ -185,7 +199,7 @@ const API = {
   },
   async fcEstado() { return { tieneClave: true }; },
   async fcCrearClave() { throw new Error('La contraseña ya fue creada.'); },
-  async fcPanel(c) { const cf = await clave_(c); return panelDe(cf, await sql`select * from taller.part order by creado`); },
+  async fcPanel(c) { const cf = await clave_(c); return panelDe(cf, await sql`select * from taller.part order by ap_paterno, ap_materno, nombres, creado`); },
   async fcEvidencias(c, id) {
     await clave_(c);
     return (await sql`select * from taller.evid where pid = ${String(id)} order by id`).map((e) => ({ fecha: horaLaPaz(new Date(e.fecha)).slice(0, 5), objetivo: e.objetivo, puntos: e.puntos, nivel: e.nivel, detalle: e.detalle, datos: JSON.stringify(e.datos) }));
@@ -200,9 +214,9 @@ const API = {
   },
   async fcCSV(c) {
     await clave_(c);
-    const filas = await sql`select * from taller.part order by creado`;
-    const cab = ['Nombre', 'Unidad', 'Equipo', 'Ruta', 'Pareja', 'U1', 'U2', 'U3', 'U4', 'U5', 'Total', 'Quiz (de 5)', 'Nivel U1', 'Nivel U2', 'Nivel U3', 'Nivel U4', 'Nivel U5'];
-    const out = [cab].concat(filas.map((f) => { const o = [f.o1, f.o2, f.o3, f.o4, f.o5]; return [f.nombre, f.unidad, f.equipo, f.ruta === 'B' ? 'Sin cuenta de Google' : 'Con cuenta de Google', f.pareja].concat(o.map((x) => x ?? 0)).concat([f.total, f.quiz ?? '']).concat(o.map((x) => nivel_(x ?? 0))); }));
+    const filas = await sql`select * from taller.part order by ap_paterno, ap_materno, nombres, creado`;
+    const cab = ['Apellido paterno', 'Apellido materno', 'Nombres', 'Código administrativo', 'Teléfono', 'Unidad', 'Equipo', 'Ruta', 'Pareja', 'U1', 'U2', 'U3', 'U4', 'U5', 'Total', 'Quiz (de 5)', 'Nivel U1', 'Nivel U2', 'Nivel U3', 'Nivel U4', 'Nivel U5'];
+    const out = [cab].concat(filas.map((f) => { const o = [f.o1, f.o2, f.o3, f.o4, f.o5]; return [f.ap_paterno, f.ap_materno, f.nombres || f.nombre, f.codigo_adm, f.telefono, f.unidad, f.equipo, f.ruta === 'B' ? 'Sin cuenta de Google' : 'Con cuenta de Google', f.pareja].concat(o.map((x) => x ?? 0)).concat([f.total, f.quiz ?? '']).concat(o.map((x) => nivel_(x ?? 0))); }));
     return out.map((r) => r.map((x) => { const s = String(x ?? ''); return /[";\n,]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(';')).join('\r\n');
   },
 };
