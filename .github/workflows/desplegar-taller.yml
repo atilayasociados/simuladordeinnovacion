@@ -21,11 +21,11 @@ jobs:
       PROYECTO: xlkjssypdayyaxwjokry
     steps:
       - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
+      - uses: actions/setup-node@v4
         with:
-          version: latest
+          node-version: 20
       - name: Publicar función taller
-        run: supabase functions deploy taller --project-ref "$PROYECTO" --no-verify-jwt --use-api --yes
+        run: npx -y supabase@latest functions deploy taller --project-ref "$PROYECTO" --no-verify-jwt --use-api --yes
       - name: Probar la función
         run: |
           for i in 1 2 3 4 5 6; do
