@@ -47,12 +47,13 @@ function calificar_(obj, d) {
   var p = 0, det = [], res = '';
   function txt(x) { return limpio_(x); }
   if (obj === 'o1') {
-    var of = txt(d.oficio), lis = d.rtcf || [], cmp = txt(d.comparacion), letras = ['Rol', 'Tarea', 'Contexto', 'Formato'], n = 0;
-    if (of.length >= 150) { p += 6; det.push('✔ Oficio pegado (6/6)'); } else det.push('✘ Pegue el oficio completo (al menos 150 caracteres; tiene ' + of.length + ')');
+    var deb = txt(d.oficioDebil), of = txt(d.oficio), lis = d.rtcf || [], cmp = txt(d.comparacion), letras = ['Rol', 'Tarea', 'Contexto', 'Formato'], n = 0;
+    if (deb.length >= 30) { p += 4; det.push('✔ Paso 1: pegó el oficio del pedido simple (4/4)'); } else det.push('✘ Paso 1: pegue lo que respondió la IA a «Hazme un oficio»');
+    if (of.length >= 150) { p += 6; det.push('✔ Paso 2: pegó el oficio con R-T-C-F (6/6)'); } else det.push('✘ Paso 2: pegue el oficio completo con R-T-C-F (al menos 150 caracteres; tiene ' + of.length + ')');
     letras.forEach(function (l, i) { if (lis[i] === true) n++; });
-    p += n * 2; det.push((n === 4 ? '✔' : '•') + ' Su prompt tuvo ' + n + ' de 4 partes de R-T-C-F (' + n * 2 + '/8)' + (n < 4 ? '. Faltó: ' + letras.filter(function (l, i) { return lis[i] !== true; }).join(', ') : ''));
-    if (cmp.length >= 15) { p += 6; det.push('✔ Comparó con «hazme un oficio» (6/6)'); } else det.push('✘ Escriba cuál salió mejor y por qué');
-    res = 'Oficio ' + of.length + ' caracteres; R-T-C-F ' + n + '/4';
+    p += n; det.push((n === 4 ? '✔' : '•') + ' Paso 2: su pedido tuvo ' + n + ' de 4 partes de R-T-C-F (' + n + '/4)' + (n < 4 ? '. Faltó: ' + letras.filter(function (l, i) { return lis[i] !== true; }).join(', ') : ''));
+    if (cmp.length >= 15) { p += 6; det.push('✔ Paso 3: comparó los dos oficios (6/6)'); } else det.push('✘ Paso 3: escriba cuál oficio salió mejor y por qué');
+    res = 'Simple ' + deb.length + ' car.; R-T-C-F ' + of.length + ' car.; partes ' + n + '/4';
   } else if (obj === 'o2') {
     var q = d.detectives || [], bien = 0, rep = txt(d.reparado), low = rep.toLowerCase();
     DETECTIVES.forEach(function (x, k) { var ok = q[k] === x.ok; if (ok) { p += 4; bien++; } det.push((ok ? '✔ ' : '✘ ') + x.exp); });
