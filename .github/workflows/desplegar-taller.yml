@@ -1,4 +1,4 @@
-# Publica la Edge Function "taller" (taller «Tu oficina en el bolsillo»). Independiente del simulador de innovación:
+# Publica la Edge Function "taller" (taller práctico «Inteligencia Artificial»). Independiente del simulador de innovación:
 # sus datos viven en el esquema "taller" y no toca la función "api".
 name: Publicar función del taller
 on:
