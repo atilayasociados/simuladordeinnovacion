@@ -15,7 +15,7 @@ var OBJETIVOS = {
   o5: 'Unidad 5 · Semáforo de datos',
   quiz: 'Quiz final'
 };
-var TITULO = 'Tu oficina en el bolsillo: IA y orden digital';
+var TITULO = 'Taller práctico «Inteligencia Artificial»';
 
 var DETECTIVES = [
   { ok: 'a', exp: 'Fecha: «31 de noviembre» no existe: noviembre tiene 30 días.' },
@@ -131,6 +131,7 @@ function preparar() {
       `);
       const defs = [['codigo_taller', 'IA893'], ['titulo', TITULO], ['nombre_documento', ''], ['url_documento', ''], ['url_presentacion', ''], ['fecha_taller', '2026-11-18'], ['clave_fac', await hash_(Deno.env.get('CLAVE_TALLER') || 'Taller2026')]];
       for (const [k, v] of defs) await sql`insert into taller.config (k, v) values (${k}, ${v}) on conflict (k) do nothing`;
+      await sql`update taller.config set v = ${TITULO} where k = 'titulo' and v <> ${TITULO}`;
     })();
     listo.catch(() => { listo = null; });
   }
