@@ -32,6 +32,10 @@ jobs:
             sleep 10
             r=$(curl -s -X POST "https://$PROYECTO.supabase.co/functions/v1/taller" -H 'Content-Type: application/json' -d '{"fn":"iniciar","args":[]}')
             echo "$r"
-            if echo "$r" | grep -q '"r":'; then exit 0; fi
+            if echo "$r" | grep -q '"r":'; then break; fi
+            if [ $i = 6 ]; then exit 1; fi
           done
-          exit 1
+          p=$(curl -s -X POST "https://$PROYECTO.supabase.co/functions/v1/taller" -H 'Content-Type: application/json' -H 'Origin: https://atilayasociados.github.io' -d '{"fn":"fcPanel","args":["taller2026 "]}' -D cabeceras.txt)
+          grep -i 'access-control-allow-origin' cabeceras.txt
+          echo "$p" | head -c 300
+          echo "$p" | grep -q '"codigo":"IA893"'

@@ -129,16 +129,17 @@ function preparar() {
         alter table taller.part add column if not exists codigo_adm text not null default '';
         alter table taller.part add column if not exists telefono text not null default '';
       `);
-      const defs = [['codigo_taller', 'IA893'], ['titulo', TITULO], ['nombre_documento', ''], ['url_documento', ''], ['url_presentacion', ''], ['fecha_taller', '2026-11-18'], ['clave_fac', await hash_(Deno.env.get('CLAVE_TALLER') || 'Taller2026')]];
+      const defs = [['codigo_taller', 'IA893'], ['titulo', TITULO], ['nombre_documento', ''], ['url_documento', ''], ['url_presentacion', ''], ['fecha_taller', '2026-11-18'], ['clave_fac', await hash_((Deno.env.get('CLAVE_TALLER') || 'Taller2026').toLowerCase())]];
       for (const [k, v] of defs) await sql`insert into taller.config (k, v) values (${k}, ${v}) on conflict (k) do nothing`;
       await sql`update taller.config set v = ${TITULO} where k = 'titulo' and v <> ${TITULO}`;
+      await sql`update taller.config set v = ${await hash_('taller2026')} where k = 'clave_fac' and v = ${await hash_('Taller2026')}`;
     })();
     listo.catch(() => { listo = null; });
   }
   return listo;
 }
 async function config() { const o = {}; (await sql`select k, v from taller.config`).forEach((r) => { o[r.k] = r.v; }); return o; }
-async function clave_(c) { const cf = await config(); if (!cf.clave_fac || (await hash_(c)) !== cf.clave_fac) throw new Error('Contraseña incorrecta.'); return cf; }
+async function clave_(c) { const cf = await config(); if (!cf.clave_fac || (await hash_(String(c || '').trim().toLowerCase())) !== cf.clave_fac) throw new Error('Contraseña incorrecta.'); return cf; }
 async function estado(id) {
   const f = (await sql`select * from taller.part where id = ${String(id)}`)[0];
   if (!f) throw new Error('No encontramos su registro. Vuelva a ingresar.');
