@@ -56,6 +56,7 @@ function vrEmpresa_(P, id) { for (var i = 0; i < P.E.equipos.length; i++) if (P.
 // ---------- limpieza de lo que envía el navegador ----------
 function vrNum_(x, a, b, nombre) {
   var v = Number(x);
+  if (a > 0 && (x === '' || x === null || x === undefined)) throw new Error(nombre + ': está vacío; escriban un número entre ' + a + ' y ' + b + '.');
   if (!isFinite(v) || v < a || v > b) throw new Error(nombre + ': debe ser un número entre ' + a + ' y ' + b + '.');
   return v;
 }
@@ -104,11 +105,12 @@ function vrLimpiarProyecto_(D, x) {
     produccionSemanal: vrNum_(pl.produccionSemanal || 0, 0, 1e6, nom + ' · producción semanal')
   };
   p.gantt = (Array.isArray(x.gantt) ? x.gantt : []).slice(0, 40).map(function (g, i) {
+    var act = nom + ' · actividad ' + (i + 1) + (g.nombre ? ' («' + vrTxt_(g.nombre, 60).trim() + '»)' : '');
     return { nombre: vrTxt_(g.nombre, 80), tipo: VR_TIPOS_ACT_[g.tipo] ? g.tipo : 'interna',
-      inicio: Math.round(vrNum_(g.inicio, 1, 156, nom + ' · actividad ' + (i + 1) + ' · inicio')),
-      duracion: Math.round(vrNum_(g.duracion, 1, 156, nom + ' · actividad ' + (i + 1) + ' · duración')),
-      responsable: Math.round(vrNum_(g.responsable || 0, 0, 4, nom + ' · actividad ' + (i + 1) + ' · responsable')),
-      carga: vrNum_(g.carga, 0.01, 1, nom + ' · actividad ' + (i + 1) + ' · carga') };
+      inicio: Math.round(vrNum_(g.inicio, 1, 156, act + ' · inicio')),
+      duracion: Math.round(vrNum_(g.duracion, 1, 156, act + ' · duración')),
+      responsable: Math.round(vrNum_(g.responsable || 0, 0, 4, act + ' · responsable')),
+      carga: vrNum_(g.carga, 0.01, 1, act + ' · carga') };
   });
   var c1 = x.compuerta1 || {}, c2 = x.compuerta2 || {};
   p.compuerta1 = { semana: c1.semana ? Math.round(vrNum_(c1.semana, 1, 156, nom + ' · compuerta 1')) : 0, continuar: c1.continuar !== false };
@@ -198,12 +200,14 @@ function vrLimpiarComercial_(eq, com) {
 function vrRevisar_(pa, P, eqId, dec) {
   var D = VR_DATOS, t = pa.t, eq = vrEmpresa_(P, eqId), banco = vrBanco(D, P.E), errores = [];
   var u = { st: P.innov[eqId], errores: [] };
-  try { u = vrUnirInnov_(D, P.innov[eqId], dec || {}, t); } catch (e) { errores.push(e.message); }
+  var datoInvalido = false;
+  try { u = vrUnirInnov_(D, P.innov[eqId], dec || {}, t); } catch (e) { errores.push(e.message); datoInvalido = true; }
   errores = errores.concat(u.errores);
   try { vrLimpiarComercial_(eq, (dec || {}).comercial); } catch (e2) { errores.push(e2.message); }
   var st = u.st;
   (st.proyectos || []).forEach(function (p) { p.atributosResueltos = vrResolverAtributos_(P.E.atributosAprobados, p); });
-  try { errores = errores.concat(vrValidarInnovacion(D, { t: t - 1 }, eq, st, banco)); } catch (e3) { errores.push(e3.message); }
+  // si un dato es inválido el plan no se pudo leer: se informa solo ese error (validar el plan anterior daba avisos falsos, p. ej. «el comité debe tener…»)
+  if (!datoInvalido) try { errores = errores.concat(vrValidarInnovacion(D, { t: t - 1 }, eq, st, banco)); } catch (e3) { errores.push(e3.message); }
   var s0 = vrSemanaInicioTrim_(D, t), s1 = vrSemanaFinTrim_(D, t);
   var comite = vrCostoComiteSemana(D, st.comite) * D.semanasPorTrimestre, estudios = (dec && dec.estudioMercado) ? D.estudios.mercado : 0, desarrollo = 0, registro = 0;
   var hojas = {};
