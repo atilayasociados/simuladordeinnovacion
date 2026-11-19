@@ -79,6 +79,20 @@ ok(true, 'el equipo corrige y vuelve a enviar');
 // equipo 2: baja publicidad y vende en tiendas; equipo 3 no envía nada
 G.apiGuardar(tok[1], { comercial: { [G.apiEstado(tok[1]).empresa.productos[0].id]: { precioEmpresa: precio * 1.05, mezcla: { tienda: 1 }, publicidad: pubRef * 0.5, produccionSemanal: null } }, comite: [{ nombre: 'Uno', cargo: 'profesional', dedicacion: 0.2 }] }, true);
 
+// tablero del docente: quién envió y quién no; forzar el envío
+let RS = G.apiAdmin(adm, 'resumen', { simId: sim.simId });
+const parab = RS.equipos.find((e) => e.nombre === 'Parabas');
+console.log('   tablero T1:', RS.equipos.map((e) => e.nombre + '=' + e.envio).join(', '));
+ok(RS.equipos.filter((e) => e.envio === 'enviado').length === 2 && parab.envio !== 'enviado', 'el tablero muestra quién envió (2) y quién no (Parabas)');
+ok(RS.equipos.every((e) => e.envio === 'sin decisiones' || !!e.fechaEnvio), 'el tablero muestra la fecha de la última actualización');
+const tieneBor = parab.envio === 'borrador';
+ok(G.apiAdmin(adm, 'vrForzarEnvio', { simId: sim.simId, equipoId: parab.equipoId }).mensaje.includes(tieneBor ? 'su borrador' : 'sin decisiones'), 'el docente fuerza el envío de un equipo pendiente');
+RS = G.apiAdmin(adm, 'resumen', { simId: sim.simId });
+const parab2 = RS.equipos.find((e) => e.nombre === 'Parabas');
+ok(parab2.envio === 'enviado' && String(parab2.enviadoPor).indexOf('docente') === 0, 'el equipo forzado figura como enviado por el docente');
+falla(() => G.apiGuardar(tok[2], {}, false), 'ya fueron enviadas', 'el equipo forzado ya no puede editar');
+ok(G.apiAdmin(adm, 'vrForzarEnvio', { simId: sim.simId, todos: true }).mensaje.includes('No había'), 'forzar todos sin pendientes no cambia nada');
+
 for (let t = 1; t <= 12; t++) {
   const r = G.apiAdmin(adm, 'procesar', { simId: sim.simId });
   if (!r.ok) { ok(false, 'procesar T' + t + ': ' + r.mensaje); break; }
@@ -90,6 +104,10 @@ for (let t = 1; t <= 12; t++) {
     const rr = G.apiEstimar(tok[0], d);
     if (rr.errores.length) console.log('   errores T' + (t + 1) + ':', rr.errores.join(' | '));
     G.apiGuardar(tok[0], d, rr.errores.length === 0);
+    if (t === 1) {
+      const rf = G.apiAdmin(adm, 'vrForzarEnvio', { simId: sim.simId, todos: true });
+      ok(/Jaguares \(sin decisiones/.test(rf.mensaje) && /Parabas \(sin decisiones/.test(rf.mensaje) && !/Halcones \(sin decisiones/.test(rf.mensaje), 'forzar todos en T2 envía solo a los pendientes que no guardaron nada');
+    }
   }
 }
 const sims = G.apiAdmin(adm, 'simulaciones', {}).lista.find((s) => s.simId === sim.simId);

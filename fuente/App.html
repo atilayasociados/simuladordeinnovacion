@@ -140,9 +140,48 @@ function aPartida() {
     '<div class="grid g2" style="margin-top:10px"><div><label>Código de la simulación (4 a 12 letras, números o guiones)</label><input type="text" id="pcod" value="' + esc(p.codigo) + '" maxlength="12" style="text-transform:uppercase;letter-spacing:2px"></div><div class="muted" style="align-self:end">Si lo cambia, avise a los equipos: lo necesitan para registrarse y para ingresar.</div></div>' +
     '<label class="chk" style="margin-top:8px"><input type="checkbox" id="preg"' + (p.registroAbierto ? ' checked' : '') + '> Registro de equipos abierto (los estudiantes pueden registrarse y agregar integrantes)</label>' +
     '<div style="margin-top:8px"><button class="btn sec" onclick="adm(\'editarSimulacion\',{codigo:$(\'pcod\').value,nombre:$(\'pnom\').value,sigla:$(\'psig\').value,maxIntegrantes:$(\'pmax\').value,registroAbierto:$(\'preg\').checked})">Guardar parámetros</button></div></div>' +
+    PART_tablero() +
     '<div class="card"><h2>Control del trimestre</h2><div class="inline"><button class="btn sec" onclick="adm(\'abrir\')">Abrir trimestre</button><button class="btn sec" onclick="adm(\'cerrar\')">Cerrar trimestre</button><button class="btn" onclick="if(confirm(\'¿Procesar el trimestre ' + p.t + ' para todos los equipos de esta simulación?\'))adm(\'procesar\')">Procesar trimestre ' + p.t + '</button><button class="btn sec" onclick="if(confirm(\'¿Deshacer el último trimestre procesado?\'))adm(\'retroceder\')">Deshacer último procesamiento</button></div>' +
     '<p class="muted">Flujo sugerido: los equipos se registran con el código → cierre el registro → abra el T1 → los equipos envían → cierre → procese (abre el siguiente trimestre) → debriefing.</p></div>' +
     '<div class="card"><h2>Reiniciar simulación</h2><p class="muted">Borra decisiones, estados, resultados y bitácoras de esta simulación. Conserva equipos e integrantes.</p><div class="inline"><input type="text" id="conf" placeholder="Escriba REINICIAR" style="max-width:220px"><label class="chk"><input type="checkbox" id="nsem"> Nueva semilla</label><button class="btn peligro" onclick="adm(\'reiniciar\',{confirmar:$(\'conf\').value,nuevaSemilla:$(\'nsem\').checked})">Reiniciar</button></div></div>';
+}
+// ---------- tablero de envíos del trimestre: quién envió, quién no, y forzar el envío ----------
+function PART_quien(e) {
+  var a = String(e.enviadoPor || ''); if (!a) return '';
+  if (a.indexOf('docente') === 0) return 'Docente (forzado)';
+  var i = (e.integrantes || []).filter(function (x) { return String(x.registro) === a; })[0];
+  return i ? (i.nombres + ' ' + i.apPaterno) : a;
+}
+function PART_tablero() {
+  var p = ADM.partida; if (ADM.motorRetirado || p.t > ADM.total || !ADM.equipos.length) return '';
+  var E = ADM.equipos.slice().sort(function (a, b) { var o = { 'sin decisiones': 0, borrador: 1, enviado: 2 }; return (o[a.envio] || 0) - (o[b.envio] || 0) || String(a.nombre).localeCompare(b.nombre); });
+  var nEnv = E.filter(function (e) { return e.envio === 'enviado'; }).length, nBor = E.filter(function (e) { return e.envio === 'borrador'; }).length, nSin = E.length - nEnv - nBor;
+  var pct = Math.round(100 * nEnv / E.length);
+  var h = '<div class="card"><div class="sim-cab"><h2>Envío de decisiones — trimestre ' + p.t + '</h2><div class="inline"><button class="btn sec" onclick="cargarAdmin()">↻ Actualizar</button>' +
+    (nBor + nSin ? '<button class="btn" onclick="PART_forzarTodos(' + (nBor + nSin) + ')">Forzar envío de los ' + (nBor + nSin) + ' pendientes</button>' : '') + '</div></div>' +
+    '<div class="grid g3" style="margin:8px 0"><div class="kpi"><div class="v">✅ ' + nEnv + '</div><div class="l">Enviaron</div></div><div class="kpi"><div class="v">📝 ' + nBor + '</div><div class="l">Tienen borrador sin enviar</div></div><div class="kpi"><div class="v">⛔ ' + nSin + '</div><div class="l">No guardaron nada</div></div></div>' +
+    '<div style="height:10px;border-radius:5px;background:rgba(127,127,127,.25);overflow:hidden;margin-bottom:10px"><div style="height:100%;width:' + pct + '%;background:#2ecc71"></div></div>' +
+    '<div class="scroll"><table><tr><th>Equipo</th><th>Estado</th><th>Última actualización</th><th>Por</th><th></th></tr>' +
+    E.map(function (e) {
+      var nom = esc(String(e.nombre).replace(/'/g, '')), est = e.envio === 'enviado' ? '<span class="tag ok">✅ Enviadas</span>' : (e.envio === 'borrador' ? '<span class="tag">📝 Borrador sin enviar</span>' : '<span class="tag mal">⛔ Sin guardar</span>');
+      var f = e.fechaEnvio ? new Date(e.fechaEnvio) : null;
+      var acc = e.envio === 'enviado' ? '<button class="btn sec" onclick="PART_corregir(\'' + esc(e.equipoId) + '\',\'' + nom + '\')">Permitir corregir</button>' : '<button class="btn" onclick="PART_forzar(\'' + esc(e.equipoId) + '\',\'' + nom + '\',' + (e.envio === 'borrador') + ')">Forzar envío</button>';
+      return '<tr><td>' + esc(e.nombre) + '</td><td>' + est + '</td><td>' + (f && !isNaN(f) ? esc(f.toLocaleString('es-BO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })) : '—') + '</td><td>' + esc(PART_quien(e)) + '</td><td>' + acc + '</td></tr>';
+    }).join('') + '</table></div>' +
+    '<p class="muted">Forzar envío: si el equipo tiene borrador, se envía tal como lo guardó; si no guardó nada, mantiene sus precios, canales, publicidad y plan de innovación del trimestre anterior. En ambos casos el equipo ya no puede editar, salvo que usted le permita corregir. Toque «Actualizar» para ver los envíos más recientes.</p></div>';
+  return h;
+}
+function PART_forzar(equipoId, nombre, tieneBorrador) {
+  if (!confirm(tieneBorrador ? '¿Enviar el borrador de ' + nombre + ' tal como está guardado? El equipo ya no podrá cambiarlo.' : nombre + ' no guardó decisiones. ¿Enviar sin cambios? Mantendrá sus precios, canales, publicidad y plan de innovación del trimestre anterior.')) return;
+  adm('vrForzarEnvio', { equipoId: equipoId });
+}
+function PART_forzarTodos(n) {
+  if (!confirm('¿Forzar el envío de los ' + n + ' equipos pendientes? Los que tienen borrador lo envían tal como está; los que no guardaron nada repiten lo del trimestre anterior.')) return;
+  adm('vrForzarEnvio', { todos: true });
+}
+function PART_corregir(equipoId, nombre) {
+  if (!confirm('¿Permitir que ' + nombre + ' corrija y vuelva a enviar sus decisiones de este trimestre?')) return;
+  adm('vrDevolver', { equipoId: equipoId });
 }
 function aRanking() { return '<div class="card"><h2>Ranking y debriefing</h2><div id="rk" class="muted">Cargando…</div></div>'; }
 function cargarRanking() {

@@ -53,6 +53,7 @@ try {
   // docente procesa el T1 y revisa el panel
   await pg.goto(U + '?vista=docente'); await ingresar(s.sa.email, 'Clave#2026');
   await pg.click('nav >> text=Partida'); await pg.waitForTimeout(600);
+  R.tablero = await pg.isVisible('text=Envío de decisiones — trimestre 1'); await pg.evaluate(() => { const h = [...document.querySelectorAll('h2')].find((x) => x.textContent.startsWith('Envío de decisiones')); if (h) h.scrollIntoView(); }); await foto('6b_tablero_envios');
   await pg.click('button:has-text("Procesar trimestre 1")'); await pg.waitForTimeout(2000);
   R.t2 = s.mem.tablas.simulaciones[0].fila ? true : true;
   await pg.click('nav >> text=Vida real'); await pg.waitForTimeout(1200); await foto('7_panel_docente');
@@ -72,7 +73,7 @@ try {
   await pg.click('nav >> text=Situación'); await pg.waitForTimeout(300); await foto('12_situacion');
   console.log(JSON.stringify(R));
   console.log('Errores de página:', errs.length ? errs : 'ninguno');
-  ok = R.tabVida && R.resumen && R.borrador && R.panel && R.ranking && R.t1 && R.estudio && !errs.length;
+  ok = R.tabVida && R.resumen && R.borrador && R.tablero && R.panel && R.ranking && R.t1 && R.estudio && !errs.length;
 } catch (e) { ok = false; console.log('FALLA:', e.message, errs); await foto('error'); }
 await br.close(); await s.cerrar();
 console.log(ok ? 'UI VR OK' : 'UI VR CON FALLAS');

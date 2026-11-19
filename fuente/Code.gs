@@ -270,7 +270,7 @@ function apiAdmin(tok, accion, datos) {
       equipos: eqs2.map(function (e) {
         var d = decs.filter(function (x) { return String(x.equipoId) === String(e.equipoId); })[0];
         var r = res.filter(function (x) { return String(x.equipoId) === String(e.equipoId); })[0];
-        return { equipoId: e.equipoId, nombre: e.nombre, mandato: e.mandato, envio: d ? d.estado : 'sin decisiones', enviadoPor: d ? d.enviadoPor : '',
+        return { equipoId: e.equipoId, nombre: e.nombre, mandato: e.mandato, envio: d ? d.estado : 'sin decisiones', enviadoPor: d ? d.enviadoPor : '', fechaEnvio: d ? d.fecha : '',
           integrantes: ints2.filter(function (i) { return String(i.equipoId) === String(e.equipoId); }).map(function (i) { return integrantePublico_(i, true); }),
           ultimo: r ? { ventas: r.ventas, utilidadNeta: r.utilidadNeta, caja: r.caja, cuotaTotal: r.cuotaTotal, vitalidad: r.vitalidad, clima: r.clima } : null };
       }),

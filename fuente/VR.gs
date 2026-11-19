@@ -521,6 +521,23 @@ function vrApiAdmin_(ses, pa, accion, datos) {
     log_(ses.email, 'vrRubro', pa.codigo + ' ' + clave);
     return { ok: true, mensaje: 'Rubro "' + nombre + '" incorporado al banco de todos los equipos (clave ' + clave + ').' };
   }
+  if (accion === 'vrForzarEnvio') {
+    // el docente cierra el envío de un equipo (o de todos los pendientes): se envía su borrador tal como está o, si no guardó nada, una decisión vacía que repite lo del trimestre anterior
+    if (pa.t < 1 || pa.t > D.horizonteTrimestres) throw new Error('No hay un trimestre en curso para forzar envíos.');
+    var listaF = datos.todos ? P.E.equipos.map(function (e) { return P.mapa[e.id]; }) : [datos.equipoId], hechos = [];
+    listaF.forEach(function (eqF) {
+      var idF = vrMiId_(P, eqF); if (!idF) throw new Error('Equipo no encontrado en la partida.');
+      var eF = P.E.equipos.filter(function (e) { return e.id === idF; })[0];
+      var dF = getJson_('Decisiones', eqF, pa.t);
+      if (dF && dF._estado === 'enviado') return;
+      var baseF = dF || {}; delete baseF._estado; delete baseF._fecha; delete baseF._autor;
+      putJson_('Decisiones', eqF, pa.t, baseF, { estado: 'enviado', autor: dF ? 'docente (envío forzado del borrador)' : 'docente (envío forzado sin decisiones)' });
+      log_(ses.email, 'vrForzarEnvio', pa.codigo + ' ' + eqF + ' T' + pa.t + (dF ? ' borrador' : ' vacío'));
+      hechos.push(eF.nombre + (dF ? ' (su borrador)' : ' (sin decisiones: repite lo del trimestre anterior)'));
+    });
+    if (!hechos.length) return { ok: true, mensaje: 'No había equipos pendientes: todos ya enviaron.' };
+    return { ok: true, mensaje: 'Envío forzado en el trimestre ' + pa.t + ': ' + hechos.join('; ') + '.' };
+  }
   if (accion === 'vrDevolver') {
     // el docente permite que un equipo corrija sus decisiones ya enviadas del trimestre en curso
     var idD = vrMiId_(P, datos.equipoId); if (!idD) throw new Error('Equipo no encontrado en la partida.');
