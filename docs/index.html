@@ -175,7 +175,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = 'be7a604c15c6';
+  var V0 = 'bb018c2ded9a';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -1275,11 +1275,11 @@ function VR_hojaResumen(p) {
 function VR_gantt(p, i, e) {
   var base = 'proyectos.' + i + '.', s0 = VV.cat.semanaInicio, h = '<div class="card"><h2>Gantt del proyecto (semanas de la partida)</h2>' + VR_errBox('gantt', p.id) + '<p class="muted">El trimestre actual va de la semana ' + s0 + ' a la ' + VV.cat.semanaFin + '. Las actividades externas tienen duración fija. El desarrollo y la prueba de producto empiezan después de la compuerta 1; el lanzamiento, después de la compuerta 2 y del registro sanitario. La carga de cada responsable no puede superar su dedicación. Lo que ya empezó no se puede cambiar.</p><div class="scroll"><table><tr><th>Actividad</th><th>Tipo</th><th class="n">Inicio</th><th class="n">Duración</th><th class="n">Fin</th><th>Responsable</th><th class="n">Carga (%)</th><th></th></tr>';
   p.gantt.forEach(function (a, j) {
-    var b = 'gantt.' + j + '.', lock = !e || a.inicio < s0, ext = ['estudio_consumidor', 'prueba_concepto', 'prueba_producto', 'registro_sanitario'].indexOf(a.tipo) >= 0;
+    var b = 'gantt.' + j + '.', vacio = !(Number(a.inicio) >= 1), lock = !e || (!vacio && a.inicio < s0), ext = ['estudio_consumidor', 'prueba_concepto', 'prueba_producto', 'registro_sanitario'].indexOf(a.tipo) >= 0;
     h += '<tr><td><input type="text" value="' + esc(a.nombre) + '"' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'nombre\', this.value)"></td>' +
       '<td><select' + (lock ? ' disabled' : '') + ' onchange="VR_tipoAct(' + i + ',' + j + ', this.value)">' + Object.keys(VR_ACT).map(function (k) { return '<option value="' + k + '"' + (a.tipo === k ? ' selected' : '') + '>' + VR_ACT[k] + '</option>'; }).join('') + '</select></td>' +
-      '<td class="n"><input type="number" min="1" max="156" style="max-width:80px" value="' + a.inicio + '"' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'inicio\', this.value, true, true)"></td>' +
-      '<td class="n"><input type="number" min="1" style="max-width:70px" value="' + a.duracion + '"' + (lock || ext ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'duracion\', this.value, true, true)"></td><td class="n">' + (a.inicio + a.duracion - 1) + '</td>' +
+      '<td class="n"><input type="number" min="1" max="156" style="max-width:80px' + (vacio ? ';border:2px solid #e74c3c" placeholder="semana' : '') + '" value="' + a.inicio + '"' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'inicio\', this.value, true, true)"></td>' +
+      '<td class="n"><input type="number" min="1" style="max-width:70px" value="' + a.duracion + '"' + (lock || ext ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'duracion\', this.value, true, true)"></td><td class="n">' + (vacio ? '—' : (a.inicio + a.duracion - 1)) + '</td>' +
       '<td><select' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'responsable\', Number(this.value))">' + DD.comite.map(function (m, k) { return '<option value="' + k + '"' + (a.responsable === k ? ' selected' : '') + '>' + esc(m.nombre) + '</option>'; }).join('') + '</select></td>' +
       '<td class="n"><input type="number" min="1" max="100" style="max-width:70px" value="' + Math.round(a.carga * 100) + '"' + (lock ? ' disabled' : '') + ' onchange="VR_set(\'' + base + b + 'carga\', Number(this.value) / 100)"></td>' +
       '<td>' + (lock ? '' : '<button class="btn sec" onclick="DD.proyectos[' + i + '].gantt.splice(' + j + ',1);VR_render();VR_revisar()">×</button>') + '</td></tr>';
