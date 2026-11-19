@@ -130,21 +130,22 @@ school:'<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/
 // ===================== Estilo SimNeuro: iconos, encabezado de pantalla, recorrido y «Tu siguiente paso» =====================
 function SN_ico(n) { return '<svg class="sn-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (SN_P[n] || SN_P.compass) + '</svg>'; }
 var SN_GICO = { sit: 'compass', dec: 'pen', res: 'chart', apr: 'grad' };
-var SN_SICO = { inicio: 'bag', informes: 'radio', equipo: 'user', comite: 'users', proyectos: 'bulb', productos: 'cart', compraEstudio: 'eye', trimestre: 'trend', estados: 'clip', resMercado: 'target', aprender: 'book' };
+var SN_SICO = { inicio: 'bag', informes: 'radio', equipo: 'user', comite: 'users', proyectos: 'bulb', marketing: 'cart', produccion: 'gear', finanzas: 'trend', productos: 'cart', compraEstudio: 'eye', trimestre: 'trend', estados: 'clip', resMercado: 'target', aprender: 'book' };
 var SN_AICO = { simulaciones: 'gear', partida: 'repeat', equipos: 'users', vida: 'trend', ranking: 'chart', resultados: 'target', docentes: 'school', cuenta: 'key' };
 // Orden de trabajo de un trimestre: [pantalla, qué es, título del siguiente paso, qué hacer, pantalla a la que lleva]
 var SN_PASOS = [
   ['inicio', 'Conozcan su empresa láctea, su presupuesto de innovación del año y cómo se juega.', 'Revisen el entorno', 'En Situación → Entorno lean las noticias que afectan a todas las empresas y el informe del macroentorno.', 'informes'],
   ['informes', 'Noticias e informe del macroentorno que afectan a todas las empresas.', 'Revisen su equipo', 'En Situación → Mi equipo confirmen quiénes integran el equipo.', 'equipo'],
-  ['equipo', 'Integrantes del equipo y contraseña.', 'Armen el comité de innovación', 'En Decisión → Comité definan quiénes integran el comité y qué porcentaje de su tiempo dedican.', 'comite'],
-  ['comite', 'Quiénes integran el comité y qué porcentaje de su tiempo dedican a innovar.', 'Planifiquen sus proyectos', 'En Decisión → Proyectos escriban la idea, el producto propuesto, la hoja de costos y el Gantt de cada proyecto.', 'proyectos'],
-  ['proyectos', 'La idea, el producto propuesto, la hoja de costos, el Gantt y las compuertas de cada proyecto.', 'Decidan sobre sus productos', 'En Decisión → Productos fijen el precio, los canales, la publicidad y la producción semanal.', 'productos'],
-  ['productos', 'Precio, canales, publicidad y producción semanal de cada producto en el mercado.', 'Decidan si compran el estudio de mercado', 'Es opcional y de pago. Después, abajo, toquen «Enviar decisiones».', 'compraEstudio'],
-  ['compraEstudio', 'Estudio de mercado y competencia de pago (opcional).', 'Envíen sus decisiones', 'Abajo toquen «Enviar decisiones». Cuando el docente procese el trimestre, vean lo que pasó en Resultados → Trimestre.', 'trimestre'],
+  ['equipo', 'Integrantes del equipo y contraseña.', 'Decidan el marketing', 'En Decisión → Marketing fijen el precio, los canales y la publicidad de cada producto, y decidan si compran el estudio de mercado.', 'marketing'],
+  ['marketing', 'Precio, canales y publicidad de cada producto, y compra del estudio de mercado.', 'Planifiquen la producción', 'En Decisión → Producción decidan cuánto producir por semana de cada producto.', 'produccion'],
+  ['produccion', 'Cuánto producir por semana de cada producto, con la capacidad de la planta.', 'Armen el comité de innovación', 'En Decisión → Recursos humanos definan quiénes integran el comité, su cargo y qué porcentaje de su tiempo dedican.', 'comite'],
+  ['comite', 'Quiénes integran el comité de innovación, su cargo y qué porcentaje de su tiempo dedican.', 'Planifiquen sus proyectos', 'En Decisión → Innovación escriban la idea, el producto propuesto, la hoja de costos y el Gantt de cada proyecto.', 'proyectos'],
+  ['proyectos', 'La idea, el producto propuesto, la hoja de costos, el Gantt y las compuertas de cada proyecto.', 'Revisen las finanzas', 'En Decisión → Finanzas vean cuánto cuestan sus decisiones este trimestre y cómo se pagan.', 'finanzas'],
+  ['finanzas', 'Lo que cuestan este trimestre las decisiones de las otras áreas y cómo se financian.', 'Envíen sus decisiones', 'Abajo toquen «Enviar decisiones». Cuando el docente procese el trimestre, vean lo que pasó en Resultados → Trimestre.', 'trimestre'],
   ['trimestre', 'Lo que pasó en el último trimestre procesado, producto por producto.', 'Revisen los estados financieros', 'En Resultados → Estados financieros vean cómo quedó la empresa.', 'estados'],
   ['estados', 'Estados financieros de la empresa.', 'Revisen los estudios de mercado', 'En Resultados → Estudio de mercado lean los estudios que recibieron.', 'resMercado'],
   ['resMercado', 'Estudios de mercado que recibieron.', 'Repasen los conceptos', 'En Aprender → Unidades de aprendizaje revisen los conceptos de innovación que usa el simulador.', 'aprender'],
-  ['aprender', 'Los conceptos de innovación que usa el simulador, con su fuente.', 'Preparen el siguiente trimestre', 'Vuelvan a Decisión → Comité y ajusten sus decisiones con lo que aprendieron.', 'comite']
+  ['aprender', 'Los conceptos de innovación que usa el simulador, con su fuente.', 'Preparen el siguiente trimestre', 'Vuelvan a Decisión → Marketing y ajusten sus decisiones con lo que aprendieron.', 'marketing']
 ];
 function SN_paso(t) { for (var i = 0; i < SN_PASOS.length; i++) if (SN_PASOS[i][0] === t) return i; return -1; }
 function SN_nombre(t) { var n = t; VR_MENU.forEach(function (m) { m[2].forEach(function (x) { if (x[0] === t) n = x[1]; }); }); return n; }

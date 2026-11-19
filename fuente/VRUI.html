@@ -44,7 +44,7 @@ function vrR(x) { return Math.round(Number(x) * 100) / 100; }
 // Menú del estudiante: Situación, Decisión, Resultados y Aprender (cada uno con sus secciones).
 var VR_MENU = [
   ['sit', 'Situación', [['inicio', 'La empresa'], ['informes', 'Entorno'], ['equipo', 'Mi equipo']]],
-  ['dec', 'Decisión', [['comite', 'Comité'], ['proyectos', 'Proyectos'], ['productos', 'Productos'], ['compraEstudio', 'Estudio de mercado']]],
+  ['dec', 'Decisión', [['marketing', 'Marketing'], ['produccion', 'Producción'], ['comite', 'Recursos humanos'], ['proyectos', 'Innovación'], ['finanzas', 'Finanzas']]],
   ['res', 'Resultados', [['trimestre', 'Trimestre'], ['estados', 'Estados financieros'], ['resMercado', 'Estudio de mercado']]],
   ['apr', 'Aprender', [['aprender', 'Unidades de aprendizaje']]]
 ];
@@ -56,7 +56,7 @@ function VR_render() {
   var m = VR_menuDe(VTAB);
   $('nav').style.display = 'flex';
   $('nav').innerHTML = VR_tabs().map(function (t) { return '<button class="' + (m[0] === t[0] ? 'on' : '') + '"' + (m[0] === t[0] ? ' aria-current="page"' : '') + ' onclick="VR_ir(\'' + t[0] + '\')">' + (typeof SN_ico === 'function' ? SN_ico(SN_GICO[t[0]]) : '') + t[1] + '</button>'; }).join('');
-  var f = { inicio: VR_inicio, informes: VR_informes, equipo: AX_vEquipo, comite: VR_comite, proyectos: VR_proyectos, productos: VR_productos, compraEstudio: VR_compraEstudio,
+  var f = { inicio: VR_inicio, informes: VR_informes, equipo: AX_vEquipo, comite: VR_comite, proyectos: VR_proyectos, marketing: VR_marketing, produccion: VR_produccion, finanzas: VR_finanzas, productos: VR_marketing, compraEstudio: VR_marketing,
     trimestre: VR_resTrimestre, estados: VR_estados, resMercado: VR_resMercado, aprender: VR_aprender }[VTAB] || VR_inicio;
   var sn = typeof SN_ico === 'function';
   var sub = m[2].length > 1 ? '<div class="subnav">' + m[2].map(function (x) { return '<button class="' + (VTAB === x[0] ? 'on' : '') + '" onclick="VR_ir(\'' + x[0] + '\')">' + (sn ? SN_ico(SN_SICO[x[0]]) : '') + x[1] + '</button>'; }).join('') + '</div>' : '';
@@ -101,7 +101,7 @@ function VR_lugarError(t) {
     return { tab: 'proyectos', p: pr.id, l: l };
   }
   var pd = null; VV.empresa.productos.forEach(function (x) { var n = x.nombre || x.id; if (t.indexOf(n + ' · ') === 0 || t.indexOf(n + ':') === 0) pd = x; });
-  if (pd) return { tab: 'productos', l: 'prod-' + pd.id };
+  if (pd) return { tab: /produc(ción|ir)|capacidad|inventario/i.test(t.replace(pd.nombre, '')) ? 'produccion' : 'marketing', l: 'prod-' + pd.id };
   return { tab: VTAB, l: '' };
 }
 function VR_pintarErrores() {
@@ -207,10 +207,10 @@ function VR_informes() {
 }
 function VR_compraEstudio() {
   var h = '';
-  h += '<div class="card"><h2>Estudio de mercado y competencia (de pago)</h2><p>Una consultora mide lo que pasó en el mercado durante el trimestre. Cuesta <b>' + vrBs(VV.cat.estudios.mercado) + '</b> (gasto de ventas, no sale del presupuesto de innovación). Si lo marcan, lo reciben <b>en esta misma sección, cuando el docente procese el trimestre</b>, con estos datos de cada producto del mercado (los de todos los equipos, Cupesí y Motacú):</p><ul>' +
+  h += '<div class="card"><h2>Estudio de mercado y competencia (de pago)</h2><p>Una consultora mide lo que pasó en el mercado durante el trimestre. Cuesta <b>' + vrBs(VV.cat.estudios.mercado) + '</b> (gasto de ventas, no sale del presupuesto de innovación). Si lo marcan, lo reciben <b>en Resultados → Estudio de mercado, cuando el docente procese el trimestre</b>, con estos datos de cada producto del mercado (los de todos los equipos, Cupesí y Motacú):</p><ul>' +
     '<li>Litros vendidos y participación de mercado.</li><li>Litros vendidos en cada segmento (lo natural, cuidan calorías, promedio) y tamaño de cada segmento.</li>' +
     '<li>Precio al consumidor en supermercado, tienda de barrio y mercado.</li><li>Publicidad del trimestre (la de Cupesí y Motacú, estimada por la consultora).</li><li>Mensaje del frente del envase.</li></ul>' +
-    '<p class="muted">Sin el estudio solo ven el rango aproximado del mercado y la góndola (arriba). Los otros estudios de pago (del consumidor, prueba de concepto y prueba de producto) se compran dentro de cada proyecto, en su Gantt.</p>' +
+    '<p class="muted">Sin el estudio solo ven el rango aproximado del mercado y la góndola (en Situación → Entorno). Los otros estudios de pago (del consumidor, prueba de concepto y prueba de producto) se compran dentro de cada proyecto, en su Gantt.</p>' +
     (VR_puedeEditar() ? '<label class="chk"><input type="checkbox"' + (DD.estudioMercado ? ' checked' : '') + ' onchange="VR_set(\'estudioMercado\', this.checked)"> Comprar el estudio de mercado este trimestre</label>' : '<p class="muted">El trimestre está cerrado: no se puede comprar ahora.</p>') + '<p class="muted">Los estudios ya entregados están en Resultados → Estudio de mercado.</p></div>';
   return h;
 }
@@ -456,18 +456,51 @@ function VR_solicitudes() {
 }
 
 // ---------- Productos ----------
-function VR_productos() {
-  var ed = VR_puedeEditar(), h = '<div class="card"><h2>Productos en el mercado (sección 5)</h2><p>Para cada producto deciden el precio a la empresa, los canales, la publicidad del trimestre y cuánto producir por semana. Producir de menos pierde ventas; producir de más deja inventario que vence a las 16 semanas (UHT). Capacidad de la planta: ' + vrN(VV.empresa.capacidadSemanal) + ' unidades por semana entre todos los productos.</p></div>';
-  VV.empresa.productos.forEach(function (p) {
-    if (!p.activo) return;
+function VR_productosActivos() { return VV.empresa.productos.filter(function (p) { return p.activo; }); }
+/** Decisión → Marketing: precio, canales y publicidad de cada producto, y compra del estudio de mercado. */
+function VR_marketing() {
+  var ed = VR_puedeEditar(), h = '<div class="card"><h2>Marketing</h2><p>Para cada producto en el mercado deciden el <b>precio a la empresa</b>, los <b>canales</b> donde se vende y la <b>publicidad del trimestre</b>. El precio al consumidor sale del precio a la empresa y del margen de cada canal.</p></div>';
+  VR_productosActivos().forEach(function (p) {
     var d = DD.comercial[p.id], base = 'comercial.' + p.id + '.';
-    h += '<div class="card"><h2>' + esc(p.nombre) + '</h2>' + VR_errBox('prod-' + p.id) + '<p class="muted">Inventario: ' + vrN(p.inventarioLitros) + ' unidades · costo variable ' + vrBs(p.costoVariable, 2) + ' por unidad · publicidad de referencia ' + vrBs(p.publicidadRef) + ' por trimestre.</p>' +
-      '<div class="grid g4"><div><label>Precio a la empresa (Bs)</label><input type="number" step="0.01" value="' + d.precioEmpresa + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'precioEmpresa\', this.value, true, true)"></div>' +
+    h += '<div class="card"><h2>' + esc(p.nombre) + '</h2>' + VR_errBox('prod-' + p.id) + '<p class="muted">Publicidad de referencia: ' + vrBs(p.publicidadRef) + ' por trimestre.</p>' +
+      '<div class="grid g3"><div><label>Precio a la empresa (Bs)</label><input type="number" step="0.01" value="' + d.precioEmpresa + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'precioEmpresa\', this.value, true, true)"></div>' +
       '<div><label>Publicidad del trimestre (Bs)</label><input type="number" step="1000" value="' + d.publicidad + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'publicidad\', this.value, true)"></div>' +
-      '<div><label>Producción semanal (vacío = lo que se espera vender)</label><input type="number" step="100" value="' + (d.produccionSemanal === null || d.produccionSemanal === undefined ? '' : d.produccionSemanal) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'produccionSemanal\', this.value === \'\' ? null : Number(this.value))"></div>' +
       '<div><label>Precio al consumidor</label><div class="calc">' + Object.keys(VR_CAN).filter(function (c) { return d.mezcla[c] > 0; }).map(function (c) { return VR_CAN[c] + ': ' + vrBs(d.precioEmpresa / (1 - VV.informes.industria.canales[c].margen), 2); }).join('<br>') + '</div></div></div>' +
       '<label>Canales (% de las ventas)</label><div class="grid g3">' + Object.keys(VR_CAN).map(function (c) { return '<div><label class="muted">' + VR_CAN[c] + ' (margen ' + vrP(VV.informes.industria.canales[c].margen) + ', cobro ' + (VV.informes.industria.canales[c].diasCobro ? VV.informes.industria.canales[c].diasCobro + ' días' : 'al contado') + ')</label><input type="number" min="0" max="100" value="' + Math.round((d.mezcla[c] || 0) * 100) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'mezcla.' + c + '\', Number(this.value) / 100, false, true)"></div>'; }).join('') + '</div></div>';
   });
+  return h + VR_compraEstudio();
+}
+/** Decisión → Producción: cuánto producir por semana de cada producto. */
+function VR_produccion() {
+  var ed = VR_puedeEditar(), h = '<div class="card"><h2>Producción</h2><p>Para cada producto deciden <b>cuánto producir por semana</b>. Producir de menos pierde ventas; producir de más deja inventario que vence a las 16 semanas (UHT). Capacidad de la planta: <b>' + vrN(VV.empresa.capacidadSemanal) + ' unidades por semana</b> entre todos los productos.</p></div>';
+  VR_productosActivos().forEach(function (p) {
+    var d = DD.comercial[p.id], base = 'comercial.' + p.id + '.';
+    h += '<div class="card"><h2>' + esc(p.nombre) + '</h2>' + VR_errBox('prod-' + p.id) +
+      '<div class="grid g3"><div class="kpi"><div class="v">' + vrN(p.inventarioLitros) + '</div><div class="l">Inventario actual (unidades)</div></div>' +
+      '<div class="kpi"><div class="v">' + vrBs(p.costoVariable, 2) + '</div><div class="l">Costo variable por unidad</div></div>' +
+      '<div><label>Producción semanal (vacío = lo que se espera vender)</label><input type="number" step="100" value="' + (d.produccionSemanal === null || d.produccionSemanal === undefined ? '' : d.produccionSemanal) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'produccionSemanal\', this.value === \'\' ? null : Number(this.value))"></div></div></div>';
+  });
+  return h;
+}
+/** Decisión → Finanzas: lo que sus decisiones cuestan este trimestre (solo lectura) y cómo se financian. */
+function VR_finanzas() {
+  var u = VR_ultimo(), b = u ? u.balance : VV.empresa.balanceInicial, c = (VREV && VREV.costosTrimestre) || null, ed = VR_puedeEditar();
+  var pub = 0; VR_productosActivos().forEach(function (p) { pub += Number((DD.comercial[p.id] || {}).publicidad) || 0; });
+  var estM = DD.estudioMercado ? VV.cat.estudios.mercado : 0;
+  var h = '<div class="card"><h2>Finanzas</h2><p>Aquí no hay decisiones nuevas: se resume lo que cuestan este trimestre las decisiones que tomaron en las otras áreas y cómo se pagan. El préstamo y la deuda los maneja la empresa.</p></div>';
+  h += '<div class="card"><h2>Situación de la empresa</h2><div class="grid g3">' +
+    '<div class="kpi"><div class="v">' + vrBs(b ? b.caja : 0) + '</div><div class="l">Caja ' + (u ? 'al cierre del trimestre ' + u.t : 'al cierre del Año 0') + '</div></div>' +
+    '<div class="kpi"><div class="v">' + vrBs(b ? b.deuda : 0) + '</div><div class="l">Deuda financiera (8 % anual)</div></div>' +
+    '<div class="kpi"><div class="v">' + vrBs(VV.empresa.presupuestoAnual || 0) + '</div><div class="l">Presupuesto de innovación del año</div></div></div></div>';
+  h += '<div class="card"><h2>Gastos que generan sus decisiones este trimestre</h2>' + (c ? '<div class="scroll"><table>' +
+    '<tr><td>Recursos humanos: sueldos del comité</td><td class="n">' + vrBs(c.comite) + '</td></tr>' +
+    '<tr><td>Innovación: desarrollo de proyectos</td><td class="n">' + vrBs(c.desarrollo) + '</td></tr>' +
+    '<tr><td>Innovación: registro sanitario</td><td class="n">' + vrBs(c.registroSanitario) + '</td></tr>' +
+    '<tr><td><b>Total con cargo al presupuesto de innovación</b></td><td class="n"><b>' + vrBs(c.totalInnovacion) + '</b></td></tr>' +
+    '<tr><td>Investigación de mercados (estudios y pruebas de los proyectos' + (estM ? ' y estudio de mercado' : '') + ')</td><td class="n">' + vrBs(c.estudios) + '</td></tr>' +
+    '<tr><td>Marketing: publicidad de sus productos</td><td class="n">' + vrBs(pub) + '</td></tr></table></div>' : '<p class="muted">Calculando…</p>') +
+    '<p class="muted">La investigación de mercados y la publicidad se pagan del presupuesto operativo (gastos de venta), no del de innovación. La producción, la distribución y la administración se calculan al procesar el trimestre y se ven en Resultados → Estados financieros.</p></div>';
+  h += '<div class="card"><h2>Cómo se financia</h2><ul><li>Si al cierre del trimestre la caja queda negativa, la empresa toma automáticamente un préstamo por la diferencia, al 8 % anual.</li><li>En la compuerta 2, los fondos que pide un lanzamiento no pueden superar la caja disponible, que es la caja menos un saldo mínimo del 2,90 % de las ventas anuales.</li></ul></div>';
   h += '<div class="card"><h2>Nota del equipo (opcional)</h2><textarea rows="3"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'nota\', this.value)">' + esc(DD.nota || '') + '</textarea></div>';
   return h;
 }
