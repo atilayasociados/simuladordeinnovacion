@@ -57,9 +57,10 @@ prueba(2, 'Código inválido o nombre repetido: error y no crea nada', () => {
   exige(G.rows_('Equipos').length === antes && G.rows_('Integrantes').length === ia, 'se creó algo');
   return '«' + m1 + '» · «' + m2 + '»';
 });
-prueba(3, '5 intentos fallidos: bloqueo temporal', () => {
-  for (let i = 0; i < 5; i++) falla(() => G.apiAXLogin('Halcones', 'mala' + i, sim.codigo), 'no son correctos');
-  const m = falla(() => G.apiAXLogin('Halcones', 'vuelo1', sim.codigo), 'Demasiados intentos');
+prueba(3, 'Intentos fallidos: el equipo no se bloquea; el docente sí', () => {
+  for (let i = 0; i < 8; i++) falla(() => G.apiAXLogin('Halcones', 'mala' + i, sim.codigo), 'no son correctos');
+  exige(!!G.apiAXLogin('Halcones', 'vuelo1', sim.codigo).token, 'el equipo quedó bloqueado tras intentos fallidos');
+  const m = 'equipo sin bloqueo';
   const md = [];
   for (let i = 0; i < 5; i++) md.push(falla(() => G.apiAXLogin('docente@test.bo', 'x' + i)));
   falla(() => G.apiAXLogin('docente@test.bo', 'Super#2026'), 'Demasiados intentos');

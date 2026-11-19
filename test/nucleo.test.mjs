@@ -56,9 +56,10 @@ await prueba(2, 'Código inválido o nombre repetido: error y no crea nada', asy
   exige(filas('equipos').length === a && filas('integrantes').length === b, 'se creó algo');
   return '«' + m1 + '» · «' + m2 + '»';
 });
-await prueba(3, '5 intentos fallidos: bloqueo temporal (los intentos se guardan aunque la petición falle)', async () => {
-  for (let i = 0; i < 5; i++) await falla(() => api('apiAXLogin', 'Halcones', 'mala' + i, sim.codigo), 'no son correctos');
-  const m = await falla(() => api('apiAXLogin', 'Halcones', 'vuelo1', sim.codigo), 'Demasiados intentos');
+await prueba(3, 'Intentos fallidos: el equipo no se bloquea; el docente sí (los intentos se guardan aunque la petición falle)', async () => {
+  for (let i = 0; i < 6; i++) await falla(() => api('apiAXLogin', 'Halcones', 'mala' + i, sim.codigo), 'no son correctos');
+  exige(!!(await api('apiAXLogin', 'Halcones', 'vuelo1', sim.codigo)).token, 'el equipo quedó bloqueado');
+  const m = 'equipo sin bloqueo';
   const md = [];
   for (let i = 0; i < 5; i++) md.push(await falla(() => api('apiAXLogin', ADM, 'x' + i)));
   await falla(() => api('apiAXLogin', ADM, 'Super#2026'), 'Demasiados intentos');

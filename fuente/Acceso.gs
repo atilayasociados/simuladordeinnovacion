@@ -192,7 +192,7 @@ function apiAXLogin(usuario, clave, codigo) {
   var cod = AX_normCod_(codigo);
   if (!cod) throw new Error('Escribe el código de la simulación.');
   var nom = AX_norm_(usuario), s = simPorCodigo_(cod), ke = 'eq|' + (s ? s.simId : '?' + cod) + '|' + nom;
-  if (AX_bloqueado_(ke)) throw new Error(AX_MSG_BLOQ);
+  // equipos: sin bloqueo por intentos fallidos (decisión del docente, 19-nov-2026); los intentos se siguen registrando
   var eq = s ? equiposDe_(s.simId).filter(function (e) { return AX_norm_(e.nombre) === nom; })[0] : null;
   if (!eq || !AX_coincide_(clave, eq.claveHash, eq.claveSal)) { AX_intento_(ke, false); throw new Error(AX_MSG_DATOS); }
   AX_intento_(ke, true); AX_limpiar_();
