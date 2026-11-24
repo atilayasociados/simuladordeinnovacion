@@ -331,7 +331,7 @@ function apiAdmin(tok, accion, datos) {
     if (pa.t <= 1) throw new Error('No hay trimestres procesados.');
     var tb = pa.t - 1, pre = pa.simId + '-';
     deleteRowsWhere_('Estados', function (id, tt) { return tt === tb && String(id).indexOf(pre) === 0; });
-    deleteRowsWhere_('Resultados', function (id, tt) { return tt === tb && String(id).indexOf(pre) === 0; });
+    deleteRowsWhere_('Resultados', function (id, tt) { return tt === tb && String(id).indexOf(pre) === 0; }, 3);
     setSim_(pa.simId, { trimestre: tb, estado: 'cerrado' });
     log_('docente', 'retroceder', pa.codigo + ' T' + tb);
     return { ok: true, mensaje: 'Se deshizo el procesamiento del trimestre ' + tb + '. Las decisiones enviadas se conservan; puede corregirlas y volver a procesar.' };

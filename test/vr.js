@@ -138,6 +138,7 @@ const res = G.apiAdmin(adm, 'resultados', { simId: sim.simId });
 ok(res.length === 36, 'filas de resultados para el docente: ' + res.length);
 // rubro nuevo
 G.apiAdmin(adm, 'retroceder', { simId: sim.simId });
+ok(G.apiAdmin(adm, 'resultados', { simId: sim.simId }).length === 33, 'deshacer borra las filas de resultados del trimestre deshecho (36 → 33)');
 const rr = G.apiAdmin(adm, 'vrRubro', { simId: sim.simId, nombre: 'Estevia en polvo', unidad: 'kg', precio: 950, fuente: 'Cotización proveedor X, 2026' });
 ok(rr.ok, rr.mensaje);
 ok(G.apiEstado(tok[1]).cat.banco && G.apiEstado(tok[1]).innov.rubrosAprobados['nuevo:Estevia en polvo'], 'el rubro nuevo queda disponible para todos los equipos');

@@ -90,11 +90,12 @@ function getJson_(nombre, equipoId, t) {
   o._estado = row[2]; o._fecha = row[3]; o._autor = row[5];
   return o;
 }
-function deleteRowsWhere_(nombre, pred) {
-  var s = sh_(nombre), n = s.getLastRow();
+/** Borra filas por id (columna A) y trimestre. colT: columna del trimestre (2 = B por defecto; Resultados la tiene en C). */
+function deleteRowsWhere_(nombre, pred, colT) {
+  var s = sh_(nombre), n = s.getLastRow(), c = colT || 2;
   if (n < 2) return;
-  var v = s.getRange(2, 1, n - 1, 2).getValues();
-  for (var i = v.length - 1; i >= 0; i--) if (pred(v[i][0], Number(v[i][1]))) s.deleteRow(i + 2);
+  var v = s.getRange(2, 1, n - 1, c).getValues();
+  for (var i = v.length - 1; i >= 0; i--) if (pred(v[i][0], Number(v[i][c - 1]))) s.deleteRow(i + 2);
 }
 function log_(actor, accion, detalle) {
   try { sh_('Log').appendRow([new Date(), actor, accion, String(detalle || '').slice(0, 500)]); } catch (e) { }

@@ -402,7 +402,7 @@ function vrProcesar_(simId) {
     vrGuardar_(pa, t, NP);
     // 5) filas de resultados (compatibles con la vista del docente)
     var pref = simId + '-';
-    deleteRowsWhere_('Resultados', function (id, tt) { return tt === t && String(id).indexOf(pref) === 0 && String(id) !== vrIdMercado_(simId); });
+    deleteRowsWhere_('Resultados', function (id, tt) { return tt === t && String(id).indexOf(pref) === 0 && String(id) !== vrIdMercado_(simId); }, 3);
     var filas = [];
     E2.equipos.forEach(function (e) {
       var h = e.historial[e.historial.length - 1], ind = vrIndicadores_(D, e, r.innov[e.id]);
@@ -530,7 +530,7 @@ function vrApiAdmin_(ses, pa, accion, datos) {
     return { ok: true, mensaje: 'Rubro "' + nombre + '" incorporado al banco de todos los equipos (clave ' + clave + ').' };
   }
   if (accion === 'vrForzarEnvio') {
-    // el docente cierra el envío de un equipo (o de todos los pendientes): se envía su borrador tal como está o, si no guardó nada, una decisión vacía que repite lo del trimestre anterior
+    // el docente cierra el envío de un equipo (o de todos los pendientes): se envía su borrador tal como está o, si no guardó nada, una decisión vacía (todo en cero; regla del 24-nov-2026). Nota previa: una decisión vacía que repite lo del trimestre anterior
     if (pa.t < 1 || pa.t > D.horizonteTrimestres) throw new Error('No hay un trimestre en curso para forzar envíos.');
     var listaF = datos.todos ? P.E.equipos.map(function (e) { return P.mapa[e.id]; }) : [datos.equipoId], hechos = [];
     listaF.forEach(function (eqF) {
@@ -541,7 +541,7 @@ function vrApiAdmin_(ses, pa, accion, datos) {
       var baseF = dF || {}; delete baseF._estado; delete baseF._fecha; delete baseF._autor;
       putJson_('Decisiones', eqF, pa.t, baseF, { estado: 'enviado', autor: dF ? 'docente (envío forzado del borrador)' : 'docente (envío forzado sin decisiones)' });
       log_(ses.email, 'vrForzarEnvio', pa.codigo + ' ' + eqF + ' T' + pa.t + (dF ? ' borrador' : ' vacío'));
-      hechos.push(eF.nombre + (dF ? ' (su borrador)' : ' (sin decisiones: repite lo del trimestre anterior)'));
+      hechos.push(eF.nombre + (dF ? ' (su borrador)' : ' (sin decisiones: todo en cero)'));
     });
     if (!hechos.length) return { ok: true, mensaje: 'No había equipos pendientes: todos ya enviaron.' };
     return { ok: true, mensaje: 'Envío forzado en el trimestre ' + pa.t + ': ' + hechos.join('; ') + '.' };

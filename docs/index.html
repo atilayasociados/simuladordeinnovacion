@@ -176,7 +176,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = '02b8de5e3071';
+  var V0 = 'c0d00f655e7a';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -399,15 +399,15 @@ function PART_tablero() {
       var acc = e.envio === 'enviado' ? '<button class="btn sec" onclick="PART_corregir(\'' + esc(e.equipoId) + '\',\'' + nom + '\')">Permitir corregir</button>' : '<button class="btn" onclick="PART_forzar(\'' + esc(e.equipoId) + '\',\'' + nom + '\',' + (e.envio === 'borrador') + ')">Forzar envío</button>';
       return '<tr><td>' + esc(e.nombre) + '</td><td>' + est + '</td><td>' + (f && !isNaN(f) ? esc(f.toLocaleString('es-BO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })) : '—') + '</td><td>' + esc(PART_quien(e)) + '</td><td>' + acc + '</td></tr>';
     }).join('') + '</table></div>' +
-    '<p class="muted">Forzar envío: si el equipo tiene borrador, se envía tal como lo guardó; si no guardó nada, mantiene sus precios, canales, publicidad y plan de innovación del trimestre anterior. En ambos casos el equipo ya no puede editar, salvo que usted le permita corregir. Toque «Actualizar» para ver los envíos más recientes.</p></div>';
+    '<p class="muted">Forzar envío: si el equipo tiene borrador, se envía tal como lo guardó; si no guardó nada, se envía vacío: sin precio, canales, publicidad ni producción (no vende ese trimestre). En ambos casos el equipo ya no puede editar, salvo que usted le permita corregir. Toque «Actualizar» para ver los envíos más recientes.</p></div>';
   return h;
 }
 function PART_forzar(equipoId, nombre, tieneBorrador) {
-  if (!confirm(tieneBorrador ? '¿Enviar el borrador de ' + nombre + ' tal como está guardado? El equipo ya no podrá cambiarlo.' : nombre + ' no guardó decisiones. ¿Enviar sin cambios? Mantendrá sus precios, canales, publicidad y plan de innovación del trimestre anterior.')) return;
+  if (!confirm(tieneBorrador ? '¿Enviar el borrador de ' + nombre + ' tal como está guardado? El equipo ya no podrá cambiarlo.' : nombre + ' no guardó decisiones. ¿Enviar vacío? Sin precio, canales, publicidad ni producción: no venderá este trimestre.')) return;
   adm('vrForzarEnvio', { equipoId: equipoId });
 }
 function PART_forzarTodos(n) {
-  if (!confirm('¿Forzar el envío de los ' + n + ' equipos pendientes? Los que tienen borrador lo envían tal como está; los que no guardaron nada repiten lo del trimestre anterior.')) return;
+  if (!confirm('¿Forzar el envío de los ' + n + ' equipos pendientes? Los que tienen borrador lo envían tal como está; los que no guardaron nada quedan sin precio, canales, publicidad ni producción y no venden este trimestre.')) return;
   adm('vrForzarEnvio', { todos: true });
 }
 function PART_corregir(equipoId, nombre) {
