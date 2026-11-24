@@ -92,6 +92,7 @@ function vrDemanda_(D, productos, nEquipos) {
     var seg = D.segmentos[s], atr = [], tot = 0;
     for (i = 0; i < productos.length; i++) {
       var p = productos[i];
+      if (!vrALaVenta_(p)) { atr.push(0); continue; }
       var w = p.esEquipo ? 1 / nEquipos : 1;
       var cm = (D.constanteMarca && D.constanteMarca[p.clave]) || 1; // constante de marca de los competidores (banco §9)
       // factorReal: diferencia entre lo que mostró la prueba y lo que compra el mercado (auditoría, punto 2; Kahn, 2002)
@@ -260,17 +261,41 @@ function vrRngMotor_(semilla) {
 }
 
 /** Decisiones que repiten el Año 0 (útil para pruebas y como valor por defecto). */
+/** Decisiones que repiten el estado (solo para pruebas y calibración del motor; la partida usa vrDecisionesVacias). */
 function vrDecisionesNeutras(estado) {
   var dec = {};
   estado.equipos.forEach(function (eq) {
     var d = { productos: {}, gastoInnovacion: 0, gastoEstudios: 0, inversion: 0 };
     eq.productos.forEach(function (p) {
       if (!p.activo) return;
-      d.productos[p.id] = { precioEmpresa: p.precioEmpresa, mezcla: vrCopia_(p.mezcla), publicidad: p.publicidad, produccionSemanal: null };
+      d.productos[p.id] = { precioEmpresa: p.precioEmpresa, mezcla: vrCopia_(p.mezcla), publicidad: p.publicidad, produccionSemanal: 'auto' };
     });
     dec[eq.id] = d;
   });
   return dec;
+}
+/**
+ * Decisiones de la partida cuando el equipo no escribió nada (decisión del docente, 24-nov-2026):
+ * el simulador no pone ni repite valores; lo no escrito vale cero (sin precio o sin canal no se vende,
+ * sin producción no se produce, sin publicidad no se gasta).
+ */
+function vrDecisionesVacias(estado) {
+  var dec = {};
+  estado.equipos.forEach(function (eq) {
+    var d = { productos: {}, gastoInnovacion: 0, gastoEstudios: 0, inversion: 0 };
+    eq.productos.forEach(function (p) {
+      if (!p.activo) return;
+      d.productos[p.id] = { precioEmpresa: 0, mezcla: { supermercado: 0, tienda: 0, mercado: 0 }, publicidad: 0, produccionSemanal: 0 };
+    });
+    dec[eq.id] = d;
+  });
+  return dec;
+}
+/** Un producto sin precio o sin canal no está a la venta. */
+function vrALaVenta_(p) {
+  if (!p.esEquipo || p.precioConsumidorFijo) return true; // competidores y calibración del Año 0 (precio de góndola fijo)
+  var m = p.mezcla || {}, s = (m.supermercado || 0) + (m.tienda || 0) + (m.mercado || 0);
+  return (p.precioEmpresa || 0) > 0 && s > 0;
 }
 
 // =====================================================================
@@ -299,14 +324,15 @@ function vrSimularTrimestre(D, estado0, decisiones) {
     eq.productos.forEach(function (p) {
       var dp = (d.productos || {})[p.id];
       if (!dp || !p.activo) return;
-      if (dp.precioEmpresa != null) p.precioEmpresa = dp.precioEmpresa;
-      if (dp.mezcla) p.mezcla = vrCopia_(dp.mezcla);
-      if (dp.publicidad != null) p.publicidad = dp.publicidad;
+      // lo que el equipo no escribió vale cero (decisión del docente, 24-nov-2026)
+      p.precioEmpresa = Math.max(0, Number(dp.precioEmpresa) || 0);
+      p.mezcla = dp.mezcla ? vrCopia_(dp.mezcla) : { supermercado: 0, tienda: 0, mercado: 0 };
+      p.publicidad = Math.max(0, Number(dp.publicidad) || 0);
     });
-    // trimestres seguidos con publicidad por debajo de la referencia
+    // trimestres seguidos con publicidad por debajo de la referencia (se ignoran diferencias menores a Bs 1: redondeo de pantalla)
     eq.productos.forEach(function (p) {
       if (!p.activo || !p.publicidadRef) return;
-      p.trimestresPublicidadBaja = p.publicidad < p.publicidadRef * (1 - 1e-9) ? (p.trimestresPublicidadBaja || 0) + 1 : 0;
+      p.trimestresPublicidadBaja = p.publicidad < p.publicidadRef - 1 ? (p.trimestresPublicidadBaja || 0) + 1 : 0;
     });
   });
 
@@ -332,7 +358,8 @@ function vrSimularTrimestre(D, estado0, decisiones) {
     eq.productos.forEach(function (p) {
       if (!p.activo) return;
       var dp = (d.productos || {})[p.id] || {};
-      var q = dp.produccionSemanal == null ? dem[p.id].litros / sem : Math.max(0, dp.produccionSemanal);
+      // sin producción escrita no se produce; 'auto' (producir lo que se espera vender) solo lo usan las pruebas del motor
+      var q = dp.produccionSemanal === 'auto' ? dem[p.id].litros / sem : Math.max(0, Number(dp.produccionSemanal) || 0);
       plan[p.id] = q; prodTotal += q * sem;
     });
     // capacidad de planta: si el plan semanal la supera, se recorta en proporción (banco §15, regla 10)
@@ -480,4 +507,4 @@ function vrCuotasResumen_(dem) { var o = {}; for (var k in dem) o[k] = dem[k].cu
 
 // Exportación para pruebas en Node (no afecta a Apps Script).
 if (typeof module !== 'undefined') module.exports = { vrDemanda_: vrDemanda_, vrPrecioConsumidor_: vrPrecioConsumidor_, vrUtilidad_: vrUtilidad_, vrCrearPartida: vrCrearPartida,
-  vrSimularTrimestre: vrSimularTrimestre, vrDecisionesNeutras: vrDecisionesNeutras, vrProductosMercadoAnio0_: vrProductosMercadoAnio0_ };
+  vrSimularTrimestre: vrSimularTrimestre, vrDecisionesNeutras: vrDecisionesNeutras, vrDecisionesVacias: vrDecisionesVacias, vrProductosMercadoAnio0_: vrProductosMercadoAnio0_ };

@@ -62,12 +62,14 @@ function vrNum_(x, a, b, nombre) {
 }
 function vrTxt_(x, n) { return String(x === undefined || x === null ? '' : x).slice(0, n || 500); }
 function vrMezcla_(m, nombre) {
+  // sin ningún canal escrito la mezcla queda en cero: el producto no se vende (decisión del docente, 24-nov-2026)
   m = m || {}; var o = { supermercado: 0, tienda: 0, mercado: 0 }, s = 0;
   for (var k in o) { o[k] = vrNum_(m[k] || 0, 0, 1, nombre + ' · ' + k); s += o[k]; }
-  if (s <= 0) throw new Error(nombre + ': elijan al menos un canal.');
+  if (s <= 0) return o;
   for (var k2 in o) o[k2] = o[k2] / s;
   return o;
 }
+function vrVacio_(x) { return x === null || x === undefined || x === ''; }
 function vrLimpiarProyecto_(D, x) {
   var nom = vrTxt_(x.nombre, 80) || 'Proyecto';
   if (!/^P\d{1,3}$/.test(String(x.id || ''))) throw new Error(nom + ': identificador de proyecto no válido.');
@@ -100,7 +102,7 @@ function vrLimpiarProyecto_(D, x) {
   var pl = x.plan || {};
   p.plan = {
     precioEmpresa: vrNum_(pl.precioEmpresa || 0, 0, 200, nom + ' · precio a la empresa'),
-    mezcla: vrMezcla_(pl.mezcla || { supermercado: 1 }, nom + ' · canales'),
+    mezcla: vrMezcla_(pl.mezcla || {}, nom + ' · canales'),
     publicidad: vrNum_(pl.publicidad || 0, 0, 1e7, nom + ' · publicidad'),
     produccionSemanal: vrNum_(pl.produccionSemanal || 0, 0, 1e6, nom + ' · producción semanal')
   };
@@ -187,10 +189,11 @@ function vrLimpiarComercial_(eq, com) {
     var x = com[p.id]; if (!x) return;
     var nom = p.nombre || p.id;
     o[p.id] = {
-      precioEmpresa: vrNum_(x.precioEmpresa, 1, 200, nom + ' · precio a la empresa'),
+      // lo no escrito vale cero: sin precio o sin canal no se vende, sin producción no se produce (decisión del docente, 24-nov-2026)
+      precioEmpresa: vrVacio_(x.precioEmpresa) ? 0 : vrNum_(x.precioEmpresa, 0, 200, nom + ' · precio a la empresa'),
       mezcla: vrMezcla_(x.mezcla, nom + ' · canales'),
-      publicidad: vrNum_(x.publicidad, 0, 1e7, nom + ' · publicidad'),
-      produccionSemanal: (x.produccionSemanal === null || x.produccionSemanal === '' || x.produccionSemanal === undefined) ? null : vrNum_(x.produccionSemanal, 0, 1e6, nom + ' · producción semanal')
+      publicidad: vrVacio_(x.publicidad) ? 0 : vrNum_(x.publicidad, 0, 1e7, nom + ' · publicidad'),
+      produccionSemanal: vrVacio_(x.produccionSemanal) ? 0 : vrNum_(x.produccionSemanal, 0, 1e6, nom + ' · producción semanal')
     };
   });
   return o;
@@ -363,7 +366,8 @@ function vrProcesar_(simId) {
     // 1) decisiones de innovación (lo inválido se ignora y se mantiene el plan anterior)
     P.E.equipos.forEach(function (e) {
       var dec = getJson_('Decisiones', P.mapa[e.id], t);
-      if (!dec || dec._estado !== 'enviado') sinEnvio.push(e.nombre);
+      // equipo que no envió: no se usa su borrador ni se repiten decisiones; todo lo comercial vale cero (decisión del docente, 24-nov-2026)
+      if (!dec || dec._estado !== 'enviado') { sinEnvio.push(e.nombre); dec = null; }
       dec = dec || {}; decs[e.id] = dec;
       try {
         var u = vrUnirInnov_(D, P.innov[e.id], dec, t);
@@ -375,7 +379,7 @@ function vrProcesar_(simId) {
     // 2) avance de proyectos semana a semana (estudios, compuertas, lanzamientos)
     var r = vrTrimestreInnovacion(D, P.E, P.innov, banco);
     // 3) decisiones comerciales
-    var com = vrDecisionesNeutras(r.estado);
+    var com = vrDecisionesVacias(r.estado);
     r.estado.equipos.forEach(function (e) {
       var dec = decs[e.id], c = {};
       try { c = vrLimpiarComercial_(e, dec.comercial); } catch (ex) { avisos.push(e.nombre + ': ' + ex.message); }
@@ -384,7 +388,7 @@ function vrProcesar_(simId) {
       (r.innov[e.id].proyectos || []).forEach(function (p) {
         if (p.trimestreLanzamiento === t && p.plan && !p.reemplazaProductoActual) {
           var pid2 = e.id + '-' + p.id; if (!com[e.id].productos[pid2]) return;
-          com[e.id].productos[pid2] = { precioEmpresa: p.plan.precioEmpresa, mezcla: p.plan.mezcla, publicidad: p.plan.publicidad, produccionSemanal: p.plan.produccionSemanal || null };
+          com[e.id].productos[pid2] = { precioEmpresa: p.plan.precioEmpresa || 0, mezcla: p.plan.mezcla, publicidad: p.plan.publicidad || 0, produccionSemanal: p.plan.produccionSemanal || 0 };
         }
       });
       if (dec.estudioMercado) r.extras[e.id].gastoEstudios += D.estudios.mercado;
@@ -415,7 +419,7 @@ function vrProcesar_(simId) {
     var finP = t + 1 > D.horizonteTrimestres;
     setSim_(simId, { trimestre: t + 1, estado: finP ? 'cerrado' : 'abierto' });
     log_('docente', 'procesar', pa.codigo + ' T' + t + ' (VR)' + (sinEnvio.length ? ' sin envío: ' + sinEnvio.join(', ') : ''));
-    return { ok: true, mensaje: 'Trimestre ' + t + ' procesado para ' + E2.equipos.length + ' equipos.' + (sinEnvio.length ? ' Sin envío (se usó su borrador o se repitieron las decisiones anteriores): ' + sinEnvio.join(', ') + '.' : '') +
+    return { ok: true, mensaje: 'Trimestre ' + t + ' procesado para ' + E2.equipos.length + ' equipos.' + (sinEnvio.length ? ' Sin envío (sus decisiones comerciales quedaron en cero: sin precio, canales, publicidad ni producción): ' + sinEnvio.join(', ') + '.' : '') +
       (avisos.length ? ' Avisos: ' + avisos.join(' | ') + '.' : '') + (finP ? ' La partida terminó.' : ' El trimestre ' + (t + 1) + ' quedó abierto.'), eventos: r.eventos };
   } finally { lock.releaseLock(); }
 }

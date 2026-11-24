@@ -307,7 +307,7 @@ function vrEvaluarCompuerta1(D, banco, proyecto, rubrosAprobados) {
 function vrEvaluarCompuerta2(D, banco, proyecto, rubrosAprobados, cajaDisponible) {
   var req = [], plan = proyecto.plan || {}, res = proyecto.resultados || {};
   req.push({ id: 'plan', texto: 'Plan de lanzamiento completo (precio, canales, publicidad y producción)',
-    cumple: plan.precioEmpresa > 0 && !!plan.mezcla && plan.publicidad >= 0 && plan.produccionSemanal >= 0 });
+    cumple: plan.precioEmpresa > 0 && !!plan.mezcla && ((plan.mezcla.supermercado || 0) + (plan.mezcla.tienda || 0) + (plan.mezcla.mercado || 0)) > 0 && plan.publicidad >= 0 && plan.produccionSemanal > 0 });
   req.push({ id: 'prueba', texto: 'Prueba de producto sobre el prototipo', cumple: !!res.pruebaProducto });
   var hoja = vrEvaluarHoja(D, banco, proyecto, rubrosAprobados);
   req.push({ id: 'hoja', texto: 'Hoja de costos actualizada y válida', cumple: hoja.valida, detalle: hoja.errores });

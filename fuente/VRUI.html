@@ -31,7 +31,8 @@ function VR_iniciar(v) {
   (v.innov.proyectos || []).forEach(function (q) { if (!DD.proyectos.some(function (p) { return p.id === q.id; })) DD.proyectos.push(JSON.parse(JSON.stringify(q))); });
   v.empresa.productos.forEach(function (p) {
     if (!p.activo) return;
-    if (!DD.comercial[p.id]) DD.comercial[p.id] = { precioEmpresa: vrR(p.precioEmpresa), mezcla: JSON.parse(JSON.stringify(p.mezcla)), publicidad: Math.round(p.publicidad), produccionSemanal: null };
+    // el simulador no pone ni repite valores: las casillas empiezan vacías y lo no escrito vale cero (decisión del docente, 24-nov-2026)
+    if (!DD.comercial[p.id]) DD.comercial[p.id] = { precioEmpresa: '', mezcla: { supermercado: '', tienda: '', mercado: '' }, publicidad: '', produccionSemanal: '' };
   });
   if (!VPROY && DD.proyectos.length) VPROY = DD.proyectos[0].id;
   if (DD.comite.length === 0) DD.comite.push({ nombre: 'Integrante 1', cargo: 'profesional', dedicacion: 0.2 });
@@ -272,7 +273,7 @@ function VR_nuevoProyecto() {
   DD.proyectos.push({ id: 'P' + n, nombre: 'Proyecto ' + n, clase: '', justificacionClase: '', idea: { problema: '', paraQuien: '', propuesta: '' }, segmentoObjetivo: '', muestra: 400, reemplazaProductoActual: false,
     producto: { endulzante: (act.endulzante || ['azucar_cana']).slice(), azucarAnadida100ml: act.azucarAnadida100ml, grasa100ml: act.grasa100ml, proteina100ml: act.proteina100ml, tamanoMl: act.tamanoMl, conservacion: 'uht' },
     hoja: [{ descripcion: 'Leche cruda', categoria: 'contenido', tipo: 'variable', rubro: 'leche_cruda', cantidad: 1 }, { descripcion: 'Azúcar (como el producto actual)', categoria: 'contenido', tipo: 'variable', rubro: 'azucar', cantidad: Math.round((act.azucarAnadida100ml || 0) * 10) / 1000 }, { descripcion: 'Cacao (como el producto actual)', categoria: 'contenido', tipo: 'variable', rubro: 'cacao', cantidad: 0.010 }, { descripcion: 'Envase e insumos', categoria: 'envase', tipo: 'variable', rubro: 'insumos_envase_actual', cantidad: 1 }, { descripcion: 'Planta actual', categoria: 'mano_de_obra', tipo: 'variable', rubro: 'mano_obra_planta_actual', cantidad: 1 }],
-    plan: { precioEmpresa: vrR(act.precioEmpresa), mezcla: { supermercado: 1, tienda: 0, mercado: 0 }, publicidad: Math.round(act.publicidadRef), produccionSemanal: 0 },
+    plan: { precioEmpresa: '', mezcla: { supermercado: '', tienda: '', mercado: '' }, publicidad: '', produccionSemanal: '' },
     gantt: [{ nombre: 'Estudio del consumidor', tipo: 'estudio_consumidor', inicio: s0, duracion: 5, responsable: 0, carga: 0.1 }, { nombre: 'Prueba de concepto', tipo: 'prueba_concepto', inicio: s0 + 5, duracion: 5, responsable: 0, carga: 0.1 }],
     compuerta1: { semana: s0 + 10, continuar: true }, compuerta2: { semana: 0, continuar: true } });
   VPROY = 'P' + n; VR_render(); VR_revisar();
@@ -318,7 +319,7 @@ function VR_proyectos() {
   // plan de lanzamiento
   var pl = p.plan;
   h += '<div class="card"><h2>Plan de lanzamiento (compuerta 2)</h2>' + VR_errBox('plan', p.id) + '<div class="grid g4"><div><label>Precio a la empresa (Bs por unidad)</label>' + num('plan.precioEmpresa', pl.precioEmpresa, 0.01, e, true) + '</div><div><label>Publicidad del primer trimestre (Bs)</label>' + num('plan.publicidad', pl.publicidad, 1000, e) + '</div><div><label>Producción semanal (unidades)</label>' + num('plan.produccionSemanal', pl.produccionSemanal, 100, e) + '</div><div><label>Precio al consumidor</label><div class="calc">' + Object.keys(VR_CAN).filter(function (c) { return pl.mezcla[c] > 0; }).map(function (c) { return VR_CAN[c] + ': ' + vrBs(pl.precioEmpresa / (1 - VV.informes.industria.canales[c].margen), 2); }).join('<br>') + '</div></div></div>' +
-    '<label>Canales (% de las ventas)</label><div class="grid g3">' + Object.keys(VR_CAN).map(function (c) { return '<div><label class="muted">' + VR_CAN[c] + '</label><input type="number" min="0" max="100" value="' + Math.round((pl.mezcla[c] || 0) * 100) + '"' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'plan.mezcla.' + c + '\', Number(this.value) / 100, false, true)"></div>'; }).join('') + '</div></div>';
+    '<label>Canales (% de las ventas)</label><div class="grid g3">' + Object.keys(VR_CAN).map(function (c) { return '<div><label class="muted">' + VR_CAN[c] + '</label><input type="number" min="0" max="100" value="' + VR_pctCasilla(pl.mezcla[c]) + '"' + (e ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'plan.mezcla.' + c + '\', this.value === \'\' ? \'\' : Number(this.value) / 100, false, true)"></div>'; }).join('') + '</div></div>';
   // Gantt
   h += VR_gantt(p, i, e);
   h += VR_resultados(p);
@@ -462,13 +463,26 @@ function VR_marketing() {
   var ed = VR_puedeEditar(), h = '<div class="card"><h2>Marketing</h2><p>Para cada producto en el mercado deciden el <b>precio a la empresa</b>, los <b>canales</b> donde se vende y la <b>publicidad del trimestre</b>. El precio al consumidor sale del precio a la empresa y del margen de cada canal.</p></div>';
   VR_productosActivos().forEach(function (p) {
     var d = DD.comercial[p.id], base = 'comercial.' + p.id + '.';
-    h += '<div class="card"><h2>' + esc(p.nombre) + '</h2>' + VR_errBox('prod-' + p.id) + '<p class="muted">Publicidad de referencia: ' + vrBs(p.publicidadRef) + ' por trimestre.</p>' +
+    h += '<div class="card"><h2>' + esc(p.nombre) + '</h2>' + VR_errBox('prod-' + p.id) + VR_avisoComercial(d) + '<p class="muted">Publicidad de referencia: ' + vrBs(p.publicidadRef) + ' por trimestre.</p>' +
       '<div class="grid g3"><div><label>Precio a la empresa (Bs)</label><input type="number" step="0.01" value="' + d.precioEmpresa + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'precioEmpresa\', this.value, true, true)"></div>' +
       '<div><label>Publicidad del trimestre (Bs)</label><input type="number" step="1000" value="' + d.publicidad + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'publicidad\', this.value, true)"></div>' +
       '<div><label>Precio al consumidor</label><div class="calc">' + Object.keys(VR_CAN).filter(function (c) { return d.mezcla[c] > 0; }).map(function (c) { return VR_CAN[c] + ': ' + vrBs(d.precioEmpresa / (1 - VV.informes.industria.canales[c].margen), 2); }).join('<br>') + '</div></div></div>' +
-      '<label>Canales (% de las ventas)</label><div class="grid g3">' + Object.keys(VR_CAN).map(function (c) { return '<div><label class="muted">' + VR_CAN[c] + ' (margen ' + vrP(VV.informes.industria.canales[c].margen) + ', cobro ' + (VV.informes.industria.canales[c].diasCobro ? VV.informes.industria.canales[c].diasCobro + ' días' : 'al contado') + ')</label><input type="number" min="0" max="100" value="' + Math.round((d.mezcla[c] || 0) * 100) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'mezcla.' + c + '\', Number(this.value) / 100, false, true)"></div>'; }).join('') + '</div></div>';
+      '<label>Canales (% de las ventas)</label><div class="grid g3">' + Object.keys(VR_CAN).map(function (c) { return '<div><label class="muted">' + VR_CAN[c] + ' (margen ' + vrP(VV.informes.industria.canales[c].margen) + ', cobro ' + (VV.informes.industria.canales[c].diasCobro ? VV.informes.industria.canales[c].diasCobro + ' días' : 'al contado') + ')</label><input type="number" min="0" max="100" value="' + VR_pctCasilla(d.mezcla[c]) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'mezcla.' + c + '\', this.value === \'\' ? \'\' : Number(this.value) / 100, false, true)"></div>'; }).join('') + '</div></div>';
   });
   return h + VR_compraEstudio();
+}
+/** Valor de una casilla de canal: vacía si el equipo no la escribió. */
+function VR_pctCasilla(v) { return (v === '' || v === null || v === undefined) ? '' : Math.round(Number(v) * 100); }
+/** Aviso de lo que pasa con lo no escrito: el simulador no completa nada (decisión del docente, 24-nov-2026). */
+function VR_avisoComercial(d) {
+  var vac = function (x) { return x === '' || x === null || x === undefined; };
+  var m = d.mezcla || {}, canales = ['supermercado', 'tienda', 'mercado'].some(function (c) { return !vac(m[c]) && Number(m[c]) > 0; });
+  var av = [];
+  if (vac(d.precioEmpresa) || Number(d.precioEmpresa) <= 0) av.push('Sin precio este producto no se vende este trimestre.');
+  if (!canales) av.push('Sin ningún canal este producto no se vende este trimestre.');
+  if (vac(d.publicidad)) av.push('Publicidad vacía: se toma Bs 0.');
+  if (vac(d.produccionSemanal)) av.push('Producción vacía (en Decisión → Producción): no se produce nada.');
+  return av.length ? '<div class="alerta">⚠️ ' + av.join(' ') + ' Pueden enviar igual; el simulador no completa nada por ustedes.</div>' : '';
 }
 /** Decisión → Producción: cuánto producir por semana de cada producto. */
 function VR_produccion() {
@@ -478,7 +492,7 @@ function VR_produccion() {
     h += '<div class="card"><h2>' + esc(p.nombre) + '</h2>' + VR_errBox('prod-' + p.id) +
       '<div class="grid g3"><div class="kpi"><div class="v">' + vrN(p.inventarioLitros) + '</div><div class="l">Inventario actual (unidades)</div></div>' +
       '<div class="kpi"><div class="v">' + vrBs(p.costoVariable, 2) + '</div><div class="l">Costo variable por unidad</div></div>' +
-      '<div><label>Producción semanal (vacío = lo que se espera vender)</label><input type="number" step="100" value="' + (d.produccionSemanal === null || d.produccionSemanal === undefined ? '' : d.produccionSemanal) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'produccionSemanal\', this.value === \'\' ? null : Number(this.value))"></div></div></div>';
+      '<div><label>Producción semanal (vacío = no se produce)</label><input type="number" step="100" value="' + (d.produccionSemanal === null || d.produccionSemanal === undefined ? '' : d.produccionSemanal) + '"' + (ed ? '' : ' disabled') + ' onchange="VR_set(\'' + base + 'produccionSemanal\', this.value === \'\' ? null : Number(this.value))"></div></div></div>';
   });
   return h;
 }

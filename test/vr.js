@@ -60,7 +60,16 @@ const proyecto = {
   ],
   compuerta1: { semana: 11, continuar: true }, compuerta2: { semana: 36, continuar: true }
 };
-const dec1 = { comite: [{ nombre: 'Jefa', cargo: 'jefe', dedicacion: 0.1 }, { nombre: 'Analista', cargo: 'profesional', dedicacion: 0.45 }], proyectos: [proyecto], comercial: {}, estudioMercado: true };
+// el simulador no completa nada: el equipo debe escribir precio, canales, publicidad y producción de cada producto
+function comercialDe(V) {
+  const o = {}, ult = V.empresa.historial.length ? V.empresa.historial[V.empresa.historial.length - 1] : null;
+  V.empresa.productos.filter((p) => p.activo).forEach((p) => {
+    const op = ult && ult.operacion && ult.operacion.porProducto[p.id];
+    o[p.id] = { precioEmpresa: p.precioEmpresa || 13.85, mezcla: p.mezcla, publicidad: Math.round(p.publicidadRef || p.publicidad || 0), produccionSemanal: Math.round(op ? op.demanda / 13 : 14000) };
+  });
+  return o;
+}
+const dec1 = { comite: [{ nombre: 'Jefa', cargo: 'jefe', dedicacion: 0.1 }, { nombre: 'Analista', cargo: 'profesional', dedicacion: 0.45 }], proyectos: [proyecto], comercial: comercialDe(G.apiEstado(tok[0])), estudioMercado: true };
 const rev = G.apiEstimar(tok[0], dec1);
 ok(rev.errores.length === 0, 'la vista previa no encuentra errores' + (rev.errores.length ? ': ' + rev.errores.join(' | ') : ''));
 ok(rev.costosTrimestre.estudios === 59200 * 3, 'costo de estudios del trimestre: mercado + consumidor + prueba = ' + fmt(rev.costosTrimestre.estudios));
@@ -100,7 +109,7 @@ for (let t = 1; t <= 12; t++) {
   if (t < 12) {
     // el equipo 1 vuelve a enviar su plan (sin cambios) cada trimestre
     const Vt = G.apiEstado(tok[0]);
-    const d = { comite: Vt.innov.comite, proyectos: Vt.innov.proyectos, comercial: {}, estudioMercado: false };
+    const d = { comite: Vt.innov.comite, proyectos: Vt.innov.proyectos, comercial: comercialDe(Vt), estudioMercado: false };
     const rr = G.apiEstimar(tok[0], d);
     if (rr.errores.length) console.log('   errores T' + (t + 1) + ':', rr.errores.join(' | '));
     G.apiGuardar(tok[0], d, rr.errores.length === 0);

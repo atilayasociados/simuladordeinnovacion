@@ -54,6 +54,8 @@ try {
   await pg.goto(U + '?vista=docente'); await ingresar(s.sa.email, 'Clave#2026');
   await pg.click('nav >> text=Partida'); await pg.waitForTimeout(600);
   R.tablero = await pg.isVisible('text=Envío de decisiones — trimestre 1'); await pg.evaluate(() => { const h = [...document.querySelectorAll('h2')].find((x) => x.textContent.startsWith('Envío de decisiones')); if (h) h.scrollIntoView(); }); await foto('6b_tablero_envios');
+  // regla 24-nov-2026: un borrador no enviado no se usa; el docente fuerza el envío de los pendientes
+  await pg.click('button:has-text("Forzar envío de los")'); await pg.waitForTimeout(1500);
   await pg.click('button:has-text("Procesar trimestre 1")'); await pg.waitForTimeout(2000);
   R.t2 = s.mem.tablas.simulaciones[0].fila ? true : true;
   await pg.click('nav >> text=Vida real'); await pg.waitForTimeout(1200); await foto('7_panel_docente');
