@@ -1,3 +1,3 @@
 // Generado por tools/origen.mjs. Versión de la lógica que carga la Edge Function.
-export const CODIGO_URL = "https://raw.githubusercontent.com/atilayasociados/simuladordeinnovacion/8fb9a8ed87bc5d434dd7f5ec50b6f8890027506e/supabase/functions/api/gas_codigo.js";
-export const CODIGO_SHA256 = "dea12d3e438ddcfbed806393201d540294c651524857d89f49577ba06ef85ba4";
+export const CODIGO_URL = "https://raw.githubusercontent.com/atilayasociados/simuladordeinnovacion/110eb94f4bff16f1f84146d22b6ccfb64fdeb2e0/supabase/functions/api/gas_codigo.js";
+export const CODIGO_SHA256 = "e4efc906be26d388e67b6758424cc0835387948f93bdd4d86094de757009bbb7";
