@@ -134,9 +134,10 @@ function vrUnirInnov_(D, prev, dec, t) {
   if (Array.isArray(dec.solicitudes)) {
     var previas = (prev.solicitudes || []).filter(function (s) { return s.estado && s.estado !== 'pendiente'; });
     var nuevas = dec.solicitudes.slice(0, 10).filter(function (s) { return s && s.nombre; }).map(function (s) {
-      var ya = (prev.solicitudes || []).filter(function (q) { return q.nombre === vrTxt_(s.nombre, 80); })[0];
-      if (!ya && (prev.rubrosAprobados || {})['nuevo:' + vrTxt_(s.nombre, 80)]) return null; // ya aprobado por el docente
-      return ya && ya.estado !== 'pendiente' ? null : { tipo: s.tipo === 'atributo' ? 'atributo' : 'rubro', nombre: vrTxt_(s.nombre, 80), unidad: vrTxt_(s.unidad, 30), justificacion: vrTxt_(s.justificacion, 800), proyecto: vrTxt_(s.proyecto, 10), estado: 'pendiente', trimestre: t };
+      var nomS = vrTxt_(s.nombre, 80).trim(); // sin espacios sobrantes: así coincide con la clave del banco
+      var ya = (prev.solicitudes || []).filter(function (q) { return String(q.nombre).trim() === nomS; })[0];
+      if (!ya && (prev.rubrosAprobados || {})['nuevo:' + nomS]) return null; // ya aprobado por el docente
+      return ya && ya.estado !== 'pendiente' ? null : { tipo: s.tipo === 'atributo' ? 'atributo' : 'rubro', nombre: nomS, unidad: vrTxt_(s.unidad, 30), justificacion: vrTxt_(s.justificacion, 800), proyecto: vrTxt_(s.proyecto, 10), estado: 'pendiente', trimestre: t };
     }).filter(Boolean);
     st.solicitudes = previas.concat(nuevas);
   }
@@ -500,8 +501,9 @@ function vrApiAdmin_(ses, pa, accion, datos) {
           indicadores: ind, productos: e.productos.filter(function (p) { return p.activo; }).map(function (p) { return p.nombre; }),
           proyectos: (st.proyectos || []).map(function (p) { return { id: p.id, nombre: p.nombre, clase: p.clase, estado: p.estado || 'exploracion', c1: p.resultados && p.resultados.compuerta1 ? p.resultados.compuerta1.aprobada : null, c2: p.resultados && p.resultados.compuerta2 ? p.resultados.compuerta2.aprobada : null }; }),
           solicitudes: (st.solicitudes || []).concat(((dT && dT.solicitudes) || []).filter(function (s) {
-            return s && s.nombre && !(st.solicitudes || []).some(function (q) { return q.nombre === s.nombre; }) && !(P.E.rubrosAprobados || {})['nuevo:' + s.nombre] && !(P.E.atributosAprobados || {})['nuevo:' + s.nombre];
-          }).map(function (s) { return { tipo: s.tipo === 'atributo' ? 'atributo' : 'rubro', nombre: vrTxt_(s.nombre, 80), unidad: vrTxt_(s.unidad, 30), justificacion: vrTxt_(s.justificacion, 800), estado: 'pendiente', enBorrador: true }; })),
+            var n = s && s.nombre ? vrTxt_(s.nombre, 80).trim() : '';
+            return n && !(st.solicitudes || []).some(function (q) { return String(q.nombre).trim() === n; }) && !(P.E.rubrosAprobados || {})['nuevo:' + n] && !(P.E.atributosAprobados || {})['nuevo:' + n];
+          }).map(function (s) { return { tipo: s.tipo === 'atributo' ? 'atributo' : 'rubro', nombre: vrTxt_(s.nombre, 80).trim(), unidad: vrTxt_(s.unidad, 30), justificacion: vrTxt_(s.justificacion, 800), estado: 'pendiente', enBorrador: true }; })),
           rubrosAprobados: st.rubrosAprobados || {} };
       }),
       atributosAprobados: P.E.atributosAprobados || {},
@@ -515,7 +517,7 @@ function vrApiAdmin_(ses, pa, accion, datos) {
     if (datos.rechazar) {
       if (t < 1) throw new Error('Las solicitudes del trimestre 1 se pueden rechazar después de procesarlo; mientras tanto, simplemente no las apruebe.');
       var idR = vrMiId_(P, datos.equipoId); if (!idR) throw new Error('Equipo no encontrado en la partida.');
-      (P.innov[idR].solicitudes || []).forEach(function (s) { if (s.nombre === nombre) { s.estado = 'rechazado'; s.motivo = vrTxt_(datos.motivo, 300); } });
+      (P.innov[idR].solicitudes || []).forEach(function (s) { if (String(s.nombre).trim() === nombre) { s.estado = 'rechazado'; s.motivo = vrTxt_(datos.motivo, 300); } });
       putJson_('Estados', P.mapa[idR], t, { empresa: vrEmpresa_(P, idR), innov: P.innov[idR] });
       return { ok: true, mensaje: 'Solicitud rechazada.' };
     }
@@ -524,7 +526,7 @@ function vrApiAdmin_(ses, pa, accion, datos) {
     var fuente = vrTxt_(datos.fuente, 300).trim(); if (fuente.length < 5) throw new Error('Indique la fuente verificable del costo.');
     P.E.rubrosAprobados = P.E.rubrosAprobados || {};
     P.E.rubrosAprobados[clave] = { nombre: nombre, unidad: vrTxt_(datos.unidad, 30), precio: precio, fuente: fuente, aprobado: new Date().toISOString().slice(0, 10) };
-    for (var id in P.innov) { P.innov[id].rubrosAprobados = P.E.rubrosAprobados; (P.innov[id].solicitudes || []).forEach(function (s) { if (s.nombre === nombre) { s.estado = 'aprobado'; s.clave = clave; } }); }
+    for (var id in P.innov) { P.innov[id].rubrosAprobados = P.E.rubrosAprobados; (P.innov[id].solicitudes || []).forEach(function (s) { if (String(s.nombre).trim() === nombre) { s.estado = 'aprobado'; s.clave = clave; } }); }
     if (t < 1) vrGuardarBanco0_(pa, P); else vrGuardar_(pa, t, P);
     log_(ses.email, 'vrRubro', pa.codigo + ' ' + clave);
     return { ok: true, mensaje: 'Rubro "' + nombre + '" incorporado al banco de todos los equipos (clave ' + clave + ').' };
@@ -562,7 +564,7 @@ function vrApiAdmin_(ses, pa, accion, datos) {
     if (datos.rechazar) {
       if (t < 1) throw new Error('Las solicitudes del trimestre 1 se pueden rechazar después de procesarlo; mientras tanto, simplemente no las apruebe.');
       var idA = vrMiId_(P, datos.equipoId); if (!idA) throw new Error('Equipo no encontrado en la partida.');
-      (P.innov[idA].solicitudes || []).forEach(function (s) { if (s.nombre === nomA) { s.estado = 'rechazado'; s.motivo = vrTxt_(datos.motivo, 300); } });
+      (P.innov[idA].solicitudes || []).forEach(function (s) { if (String(s.nombre).trim() === nomA) { s.estado = 'rechazado'; s.motivo = vrTxt_(datos.motivo, 300); } });
       putJson_('Estados', P.mapa[idA], t, { empresa: vrEmpresa_(P, idA), innov: P.innov[idA] });
       return { ok: true, mensaje: 'Solicitud rechazada.' };
     }
@@ -574,7 +576,7 @@ function vrApiAdmin_(ses, pa, accion, datos) {
     if (rubroA && !(P.E.rubrosAprobados || {})[rubroA] && !vrBanco(D, P.E)[rubroA]) throw new Error('El rubro de costo "' + rubroA + '" no está en el banco.');
     P.E.atributosAprobados = P.E.atributosAprobados || {};
     P.E.atributosAprobados[claveA] = { nombre: nomA, u: uA, fuente: fuenteA, rubro: rubroA, aprobado: new Date().toISOString().slice(0, 10) };
-    for (var idB in P.innov) (P.innov[idB].solicitudes || []).forEach(function (s) { if (s.nombre === nomA) { s.estado = 'aprobado'; s.clave = claveA; } });
+    for (var idB in P.innov) (P.innov[idB].solicitudes || []).forEach(function (s) { if (String(s.nombre).trim() === nomA) { s.estado = 'aprobado'; s.clave = claveA; } });
     if (t < 1) vrGuardarBanco0_(pa, P); else vrGuardar_(pa, t, P);
     log_(ses.email, 'vrAtributo', pa.codigo + ' ' + claveA);
     return { ok: true, mensaje: 'Atributo "' + nomA + '" disponible para todos los equipos (clave ' + claveA + ').' };

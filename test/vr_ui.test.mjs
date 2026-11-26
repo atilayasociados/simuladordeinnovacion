@@ -42,6 +42,11 @@ try {
       await pg.click('text=+ Nuevo proyecto'); await pg.waitForTimeout(800);
       await pg.fill('textarea[placeholder="Problema del cliente"]', 'El producto actual tiene mucha azúcar'); await pg.dispatchEvent('textarea[placeholder="Problema del cliente"]', 'change');
       await pg.waitForTimeout(1000); await foto('4_proyecto');
+      // solicitud de un rubro nuevo (con espacio sobrante en el nombre, como escriben los equipos)
+      await pg.click('button:has-text("Agregar solicitud")'); await pg.waitForTimeout(300);
+      { const card = pg.locator('.card', { has: pg.locator('h2', { hasText: 'Solicitudes al docente' }) }), ins = card.locator('input[type=text]');
+        await ins.nth(0).fill('Estevia '); await ins.nth(0).dispatchEvent('change'); await pg.waitForTimeout(200);
+        await card.locator('input[type=text]').nth(1).fill('kg'); await card.locator('input[type=text]').nth(1).dispatchEvent('change'); await pg.waitForTimeout(200); }
       await pg.click('.subnav >> text=Producción'); await pg.waitForTimeout(300); await foto('5_produccion');
       await pg.click('.subnav >> text=Finanzas'); await pg.waitForTimeout(600); await foto('5b_finanzas');
       await pg.click('nav >> text=Resultados'); await pg.click('.subnav >> text=Estados financieros'); await pg.waitForTimeout(300); await foto('6_estados');
@@ -52,6 +57,14 @@ try {
   }
   // docente procesa el T1 y revisa el panel
   await pg.goto(U + '?vista=docente'); await ingresar(s.sa.email, 'Clave#2026');
+  // el docente incorpora la solicitud desde su fila: nombre y unidad vienen de la solicitud, solo escribe precio y fuente
+  await pg.click('nav >> text=Vida real'); await pg.waitForTimeout(1200);
+  R.solicitudVisible = await pg.isVisible('td:has-text("Estevia")');
+  await pg.click('tr:has(td:has-text("Estevia")) >> button:has-text("Incorporar")'); await pg.waitForTimeout(300);
+  await pg.fill('[id^=vrip]', '95.5'); await pg.fill('[id^=vrif]', 'Cotización de prueba 2026');
+  await foto('7b_incorporar_en_fila');
+  await pg.click('button:has-text("al banco como rubro")'); await pg.waitForTimeout(1500);
+  R.rubroIncorporado = JSON.stringify(s.mem.tablas).includes('nuevo:Estevia\\"') && !(await pg.isVisible('td:has-text("Estevia")'));
   await pg.click('nav >> text=Partida'); await pg.waitForTimeout(600);
   R.tablero = await pg.isVisible('text=Envío de decisiones — trimestre 1'); await pg.evaluate(() => { const h = [...document.querySelectorAll('h2')].find((x) => x.textContent.startsWith('Envío de decisiones')); if (h) h.scrollIntoView(); }); await foto('6b_tablero_envios');
   // regla 24-nov-2026: un borrador no enviado no se usa; el docente fuerza el envío de los pendientes
@@ -75,7 +88,7 @@ try {
   await pg.click('nav >> text=Situación'); await pg.waitForTimeout(300); await foto('12_situacion');
   console.log(JSON.stringify(R));
   console.log('Errores de página:', errs.length ? errs : 'ninguno');
-  ok = R.tabVida && R.resumen && R.borrador && R.tablero && R.panel && R.ranking && R.t1 && R.estudio && !errs.length;
+  ok = R.tabVida && R.resumen && R.borrador && R.tablero && R.panel && R.solicitudVisible && R.rubroIncorporado && R.ranking && R.t1 && R.estudio && !errs.length;
 } catch (e) { ok = false; console.log('FALLA:', e.message, errs); await foto('error'); }
 await br.close(); await s.cerrar();
 console.log(ok ? 'UI VR OK' : 'UI VR CON FALLAS');

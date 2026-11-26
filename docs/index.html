@@ -176,7 +176,7 @@ th.a0,td.a0{background:#F6F6F2;color:#555}
   <script>
 // Si GitHub Pages ya tiene una versión más nueva que la guardada en el navegador, recarga una vez.
 (function () {
-  var V0 = 'c0d00f655e7a';
+  var V0 = '6c9278e5e5ac';
   try {
     fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var v = String(t || '').trim().split(/\s+/)[0];
@@ -1489,8 +1489,14 @@ function VR_htmlPanel(r) {
     ((r.factores || []).length ? '<p>Productos lanzados: venta real frente a lo que mostró la prueba (1 = igual; Kahn, 2002): ' + r.factores.map(function (f) { return esc(f.nombre) + ': ' + f.productos.map(function (p) { return esc(p.nombre) + ' ×' + vrN(p.factorReal, 2); }).join(', '); }).join(' · ') + '.</p>' : '') + '</div>';
   var sol = [];
   r.equipos.forEach(function (e) { (e.solicitudes || []).forEach(function (s) { sol.push({ e: e, s: s }); }); });
-  h += '<div class="card"><h2>Solicitudes de rubros y atributos nuevos (proyectos radicales)</h2>' + (sol.length ? '<div class="scroll"><table><tr><th>Equipo</th><th>Tipo</th><th>Nombre</th><th>Unidad</th><th>Para qué</th><th>Estado</th></tr>' + sol.map(function (x) { return '<tr><td>' + esc(x.e.nombre) + '</td><td>' + (x.s.tipo === 'atributo' ? 'Atributo' : 'Rubro') + '</td><td>' + esc(x.s.nombre) + (x.s.enBorrador ? ' <span class="muted">(en el borrador de este trimestre)</span>' : '') + '</td><td>' + esc(x.s.unidad) + '</td><td>' + esc(x.s.justificacion) + '</td><td>' + esc(x.s.estado) + (x.s.estado === 'pendiente' ? ' <button class="btn sec" onclick="VR_rechazar(\'' + esc(x.e.equipoId) + '\',\'' + esc(String(x.s.nombre).replace(/'/g, '')) + '\',\'' + (x.s.tipo === 'atributo' ? 'vrAtributo' : 'vrRubro') + '\')">Rechazar</button>' : '') + '</td></tr>'; }).join('') + '</table></div>' : '<p class="muted">No hay solicitudes.</p>') +
-    '<h3>Incorporar un rubro al banco (para todos los equipos)</h3><div class="grid g4"><div><label>Nombre</label><input type="text" id="vrrn"></div><div><label>Unidad</label><input type="text" id="vrru" placeholder="kg, unidad, mes…"></div><div><label>Precio (Bs por unidad)</label><input type="number" id="vrrp" step="any"></div><div><label>Fuente verificable</label><input type="text" id="vrrf" placeholder="Cotización, página web, estudio…"></div></div>' +
+  VR_SOL = sol;
+  h += '<div class="card"><h2>Solicitudes de rubros y atributos nuevos (proyectos radicales)</h2>' + (sol.length ? '<p class="muted">Con «Incorporar» se usan el nombre y la unidad de la solicitud: solo falta escribir lo que el equipo no puede saber (precio y fuente del rubro, o utilidad del atributo en cada segmento).</p><div class="scroll"><table><tr><th>Equipo</th><th>Tipo</th><th>Nombre</th><th>Unidad</th><th>Para qué</th><th>Estado</th></tr>' + sol.map(function (x, i) {
+      var pend = x.s.estado === 'pendiente';
+      return '<tr><td>' + esc(x.e.nombre) + '</td><td>' + (x.s.tipo === 'atributo' ? 'Atributo' : 'Rubro') + '</td><td>' + esc(x.s.nombre) + (x.s.enBorrador ? ' <span class="muted">(en el borrador de este trimestre)</span>' : '') + '</td><td>' + esc(x.s.unidad) + '</td><td>' + esc(x.s.justificacion) + '</td><td>' + esc(x.s.estado) +
+        (pend ? ' <button class="btn" onclick="VR_incAbrir(' + i + ')">Incorporar</button> <button class="btn sec" onclick="VR_rechazar(\'' + esc(x.e.equipoId) + '\',\'' + esc(String(x.s.nombre).replace(/'/g, '')) + '\',\'' + (x.s.tipo === 'atributo' ? 'vrAtributo' : 'vrRubro') + '\')">Rechazar</button>' : '') + '</td></tr>' +
+        (pend ? '<tr id="vrinc' + i + '" style="display:none"><td colspan="6">' + VR_incForm(x.s, i) + '</td></tr>' : '');
+    }).join('') + '</table></div>' : '<p class="muted">No hay solicitudes.</p>') +
+    '<h3>Incorporar un rubro al banco sin solicitud (para todos los equipos)</h3><div class="grid g4"><div><label>Nombre</label><input type="text" id="vrrn"></div><div><label>Unidad</label><input type="text" id="vrru" placeholder="kg, unidad, mes…"></div><div><label>Precio (Bs por unidad)</label><input type="number" id="vrrp" step="any"></div><div><label>Fuente verificable</label><input type="text" id="vrrf" placeholder="Cotización, página web, estudio…"></div></div>' +
     '<button class="btn" style="margin-top:8px" onclick="adm(\'vrRubro\',{nombre:$(\'vrrn\').value,unidad:$(\'vrru\').value,precio:$(\'vrrp\').value,fuente:$(\'vrrf\').value},false).then(VR_cargarPanel)">Incorporar al banco</button><p class="muted">El nombre debe coincidir con el de la solicitud para marcarla como atendida.</p>' +
     '<h3>Aprobar un atributo nuevo del producto (para todos los equipos)</h3><p class="muted">Solo con un estudio que dé la utilidad del atributo en cada segmento, en la misma escala de Brodock et al. (2021): el mensaje «premium» vale cerca de +20 y «polifenoles» cerca de −28.</p><div class="grid g4"><div><label>Nombre</label><input type="text" id="vran"></div><div><label>Utilidad · Natural</label><input type="number" id="vra1" step="any"></div><div><label>Utilidad · Cuida calorías</label><input type="number" id="vra2" step="any"></div><div><label>Utilidad · Promedio</label><input type="number" id="vra3" step="any"></div></div><div class="grid g2"><div><label>Estudio (fuente verificable)</label><input type="text" id="vraf"></div><div><label>Rubro de costo que exige (clave, opcional)</label><input type="text" id="vrar" placeholder="nuevo:…"></div></div>' +
     '<button class="btn" style="margin-top:8px" onclick="adm(\'vrAtributo\',{nombre:$(\'vran\').value,natural:$(\'vra1\').value,calorias:$(\'vra2\').value,promedio:$(\'vra3\').value,fuente:$(\'vraf\').value,rubro:$(\'vrar\').value},false).then(VR_cargarPanel)">Aprobar atributo</button>' +
@@ -1504,6 +1510,27 @@ function VR_devolver(equipoId, nombre) {
 function VR_rechazar(equipoId, nombre, accion) {
   var m = prompt('Motivo del rechazo (lo verá el equipo):', ''); if (m === null) return;
   adm(accion || 'vrRubro', { equipoId: equipoId, nombre: nombre, rechazar: true, motivo: m }, false).then(VR_cargarPanel);
+}
+var VR_SOL = [];
+/** Formulario dentro de la fila de la solicitud: nombre y unidad vienen de la solicitud; el docente solo escribe lo que falta. */
+function VR_incForm(s, i) {
+  var rub = '<div class="grid g2"><div><label>Precio (Bs por ' + esc(s.unidad || 'unidad') + ')</label><input type="number" id="vrip' + i + '" step="any" min="0"></div><div><label>Fuente verificable del precio</label><input type="text" id="vrif' + i + '" placeholder="Cotización, página web, estudio…"></div></div>' +
+    '<button class="btn" style="margin-top:6px" onclick="VR_incRubro(' + i + ')">Incorporar «' + esc(s.nombre) + '» al banco como rubro</button>';
+  if (s.tipo !== 'atributo') return '<b>Incorporar el rubro «' + esc(s.nombre) + '» (' + esc(s.unidad || 'sin unidad') + ')</b>' + rub;
+  return '<b>Aprobar el atributo «' + esc(s.nombre) + '»</b><p class="muted">Solo con un estudio que dé la utilidad en cada segmento (escala de Brodock et al., 2021: «premium» cerca de +20, «polifenoles» cerca de −28).</p>' +
+    '<div class="grid g4"><div><label>Utilidad · Natural</label><input type="number" id="vria1' + i + '" step="any"></div><div><label>Utilidad · Cuida calorías</label><input type="number" id="vria2' + i + '" step="any"></div><div><label>Utilidad · Promedio</label><input type="number" id="vria3' + i + '" step="any"></div><div><label>Rubro de costo que exige (clave, opcional)</label><input type="text" id="vriar' + i + '" placeholder="nuevo:…"></div></div>' +
+    '<div><label>Estudio (fuente verificable)</label><input type="text" id="vriaf' + i + '"></div>' +
+    '<button class="btn" style="margin-top:6px" onclick="VR_incAtributo(' + i + ')">Aprobar atributo «' + esc(s.nombre) + '»</button>' +
+    '<p class="muted" style="margin-top:10px">Si lo que el equipo necesita es su costo (por ejemplo, un endulzante que ya existe en la etiqueta), incorpórelo como rubro:</p>' + rub;
+}
+function VR_incAbrir(i) { var f = $('vrinc' + i); if (f) f.style.display = f.style.display === 'none' ? '' : 'none'; }
+function VR_incRubro(i) {
+  var s = VR_SOL[i].s;
+  adm('vrRubro', { nombre: s.nombre, unidad: s.unidad || '', precio: $('vrip' + i).value, fuente: $('vrif' + i).value }, false).then(VR_cargarPanel);
+}
+function VR_incAtributo(i) {
+  var s = VR_SOL[i].s;
+  adm('vrAtributo', { nombre: s.nombre, natural: $('vria1' + i).value, calorias: $('vria2' + i).value, promedio: $('vria3' + i).value, fuente: $('vriaf' + i).value, rubro: $('vriar' + i).value }, false).then(VR_cargarPanel);
 }
 function VR_htmlRanking(r) {
   return '<p>Indicadores al cierre de T' + r.t + '. Puntaje (decisión del docente): resultado comercial 35 %, retorno 35 %, calidad del proceso 30 %, normalizados en la clase.</p><div class="scroll"><table><tr><th>#</th><th>Equipo</th><th class="n">Puntaje</th><th class="n">Ventas de productos nuevos (último año)</th><th class="n">Retorno de la innovación</th><th class="n">Proceso</th><th class="n">Utilidad acumulada</th><th class="n">Caja</th></tr>' +
