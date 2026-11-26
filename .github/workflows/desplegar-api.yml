@@ -23,6 +23,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.3.0
       - name: Publicar función api
         run: supabase functions deploy api --project-ref "$PROYECTO" --no-verify-jwt --use-api --yes
